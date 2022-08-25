@@ -172,7 +172,7 @@ hdmde=function(x.obs, N0, alpha, max.comp){
   D=n.D[2]
   N=N0
   
-  km=kmeans(x.obs, N, nstart = 100)   # Use k-means clustering to get N clusters of x.obs.
+  km=kmeans(x.obs, N, iter.max = 100, nstart = 100)   # Use k-means clustering to get N clusters of x.obs.
   mu=km$centers                       # Set the centers of the N clusters as the means of the density components.
   
   sigma.vec=rep(NA,N)                 # The following block estimates \sigma_N.
