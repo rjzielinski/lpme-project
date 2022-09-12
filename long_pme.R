@@ -1,7 +1,9 @@
-long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE) {
+long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE) {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
+  
+  require(Rfast)
   
   source("PME_recode.R")
   # source("Principal_Manifold_Estimation.R")
@@ -81,6 +83,8 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.
   gamma <- 4 - d_new
 
   sig_new <- 0.001
+  # weight.seq function potentially takes longer time, med 7.8 seconds
+  # all values are nearly identical -- might be able to eliminate
   theta_hat_new <- weight.seq(x_test, x_test, sig_new)
   centers_new <- x_test
   sigma_new <- 0.001
@@ -89,6 +93,8 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.
   I_new <- length(theta_hat_new)
 
   dissimilarity_matrix_new <- as.matrix(dist(X_new))
+  # isomap_points are not used, can eliminate
+  # median of ~1.7 seconds
   isomap_initial <- isomap(
     dissimilarity_matrix_new,
     ndim = d_new,
@@ -97,6 +103,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.
   # t_initial <- isomap_initial$points
   t_initial <- r
 
+  # consider preallocating vector and lists
   MSE_seq_new <- vector()
   SOL_new <- list()
   TNEW_new <- list()
@@ -116,8 +123,11 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.
     t_new <- t_initial
     T_new <- cbind(rep(1, I_new), t_new)
 
-    E_new <- matrix(NA, ncol = I_new, nrow = I_new)
-    for (j in 1:I_new) {
+    E_new <- matrix(NA, ncol = I_new, nrow = I_new) # good to preallocate matrix
+    # would be nice to avoid for loop here
+    # entire for loop takes median of 4.2 seconds
+    # may be able to cut this down
+    for (j in 1:I_new) { 
       E_prepare <- function(t) {
         eta.kernel(t - t_new[j, ], gamma)
       }
@@ -188,6 +198,10 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.
         x.init[(D_new + 1):(D_new + d_new)]
       )
     }
+    
+    ##### This step taking very long time
+    ##### Median of 6 minutes -- need to cut this down somehow
+    ##### Maybe there's a way to vectorize?
 
     t_new <- matrix(
       t(apply(X_initial_guess, 1, projection.index.f0)),
