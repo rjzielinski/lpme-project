@@ -510,14 +510,25 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     # The first D columns of "x.prin" corresponds to points in the input space
     # and the last d columns of "x.prin" corresponds to the projection indices of these points onto f.
     SSD.prepare <- function(x.prin, f) { 
-      return(dist_euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2) 
+      return(dist.euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2) 
+    }
+    
+    SSD_prepare <- function(x.prin, f) {
+      return(dist_euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2)
     }
     
     X.projection.index <- cbind(X, tnew) # "tnew" here is the projection index onto fnew, rather than f0. 
     SSD.prepare.again <- function(x.init) { 
       return(SSD.prepare(x.init, fnew)) 
     }
-    SSD.new <- apply(X.projection.index, 1, SSD.prepare.again) %>% 
+    SSD_prepare_again <- function(x.init) {
+      return(SSD_prepare(x.init, fnew))
+    }
+    # SSD.new <- apply(X.projection.index, 1, SSD.prepare.again) %>% 
+    #   as.vector() %>% 
+    #   sum()
+    
+    SSD.new <- apply(X.projection.index, 1, SSD_prepare_again) %>% 
       as.vector() %>% 
       sum()
     
