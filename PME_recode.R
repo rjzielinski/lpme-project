@@ -47,12 +47,25 @@ library(tidyverse)
 
 # Norm function in an Euclidean space of any dimension
 norm.euclidean <- function(x) { 
-  return(norm(matrix(x, ncol=1), type = "F")) 
+  temp_mat <- matrix(x, ncol = 1)
+  norm_val <- norm(temp_mat, type = "F")
+  # norm_val <- sqrt(sum(temp_mat ^ 2))
+  return(norm_val) 
+}
+
+norm_euclidean <- function(x) {
+  temp_vec <- matrix(x, ncol = 1)
+  norm_val <- sqrt(sum(temp_vec ^ 2))
+  return(norm_val)
 }
 
 # Distance function in an Euclidean space of any dimension
 dist.euclidean <- function(x, y) { 
   return(norm.euclidean(x - y)) 
+}
+
+dist_euclidean <- function(x, y) {
+  return(norm_euclidean(x - y))
 }
 
 ## Subsection 1.2, Kernels for minimization in a semi-normed space of Sobolev type
@@ -75,10 +88,31 @@ eta.kernel <- function(t, lambda) {
   } else {
     y <- norm.euclidean(t) ^ lambda
   }
+}
+
+eta_kernel <- function(t, lambda) {
+  norm_val <- norm_euclidean(t)
+  if (lambda %% 2 == 0) {
+    if (norm_val == 0) {
+      y <- 0
+    } else {
+      y <- (norm_val ^ lambda) * log(norm_val)
+    }
+  } else {
+    y <- norm_val ^ lambda
+  }
   return(y)
 }
 
 ## Subsection 1.3, Projection Index function
+projection2 <- function(x, f, initial.guess) {
+  DD <- function(t) {
+    return(dist_euclidean(x, f(t)))
+  }
+  est <- nlm(DD, p = initial.guess)
+  return(est$estimate)
+}
+
 projection <- function(x, f, initial.guess) {
   DD <- function(t) { 
     return(dist.euclidean(x, f(t))) 
@@ -331,6 +365,7 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     N0 <- 20 * D 
   }
   
+  # 
   est <- hdmde(x.obs, N0, alpha, max.comp) # "hdmde" gives \hat{Q}_N.
   theta.hat <- est$theta.hat
   centers <- est$mu
@@ -403,12 +438,22 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     
     eta.func <- function(t) {
       eta.func.prepare <- function(tau) {
-        return(eta.kernel(t - tau, lambda)) 
+        return(eta_kernel(t - tau, lambda)) 
       }
       return(
         matrix(
           apply(tnew, 1, eta.func.prepare),
           ncol=1
+        )
+      )
+    }
+    
+    eta_func <- function(t) {
+      temp_mat <- sweep(-1 * tnew, 2, t, "+")
+      return(
+        matrix(
+          apply(temp_mat, 1, eta_kernel, lambda),
+          ncol = 1
         )
       )
     }
@@ -419,6 +464,15 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
           t(sol[1:I, ]) %*% 
             eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*% 
             matrix(c(1, t), ncol = 1)
+        )
+      )
+    }
+    
+    fnew2 <- function(t) {
+      return(
+        as.vector(
+          t(sol[1:I, ]) %*% eta_func(t) +
+            t(sol[(I + 1):(I + d + 1), ]) %*% matrix(c(1, t), ncol = 1)
         )
       )
     }
@@ -481,7 +535,7 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
       
       for(j in 1:I) {
         E.prepare <- function(t) { 
-          eta.kernel(t - tnew[j, ], lambda) 
+          eta_kernel(t - tnew[j, ], lambda) 
         }
         E[, j] <- apply(tnew, 1, E.prepare)                                     
       }
