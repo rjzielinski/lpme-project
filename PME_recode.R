@@ -29,16 +29,16 @@
 ####################################################################
 
 #install.packages("MASS")
-library("MASS")
+library(MASS)
 #install.packages("Matrix")
-library("Matrix")
+library(Matrix)
 library(memoise)
 #install.packages("vegan")
-library("vegan")
+library(vegan)
 #install.packages("plot3D")
-library("plot3D")
+library(plot3D)
+library(Rfast)
 library(tidyverse)
-
 
 
 ########### Section 1, Some Basic Functions ########################
@@ -47,24 +47,14 @@ library(tidyverse)
 ## Subsection 1.1, Functions for Euclidean metrics
 
 # Norm function in an Euclidean space of any dimension
-norm.euclidean <- function(x) { 
-  temp_mat <- matrix(x, ncol = 1)
-  norm_val <- norm(temp_mat, type = "F")
-  # norm_val <- sqrt(sum(temp_mat ^ 2))
-  return(norm_val) 
-}
-
 norm_euclidean <- function(x) {
-  temp_vec <- matrix(x, ncol = 1)
-  norm_val <- sqrt(sum(temp_vec ^ 2))
+  temp_vec <- as.vector(x)
+  norm_val <- sum(temp_vec ^ 2) %>% 
+    sqrt()
   return(norm_val)
 }
 
 # Distance function in an Euclidean space of any dimension
-dist.euclidean <- function(x, y) { 
-  return(norm.euclidean(x - y)) 
-}
-
 dist_euclidean <- function(x, y) {
   return(norm_euclidean(x - y))
 }
@@ -79,18 +69,6 @@ ker <- function(x, mu, sigma) {
 }
 
 # Reproducing Kernels associated with Sobolev space D^{-2}L^2(R^d)
-eta.kernel <- function(t, lambda) {
-  if (lambda %% 2 == 0) {
-    if (norm.euclidean(t) == 0) {
-      y <- 0
-    } else {
-      y <- (norm.euclidean(t) ^ lambda) * log(norm.euclidean(t))
-    }
-  } else {
-    y <- norm.euclidean(t) ^ lambda
-  }
-}
-
 eta_kernel <- function(t, lambda) {
   norm_val <- norm_euclidean(t)
   if (lambda %% 2 == 0) {
@@ -106,23 +84,15 @@ eta_kernel <- function(t, lambda) {
 }
 
 ## Subsection 1.3, Projection Index function
-projection2 <- function(x, f, initial.guess) {
+projection <- function(x, f, initial_guess) {
   DD <- function(t) {
     return(dist_euclidean(x, f(t)))
   }
-  est <- nlm(DD, p = initial.guess, gradtol = 1e-5)
+  est <- nlm(DD, p = initial_guess)
   return(est$estimate)
 }
 
-mem_proj2 <- memoise(projection2)
-
-projection <- function(x, f, initial.guess) {
-  DD <- function(t) { 
-    return(dist.euclidean(x, f(t))) 
-  }
-  est <- nlm(DD,p=initial.guess)
-  return(est$estimate)
-}
+mem_projection <- memoise(projection)
 
 ##### Section 2, High Dimensional Mixture Density Estimation #######
 ####################################################################
@@ -130,7 +100,7 @@ projection <- function(x, f, initial.guess) {
 ## Subsection 2.1 
 # When \mu's and \sigma are given, the following function estimates \hat{\theta}'s.
 
-weight.seq <- function(x.obs, mu, sigma, epsilon=0.001, max.iter=1000) { 
+weight_seq <- function(x_obs, mu, sigma, epsilon = 0.001, max_iter = 1000) { 
   
   # "x.obs" is the data set of interest. 
   #         There are n observations, and each observation is a D-dimensional point.
@@ -140,191 +110,181 @@ weight.seq <- function(x.obs, mu, sigma, epsilon=0.001, max.iter=1000) {
   # "epsilon" is a predetermined tolerance of the Euclidean distance between thetas in two consecutive steps.
   # "max.iter" is a predetermined upper bound of the number of steps in this iteration.
   
-  n.D <- dim(x.obs)                  
-  n <- n.D[1]
-  D <- n.D[2]
+  n_D <- dim(x_obs)
+  n <- n_D[1]
+  D <- n_D[2]
   N <- dim(mu)[1]                     
   
-  A <- matrix(NA,ncol = N,nrow = n)
-  for(j in 1:N){
-    A.prepare <- function(x){ 
+  A <- matrix(NA, ncol = N, nrow = n)
+  for(j in 1:N) {
+    A_prepare <- function(x) {
       return(ker(x, mu[j, ], sigma))  
     }
-    A[,j] <- apply(x.obs, 1, A.prepare) # A[i,j] is \psi_sigma (x_i-mu_j).
+    A[, j] <- apply(x_obs, 1, A_prepare) # A[i,j] is \psi_sigma (x_i-mu_j).
   }
   
   # The initial guess for weights, say \theta_j's.
-  theta.old <- rep(1 / N, N)
+  theta_old <- rep(1 / N, N)
   # Absolute value of the difference between "theta.new" and "theta.old".
-  abs.diff <- 10 * epsilon 
+  abs_diff <- 10 * epsilon 
   # Counting the number of steps in this iteration.
   count <- 0 
   # The initial guess of the Lagrangian multipliers
-  lambda.hat.old <- c(n, rep(-1, D)) 
+  lambda_hat_old <- c(n, rep(-1, D)) 
   
   # The iteration for computing desired theta's
-  while((abs.diff > epsilon) & (count <= max.iter)) { 
+  while((abs_diff > epsilon) & (count <= max_iter)) { 
     
-    W <- t(t(A) * theta.old) # \theta_j^{(k)} \times \psi_\sigma(x_i-mu_j)
-    W <- W / apply(W, 1, sum) # W[i,j] is the posterior probability of Z=j|X=x_i, say w_{i,j}(\theta.old).
-    w <- apply(W, 2, sum) # w[j] = \sum_{i=1}^n w_{i,j}
+    W <- t(t(A) * theta_old) # \theta_j^{(k)} \times \psi_\sigma(x_i-mu_j)
+    W <- W / rowsums(W) # W[i,j] is the posterior probability of Z=j|X=x_i, say w_{i,j}(\theta.old).
+    w <- colsums(W) # w[j] = \sum_{i=1}^n w_{i,j}
     
     flambda <- function(lambda) {
       # This function is for computing Lagrangian multipliers.
-      denom.temp <- apply( # The denominator sequence: 
-        t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda), 
-        1, 
-        sum
+      denom_temp <- rowsums(
+        t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda)
       )
+      
       # \lambda_1+\lambda_2^T \mu_j, j=1,2,...,N.
-      num.temp <- mu * w
+      num_temp <- mu * w
       
       # \sum_{j=1}^N \frac{ w_ij }{ \lambda_1+\lambda_2^T \mu_j }
-      f1 <- sum(w / denom.temp)          
-      f2 <- apply(
-        num.temp * (as.vector(1 / denom.temp)),
-        2,
-        sum
-      )
-      f <- dist.euclidean(f1, 1) + dist.euclidean(f2, apply(x.obs, 2, mean))
+      f1 <- sum(w / denom_temp)
+      f2 <- colsums(num_temp * as.vector(1 / denom_temp))
+      f <- dist_euclidean(f1, 1) + dist_euclidean(f2, colmeans(x_obs))
       return(f) 
     }
     
-    lambda.hat <- nlm(flambda, lambda.hat.old, iterlim=1000)$estimate              # The lagrangian multipliers.
+    lambda_hat <- nlm(flambda, lambda_hat_old, iterlim=1000)$estimate              # The lagrangian multipliers.
     # We set the Lagrangian multipliers in the previous step 
     # as the initial guess in this step.
-    theta.new <- w /
-      apply(
-        t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda.hat),
-        1,
-        sum
-      )   # The new theta's computed from the old theta's
-    abs.diff <- dist.euclidean(theta.new, theta.old)                              # The Euclidean distance between the old and new theta vectors.
-    if (is.na(abs.diff)) { 
-      abs.diff <- 0 
-      theta.new <- theta.old 
+    theta_new <- w / rowsums(t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda_hat))
+    abs_diff <- dist_euclidean(theta_new, theta_old)                              # The Euclidean distance between the old and new theta vectors.
+    if (is.na(abs_diff)) {
+      abs_diff <- 0
+      theta_new <- theta_old
     } # It helps us avoid "NA trouble".
     
-    theta.old <- pmax(theta.new, 0) # Set the new theta as the old theta for the next iteration step.   
-    theta.old <- pmin(theta.old, 1) # pmax() and pmin() guarantee that theta_j's are in [0,1]. 
+    theta_old <- pmax(theta_new, 0) # Set the new theta as the old theta for the next iteration step.   
+    theta_old <- pmin(theta_old, 1) # pmax() and pmin() guarantee that theta_j's are in [0,1]. 
     count <- count + 1
-    lambda.hat.old <- lambda.hat
+    lambda_hat_old <- lambda_hat
   }
   
-  theta.hat <- pmax(theta.new, 0) # The iteration has stopped.  
-  theta.hat <- pmin(theta.hat, 1) # Again, we guarantee that theta_j's are in [0,1].
-  return(theta.hat) # It returns the estimation of weights \theta_j's.
+  theta_hat <- pmax(theta_new, 0) # The iteration has stopped.  
+  theta_hat <- pmin(theta_hat, 1) # Again, we guarantee that theta_j's are in [0,1]
+  return(theta_hat) # It returns the estimation of weights \theta_j's_
 }
 
 ## Subsection 2.2
 # Based on the function weight.seq() in Subsection 2.1, we give the following
-# high dimensional mixture density estiamtion function.
+# high dimensional mixture density estimation function.
 
-hdmde <- function(x.obs, N0, alpha, max.comp) {
+hdmde <- function(x_obs, N0, alpha, max_comp) {
   
-  # "x.obs" is the data set of interest. 
+  # "x_obs" is the data set of interest. 
   # There are n observations, and each observation is a D-dimensional point.
-  # x.obs is a n-by-D matrix.
+  # x_obs is a n-by-D matrix.
   # "N0" is a predetermined lower bound for N - the number of density components
   # "alpha" is the predetermined confidence level.
-  # "max.comp" is the upper bound of the number of components in the desired mixture density.
+  # "max_comp" is the upper bound of the number of components in the desired mixture density.
   
   zalpha <- qnorm(1 - alpha / 2)  
-  n.D <- dim(x.obs) # "x.obs" is a n by D matrix. Each row of it denotes a data point in R^D.
-  n <- n.D[1]
-  D <- n.D[2]
+  n_D <- dim(x_obs) # "x.obs" is a n by D matrix. Each row of it denotes a data point in R^D.
+  n <- n_D[1]
+  D <- n_D[2]
   N <- N0
   
-  km <- kmeans(x.obs, N, iter.max = 100, nstart = 100) # Use k-means clustering to get N clusters of x.obs.
+  km <- kmeans(x_obs, N, iter_max = 100, nstart = 100) # Use k-means clustering to get N clusters of x_obs_
   mu <- km$centers # Set the centers of the N clusters as the means of the density components.
   
-  sigma.vec <- rep(NA, N) # The following block estimates \sigma_N.
+  sigma_vec <- rep(NA, N) # The following block estimates \sigma_N.
   for(j in 1:N) {                      
-    index.temp <- which(km$cluster == j)   
-    xi.j <- matrix(x.obs[index.temp, ], nrow = length(index.temp))
-    sig.prepare <- function(x) {
-      return((dist.euclidean(x, mu[j, ])) ^ 2) 
+    index_temp <- which(km$cluster == j)   
+    xi_j <- matrix(x_obs[index_temp, ], nrow = length(index_temp))
+    sig_prepare <- function(x) {
+      return((dist_euclidean(x, mu[j, ])) ^ 2) 
     }
-    s <- apply(xi.j, 1, sig.prepare)
-    sigma.vec[j] <- mean(s)
+    s <- apply(xi_j, 1, sig_prepare)
+    sigma_vec[j] <- mean(s)
   }
-  sig <- sqrt(mean(sigma.vec) / dim(x.obs)[2])
+  sig <- sqrt(mean(sigma_vec) / dim(x_obs)[2])
   
   # It gives an estimation of theta_j's with weight.seq().
-  theta.hat <- weight.seq(x.obs, mu, sig)  
+  theta_hat <- weight_seq(x_obs, mu, sig)  
   
   # The following block gives an approximation to the underlying density function of interest.
   # This estimation is of the form of weights times scaled kernels.
-  f.test <- function(x) {
-    fun.prepare <- function(t) { 
+  f_test <- function(x) {
+    fun_prepare <- function(t) { 
       return(ker(x, t, sig)) 
     }
-    comp.vec <- apply(mu, 1, fun.prepare)
-    return(sum(theta.hat * comp.vec))
+    comp_vec <- apply(mu, 1, fun_prepare)
+    return(sum(theta_hat * comp_vec))
   }
   
-  p.old <- apply(x.obs,1,f.test) # The second/negative term p_N in Delta.hat.
+  p_old <- apply(x_obs, 1, f_test) # The second/negative term p_N in Delta.hat.
   
-  test.rejection <- 1
-  while ((test.rejection == 1) & (N <= min(n, max.comp))) {
+  test_rejection <- 1
+  while ((test_rejection == 1) & (N <= min(n, max_comp))) {
     
     N <- N + 1
     
     ##################################################
     # The following is a repetition of the codes above.
-    km <- kmeans(x.obs, N, nstart = 100)              
-    mu <- km$centers                   
+    km <- kmeans(x_obs, N, nstart = 100)
+    mu <- km$centers
     
-    sigma.vec <- rep(NA, N)              
-    for(j in 1:N) {                      
-      index.temp <- which(km$cluster == j)   
-      xi.j <- matrix(x.obs[index.temp, ], nrow = length(index.temp))        
-      sig.prepare <- function(x) { 
-        return(dist.euclidean(x, mu[j, ]) ^ 2) 
+    sigma_vec <- rep(NA, N)
+    for(j in 1:N) {
+      index_temp <- which(km$cluster == j)
+      xi_j <- matrix(x_obs[index_temp, ], nrow = length(index_temp))
+      sig_prepare <- function(x) {
+        return(dist_euclidean(x, mu[j, ]) ^ 2)
       }
-      s <- apply(xi.j, 1, sig.prepare)
-      sigma.vec[j] <- mean(s)
+      s <- apply(xi_j, 1, sig_prepare)
+      sigma_vec[j] <- mean(s)
     }
-    sig <- sqrt(mean(sigma.vec) / dim(x.obs)[2])
+    sig <- sqrt(mean(sigma_vec) / dim(x_obs)[2])
     
-    theta.hat <- weight.seq(x.obs, mu, sig) 
+    theta_hat <- weight_seq(x_obs, mu, sig) 
     
-    f.test <- function(x) {
-      fun.prepare <- function(t) { 
-        return(ker(x, t, sig)) 
+    f_test <- function(x) {
+      fun_prepare <- function(t) {
+        return(ker(x, t, sig))
       }
-      comp.vec <- apply(mu, 1, fun.prepare)
-      return(sum(theta.hat * comp.vec))
+      comp_vec <- apply(mu, 1, fun_prepare)
+      return(sum(theta_hat * comp_vec))
     }
     
     # The part above is a repetition.
     ##################################################
     
-    p.new <- apply(x.obs, 1, f.test) # The first/positive term p_{N+1} in Delta.hat.
-    delta.hat <- p.new - p.old # Delta.hat
-    sigma.hat.sq <- mean((delta.hat - mean(delta.hat)) ^ 2)
-    Z.I.N <- sqrt(dim(x.obs)[1]) * mean(delta.hat) / sqrt(sigma.hat.sq)
+    p_new <- apply(x_obs, 1, f_test) # The first/positive term p_{N+1} in Delta_hat_
+    delta_hat <- p_new - p_old # Delta.hat
+    sigma_hat_sq <- mean((delta_hat - mean(delta_hat)) ^ 2)
+    Z_I_N <- sqrt(dim(x_obs)[1]) * mean(delta_hat) / sqrt(sigma_hat_sq)
     
     if (
-      (Z.I.N <= zalpha) & 
-      (Z.I.N >= -zalpha) & 
-      (!is.na(Z.I.N))
+      (Z_I_N <= zalpha) & 
+      (Z_I_N >= -zalpha) & 
+      (!is_na(Z_I_N))
     ) { 
-      test.rejection=0 
+      test_rejection=0 
     }
-    p.old <- p.new
+    p_old <- p_new
   }
   
-  f <- f.test
+  f <- f_test
   
   resp <- list(
-    estimating.pdf = f,
-    theta.hat = theta.hat,
+    estimating_pdf = f,
+    theta_hat = theta_hat,
     mu = mu,
     N = N,
-    k.means.result = km,
+    k_means_result = km,
     sigma = sig,
-    Z.I.N = Z.I.N
+    Z_I_N = Z_I_N
   )
   
   # Output:
@@ -342,7 +302,7 @@ hdmde <- function(x.obs, N0, alpha, max.comp) {
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
 
-PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE) {
+PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max_comp=100, epsilon=0.05, max_iter=100, print_MSDs=TRUE) {
   
   # "x.obs" is the data set of interest. 
   #         There are n observations, and each observation is a D-dimensional point.
