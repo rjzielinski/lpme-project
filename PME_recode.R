@@ -32,6 +32,7 @@
 library("MASS")
 #install.packages("Matrix")
 library("Matrix")
+library(memoise)
 #install.packages("vegan")
 library("vegan")
 #install.packages("plot3D")
@@ -109,9 +110,11 @@ projection2 <- function(x, f, initial.guess) {
   DD <- function(t) {
     return(dist_euclidean(x, f(t)))
   }
-  est <- nlm(DD, p = initial.guess)
+  est <- nlm(DD, p = initial.guess, gradtol = 1e-5)
   return(est$estimate)
 }
+
+mem_proj2 <- memoise(projection2)
 
 projection <- function(x, f, initial.guess) {
   DD <- function(t) { 
@@ -491,12 +494,15 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     projection.index.f0 <- function(x.init) { 
       projection(x.init[1:D], f0, x.init[(D + 1):(D + d)]) 
     }
+    projection_index_f0 <- function(x.init) {
+      mem_proj2(x.init[1:D], f0, x.init[(D + 1):(D + d)])
+    }
     
     # The first D columns of x.init corresponds to X and the last d columns corresponds to tnew.
     # projection() is applied to X[j,] with initial guess tnew[j,], which is the projection index for X[j,] onto the old manifold f0.
     
     tnew <- matrix(
-      t(apply(X.initial.guess, 1, projection.index.f0)),
+      t(apply(X.initial.guess, 1, projection_index_f0)),
       nrow = I
     )   # This method can help us avoid the chaos from improper initial guess.
     
@@ -504,7 +510,7 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     # The first D columns of "x.prin" corresponds to points in the input space
     # and the last d columns of "x.prin" corresponds to the projection indices of these points onto f.
     SSD.prepare <- function(x.prin, f) { 
-      return(dist.euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2) 
+      return(dist_euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2) 
     }
     
     X.projection.index <- cbind(X, tnew) # "tnew" here is the projection index onto fnew, rather than f0. 
@@ -595,10 +601,18 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
       projection.index.f0 <- function(x.init) { 
         projection(x.init[1:D], f0, x.init[(D + 1):(D + d)]) 
       }
+      projection_index_f0 <- function(x.init) {
+        mem_proj2(x.init[1:D], f0, x.init[(D + 1):(D + d)])
+      }
+      
       tnew <- matrix(
-        t(apply(X.initial.guess, 1, projection.index.f0)),
+        t(apply(X.initial.guess, 1, projection_index_f0)),
         nrow = I
-      ) # The "tnew" here is the projection index to fnew, rather than f0.
+      )
+      # tnew <- matrix(
+      #   t(apply(X.initial.guess, 1, projection.index.f0)),
+      #   nrow = I
+      # ) # The "tnew" here is the projection index to fnew, rather than f0.
       
       X.projection.index <- cbind(X, tnew)
       SSD.prepare.again <- function(x.init) { 
