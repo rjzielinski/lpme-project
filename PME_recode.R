@@ -402,11 +402,16 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     t_val <- cbind(rep(1, I), tnew) # The matrix T
     
     E <- matrix(NA, ncol = I, nrow = I)                                          
-    for(j in 1:I) {
-      E.prepare <- function(t) { 
-        eta.kernel(t - tnew[j, ], lambda) 
-      }
-      E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
+    # for(j in 1:I) {
+    #   E.prepare <- function(t) { 
+    #     eta.kernel(t - tnew[j, ], lambda) 
+    #   }
+    #   E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
+    # }
+    
+    for (j in 1:I) {
+      temp_mat <- sweep(tnew, 2, tnew[j, ])
+      E[, j] <- apply(temp_mat, 1, eta_kernel, lambda)
     }
     
     # This block gives the first step of iteration.
