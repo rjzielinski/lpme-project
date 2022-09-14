@@ -195,7 +195,7 @@ hdmde <- function(x_obs, N0, alpha, max_comp) {
   D <- n_D[2]
   N <- N0
   
-  km <- kmeans(x_obs, N, iter_max = 100, nstart = 100) # Use k-means clustering to get N clusters of x_obs_
+  km <- kmeans(x_obs, N, iter.max = 100, nstart = 100) # Use k-means clustering to get N clusters of x_obs_
   mu <- km$centers # Set the centers of the N clusters as the means of the density components.
   
   sigma_vec <- rep(NA, N) # The following block estimates \sigma_N.
@@ -268,7 +268,7 @@ hdmde <- function(x_obs, N0, alpha, max_comp) {
     if (
       (Z_I_N <= zalpha) & 
       (Z_I_N >= -zalpha) & 
-      (!is_na(Z_I_N))
+      (!is.na(Z_I_N))
     ) { 
       test_rejection=0 
     }
@@ -319,9 +319,9 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
   # Remark: The larger N0 is, the less time consuming the function is.
   
   
-  dimension.size <- dim(x.obs)
-  D <- dimension.size[2] # "D" is the dimension of the input space.
-  n <- dimension.size[1] # "n" is the number of observed D-dimensional data points.
+  dimension_size <- dim(x_obs)
+  D <- dimension_size[2] # "D" is the dimension of the input space
+  n <- dimension_size[1] # "n" is the number of observed D-dimensional data points
   lambda <- 4 - d # "lambda" determines the form of reproducing kernels
   
   if (N0 == 0) { 
@@ -329,49 +329,42 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
   }
   
   # 
-  est <- hdmde(x.obs, N0, alpha, max.comp) # "hdmde" gives \hat{Q}_N.
-  theta.hat <- est$theta.hat
+  est <- hdmde(x_obs, N0, alpha, max_comp) # "hdmde" gives \hat{Q}_N.
+  theta_hat <- est$theta_hat
   centers <- est$mu
   sigma <- est$sigma
-  W <- diag(theta.hat) # The matrix W
+  W <- diag(theta_hat) # The matrix W
   X <- est$mu
-  I <- length(theta.hat)
+  I <- length(theta_hat)
   
   # The (i,j)th element of this matrix is the Euclidean 
   # distance between mu[i,] and mu[j,].
-  dissimilarity.matrix <- as.matrix(dist(X))                               
+  dissimilarity_matrix <- as.matrix(dist(X))                               
   # Give the initial projection indices by ISOMAP.
-  isomap.initial <- isomap(dissimilarity.matrix, ndim = d, k = 10)            
-  t.initial <- isomap.initial$points 
+  isomap_initial <- isomap(dissimilarity_matrix, ndim = d, k = 10)            
+  t_initial <- isomap_initial$points 
   
-  MSE.seq <- vector()
+  MSE_seq <- vector()
   SOL <- list()
   TNEW <- list()
   
-  for (tuning.ind in 1:length(tuning.para.seq)) {
+  for (tuning_ind in 1:length(tuning_para_seq)) {
     
     print(
       paste(
         "The tuning parameter is lambda[", 
-        as.character(tuning.ind), 
+        as.character(tuning_ind), 
         "] = ", 
-        as.character(tuning.para.seq[tuning.ind]), 
+        as.character(tuning_para_seq[tuning_ind]), 
         "."
       )
     )
     
-    w <- tuning.para.seq[tuning.ind]
-    tnew <- t.initial
+    w <- tuning_para_seq[tuning_ind]
+    tnew <- t_initial
     t_val <- cbind(rep(1, I), tnew) # The matrix T
     
     E <- matrix(NA, ncol = I, nrow = I)                                          
-    # for(j in 1:I) {
-    #   E.prepare <- function(t) { 
-    #     eta.kernel(t - tnew[j, ], lambda) 
-    #   }
-    #   E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
-    # }
-    
     for (j in 1:I) {
       temp_mat <- sweep(tnew, 2, tnew[j, ])
       E[, j] <- apply(temp_mat, 1, eta_kernel, lambda)
@@ -404,18 +397,6 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
     )
     sol <- ginv(M) %*% b # Solve the linear equations
     
-    eta.func <- function(t) {
-      eta.func.prepare <- function(tau) {
-        return(eta_kernel(t - tau, lambda)) 
-      }
-      return(
-        matrix(
-          apply(tnew, 1, eta.func.prepare),
-          ncol=1
-        )
-      )
-    }
-    
     eta_func <- function(t) {
       temp_mat <- sweep(-1 * tnew, 2, t, "+")
       return(
@@ -425,18 +406,8 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
         )
       )
     }
-    
-    fnew <- function(t) {                                                    
-      return(
-        as.vector(
-          t(sol[1:I, ]) %*% 
-            eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*% 
-            matrix(c(1, t), ncol = 1)
-        )
-      )
-    }
-    
-    fnew2 <- function(t) {
+
+    fnew <- function(t) {
       return(
         as.vector(
           t(sol[1:I, ]) %*% eta_func(t) +
@@ -450,45 +421,32 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
     
     f0 <- fnew
     
-    X.initial.guess <- cbind(X, tnew) # The "tnew" here is derived from ISOMAP.
-    projection.index.f0 <- function(x.init) { 
-      projection(x.init[1:D], f0, x.init[(D + 1):(D + d)]) 
-    }
-    projection_index_f0 <- function(x.init) {
-      mem_proj2(x.init[1:D], f0, x.init[(D + 1):(D + d)])
+    X_initial_guess <- cbind(X, tnew) # The "tnew" here is derived from ISOMAP.
+    projection_index_f0 <- function(x_init) { 
+      mem_projection(x_init[1:D], f0, x_init[(D + 1):(D + d)]) 
     }
     
     # The first D columns of x.init corresponds to X and the last d columns corresponds to tnew.
     # projection() is applied to X[j,] with initial guess tnew[j,], which is the projection index for X[j,] onto the old manifold f0.
     
     tnew <- matrix(
-      t(apply(X.initial.guess, 1, projection_index_f0)),
+      t(apply(X_initial_guess, 1, projection_index_f0)),
       nrow = I
     )   # This method can help us avoid the chaos from improper initial guess.
     
     # Sum of the squared distances between x_i and its projection onto manifold f.
     # The first D columns of "x.prin" corresponds to points in the input space
     # and the last d columns of "x.prin" corresponds to the projection indices of these points onto f.
-    SSD.prepare <- function(x.prin, f) { 
-      return(dist.euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2) 
+    SSD_prepare <- function(x_prin, f) { 
+      return(dist_euclidean(x_prin[1:D], f(x_prin[(D + 1):(D + d)])) ^ 2) 
     }
     
-    SSD_prepare <- function(x.prin, f) {
-      return(dist_euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2)
+    X_projection_index <- cbind(X, tnew) # "tnew" here is the projection index onto fnew, rather than f0. 
+    SSD_prepare_again <- function(x_init) { 
+      return(SSD_prepare(x_init, fnew)) 
     }
     
-    X.projection.index <- cbind(X, tnew) # "tnew" here is the projection index onto fnew, rather than f0. 
-    SSD.prepare.again <- function(x.init) { 
-      return(SSD.prepare(x.init, fnew)) 
-    }
-    SSD_prepare_again <- function(x.init) {
-      return(SSD_prepare(x.init, fnew))
-    }
-    # SSD.new <- apply(X.projection.index, 1, SSD.prepare.again) %>% 
-    #   as.vector() %>% 
-    #   sum()
-    
-    SSD.new <- apply(X.projection.index, 1, SSD_prepare_again) %>% 
+    SSD_new <- apply(X_projection_index, 1, SSD_prepare_again) %>% 
       as.vector() %>% 
       sum()
     
@@ -497,15 +455,15 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
     
     # The iteration for PME is given by the following loop.
     count <- 1
-    SSD.ratio <- 10 * epsilon # A quantity measuring the distance between f0 and fnew.
+    SSD_ratio <- 10 * epsilon # A quantity measuring the distance between f0 and fnew.
     
     while (
-      (SSD.ratio > epsilon) & 
-      (SSD.ratio <= 5) & 
-      (count <= (max.iter - 1))
+      (SSD_ratio > epsilon) & 
+      (SSD_ratio <= 5) & 
+      (count <= (max_iter - 1))
     ) {
       
-      SSD.old <- SSD.new
+      SSD_old <- SSD_new
       f0 <- fnew # Set the new manifold in the previous step as the old manifold in the next step.
       
       # Repetition 
@@ -514,12 +472,9 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
       t_val <- cbind(rep(1, I), tnew)                                             
       
       E <- matrix(NA, ncol = I, nrow = I)                                          
-      
-      for(j in 1:I) {
-        E.prepare <- function(t) { 
-          eta_kernel(t - tnew[j, ], lambda) 
-        }
-        E[, j] <- apply(tnew, 1, E.prepare)                                     
+      for (j in 1:I) {
+        temp_mat <- sweep(tnew, 2, tnew[j, ])
+        E[, j] <- apply(temp_mat, 1, eta_kernel, lambda)
       }
       
       # This block gives the first step of iteration.
@@ -547,63 +502,57 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
         matrix(0, nrow = d + 1, ncol = D))      
       sol <- ginv(M) %*% b
       
-      eta.func <- function(t) {
-        eta.func.prepare <- function(tau) {
-          return(eta.kernel(t - tau, lambda)) 
-        }
-        return(matrix(apply(tnew, 1, eta.func.prepare), ncol = 1))
+      eta_func <- function(t) {
+        temp_mat <- sweep(-1 * tnew, 2, t, "+")
+        return(
+          matrix(
+            apply(temp_mat, 1, eta_kernel, lambda),
+            ncol = 1
+          )
+        )
+      }
+      fnew <- function(t) {
+        return(
+          as.vector(
+            t(sol[1:I, ]) %*% eta_func(t) +
+              t(sol[(I + 1):(I + d + 1), ]) %*% matrix(c(1, t), ncol = 1)
+          )
+        )
       }
       
-      fnew <- function(t) {                                                   
-        as.vector(
-          t(sol[1:I, ]) %*%
-            eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*%
-            matrix(c(1, t), ncol = 1)
-        ) %>% 
-          return()
-      }
-      
-      
-      t.old <- tnew
+      t_old <- tnew
       # Repetition 
       #############
       
-      X.initial.guess <- cbind(X, tnew) # The "tnew" here is the projection index to f0.
-      projection.index.f0 <- function(x.init) { 
-        projection(x.init[1:D], f0, x.init[(D + 1):(D + d)]) 
-      }
-      projection_index_f0 <- function(x.init) {
-        mem_proj2(x.init[1:D], f0, x.init[(D + 1):(D + d)])
+      X_initial_guess <- cbind(X, tnew) # The "tnew" here is the projection index to f0.
+      projection_index_f0 <- function(x_init) { 
+        mem_projection(x_init[1:D], f0, x_init[(D + 1):(D + d)]) 
       }
       
       tnew <- matrix(
-        t(apply(X.initial.guess, 1, projection_index_f0)),
+        t(apply(X_initial_guess, 1, projection_index_f0)),
         nrow = I
       )
-      # tnew <- matrix(
-      #   t(apply(X.initial.guess, 1, projection.index.f0)),
-      #   nrow = I
-      # ) # The "tnew" here is the projection index to fnew, rather than f0.
       
-      X.projection.index <- cbind(X, tnew)
-      SSD.prepare.again <- function(x.init) { 
-        return(SSD.prepare(x.init, fnew)) 
+      X_projection_index <- cbind(X, tnew)
+      SSD_prepare_again <- function(x_init) { 
+        return(SSD_prepare(x_init, fnew)) 
       }
-      SSD.new <- apply(
-        X.projection.index,
+      SSD_new <- apply(
+        X_projection_index,
         1,
-        SSD.prepare.again
+        SSD_prepare_again
       ) %>% 
         as.vector() %>% 
         sum()
       
-      SSD.ratio <- abs(SSD.new - SSD.old) / SSD.old
+      SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
       
       print(
         paste(
           "SSD.ratio is ",
-          as.character(round(SSD.ratio, 4)),
+          as.character(round(SSD_ratio, 4)),
           " and this is the ",
           as.character(count),
           "th step of iteration."
@@ -613,36 +562,36 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
     
     
     # For a fixed tuning parameter value, the corresponding MSD is computed by the following chunk.
-    km <- est$k.means.result
-    data.initial <- matrix(0, nrow = 1, ncol = D + d)
+    km <- est$k_means_result
+    data_initial <- matrix(0, nrow = 1, ncol = D + d)
     for(i in 1:I) {
-      index.temp <- which(km$cluster == i)
-      length.temp <- length(index.temp)
-      X.i <- matrix(x.obs[index.temp, ], nrow = length.temp)
-      t.temp <- matrix(rep(tnew[i, 1], length.temp))
+      index_temp <- which(km$cluster == i)
+      length_temp <- length(index_temp)
+      X_i <- matrix(x_obs[index_temp, ], nrow = length_temp)
+      t_temp <- matrix(rep(tnew[i, 1], length_temp))
       for(j in 1:d) {
-        t.temp <- cbind(t.temp, rep(tnew[i, j], length.temp))
+        t_temp <- cbind(t_temp, rep(tnew[i, j], length_temp))
       }
-      t.temp <- matrix(t.temp[, -1], nrow = length.temp)
-      data.initial <- rbind(data.initial, cbind(X.i, t.temp))
+      t_temp <- matrix(t_temp[, -1], nrow = length_temp)
+      data_initial <- rbind(data_initial, cbind(X_i, t_temp))
     }
-    data.initial <- data.initial[-1, ]
-    proj.para.prepare <- function(data.init) { 
-      return(projection(data.init[1:D],fnew,data.init[(D+1):(D+d)])) 
+    data_initial <- data_initial[-1, ]
+    proj_para_prepare <- function(data_init) { 
+      return(projection(data_init[1:D], fnew, data_init[(D+1):(D+d)])) 
     }
-    proj.para <- matrix(
-      t(apply(data.initial, 1, proj.para.prepare)),
+    proj_para <- matrix(
+      t(apply(data_initial, 1, proj_para_prepare)),
       ncol = d
     )
-    proj.points <- t(apply(proj.para, 1, fnew))
-    diff.data.fit <- apply(
-      data.initial[, 1:D] - proj.points,
+    proj_points <- t(apply(proj_para, 1, fnew))
+    diff_data_fit <- apply(
+      data_initial[, 1:D] - proj_points,
       1,
-      norm.euclidean
+      norm_euclidean
     )
-    MSE <- mean(diff.data.fit ^ 2)
+    MSE <- mean(diff_data_fit ^ 2)
     
-    MSE.seq[tuning.ind] <- MSE
+    MSE_seq[tuning_ind] <- MSE
     print(
       paste(
         "When lambda = ",
@@ -652,17 +601,17 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
         "."
       )
     )
-    SOL[[tuning.ind]] <- sol
-    TNEW[[tuning.ind]] <- tnew
+    SOL[[tuning_ind]] <- sol
+    TNEW[[tuning_ind]] <- tnew
     
     # To reduce the computational burden, if the MSD in the k-th step of the for-loop is
     # smaller than that in the next 4 steps of this for-loop (k+1, k+2, k+3, k+4), 
     # we stop this for-loop. 
-    if (tuning.ind >= 4) {
+    if (tuning_ind >= 4) {
       if (
-        (MSE.seq[tuning.ind] > MSE.seq[tuning.ind - 1]) & 
-        (MSE.seq[tuning.ind - 1] > MSE.seq[tuning.ind - 2]) & 
-        (MSE.seq[tuning.ind - 2] > MSE.seq[tuning.ind - 3])
+        (MSE_seq[tuning_ind] > MSE_seq[tuning_ind - 1]) & 
+        (MSE_seq[tuning_ind - 1] > MSE_seq[tuning_ind - 2]) & 
+        (MSE_seq[tuning_ind - 2] > MSE_seq[tuning_ind - 3])
       ) {
         break
       }
@@ -670,45 +619,45 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
   }
   
   # The following chunk gives the f_\lambda with the optimal \lambda.
-  optimal.ind <- min(which(MSE.seq == min(MSE.seq)))
-  sol.opt <- SOL[[optimal.ind]]
-  tnew.opt <- TNEW[[optimal.ind]]
-  eta.func <- function(t) {
-    eta.func.prepare <- function(tau) { 
-      return(eta.kernel(t - tau, lambda)) 
+  optimal_ind <- min(which(MSE_seq == min(MSE_seq)))
+  sol_opt <- SOL[[optimal_ind]]
+  tnew_opt <- TNEW[[optimal_ind]]
+  eta_func <- function(t) {
+    eta_func_prepare <- function(tau) { 
+      return(eta_kernel(t - tau, lambda)) 
     }
-    return(matrix(apply(tnew.opt, 1, eta.func.prepare), ncol = 1))
+    return(matrix(apply(tnew_opt, 1, eta_func_prepare), ncol = 1))
   }
   
-  f.optimal <- function(t) {
+  f_optimal <- function(t) {
     return(
       as.vector(
-        t(sol.opt[1:I, ]) %*%
-          eta.func(t) + t(sol.opt[(I + 1):(I + d + 1), ]) %*%
+        t(sol_opt[1:I, ]) %*%
+          eta_func(t) + t(sol_opt[(I + 1):(I + d + 1), ]) %*%
           matrix(c(1, t), ncol=1)
       )
     )
   }
   
   
-  if (print.MSDs == TRUE) {
+  if (print_MSDs == TRUE) {
     plot(
-      log(tuning.para.seq[1:length(MSE.seq)]), 
-      MSE.seq, 
+      log(tuning_para_seq[1:length(MSE_seq)]), 
+      MSE_seq, 
       xlab = "Log Lambda", 
       ylab = "MSD", 
       type = "l"
     )
     lines(
-      log(tuning.para.seq[1:length(MSE.seq)]), 
-      MSE.seq, 
+      log(tuning_para_seq[1:length(MSE_seq)]), 
+      MSE_seq, 
       type = "p",
       pch = 20,
       col = "orange",
       cex = 2
     )
     abline(
-      v = log(tuning.para.seq[optimal.ind]),
+      v = log(tuning_para_seq[optimal_ind]),
       lwd = 1.5,
       col = "darkgreen",
       lty = 2
@@ -717,25 +666,25 @@ PME <- function(x_obs, d, N0=20*D, tuning_para_seq=exp((-15:5)), alpha=0.05, max
     print(
       paste(
         "The optimal tuning parameter is ", 
-        as.character(tuning.para.seq[optimal.ind]), 
+        as.character(tuning_para_seq[optimal_ind]), 
         ", and the MSD of the optimal fit is ",
-        as.character(MSE.seq[optimal.ind]),
+        as.character(MSE_seq[optimal_ind]),
         "."
       )
     )
   }
   
   resp <- list(
-    embedding.map = f.optimal, 
-    MSD = MSE.seq,  
+    embedding_map = f_optimal, 
+    MSD = MSE_seq,  
     knots = centers,
-    weights.of.knots = theta.hat,
-    coe.kernel = sol.opt[1:I, ],
-    coe.poly = sol.opt[(I + 1):(I + d + 1), ],
+    weights_of_knots = theta_hat,
+    coe_kernel = sol_opt[1:I, ],
+    coe_poly = sol_opt[(I + 1):(I + d + 1), ],
     SOL = SOL,
     TNEW = TNEW,
-    T.parameter = sol.opt,
-    Coef = tnew.opt
+    T_parameter = sol_opt,
+    Coef = tnew_opt
   )
   return(resp)
   
