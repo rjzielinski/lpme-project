@@ -1,9 +1,7 @@
-long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE) {
+long_pme <- function(df, d, tuning_para_seq = exp(seq(-15, 5, 0.5)), alpha = 0.05, max_comp = 100, epsilon = 0.05, max_iter = 100, print_MSDs = TRUE) {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
-  
-  require(Rfast)
   
   source("PME_recode.R")
   # source("Principal_Manifold_Estimation.R")
@@ -19,10 +17,10 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
   for (idx in 1:length(time_points)) {
     df_temp <- df[df[, 1] == time_points[idx], ]
     pme_results[[idx]] <- PME(
-      x.obs = df_temp[, -1],
+      x_obs = df_temp[, -1],
       d = d
     )
-    funcs[[idx]] <- pme_results[[idx]]$embedding.map
+    funcs[[idx]] <- pme_results[[idx]]$embedding_map
     r_test <- seq(
       from = -10,
       to = 10,
@@ -85,7 +83,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
   sig_new <- 0.001
   # weight.seq function potentially takes longer time, med 7.8 seconds
   # all values are nearly identical -- might be able to eliminate
-  theta_hat_new <- weight.seq(x_test, x_test, sig_new)
+  theta_hat_new <- weight_seq(x_test, x_test, sig_new)
   centers_new <- x_test
   sigma_new <- 0.001
   W_new <- diag(theta_hat_new)
@@ -108,30 +106,25 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
   SOL_new <- list()
   TNEW_new <- list()
 
-  for (tuning.ind in 1:length(tuning.para.seq)) {
+  for (tuning_ind in 1:length(tuning_para_seq)) {
     print(
       paste(
         "The tuning parameter is gamma[",
-        as.character(tuning.ind),
+        as.character(tuning_ind),
         "] = ",
-        as.character(tuning.para.seq[tuning.ind]),
+        as.character(tuning_para_seq[tuning_ind]),
         "."
       )
     )
 
-    w_new <- tuning.para.seq[tuning.ind]
+    w_new <- tuning_para_seq[tuning_ind]
     t_new <- t_initial
     T_new <- cbind(rep(1, I_new), t_new)
-
-    E_new <- matrix(NA, ncol = I_new, nrow = I_new) # good to preallocate matrix
-    # would be nice to avoid for loop here
-    # entire for loop takes median of 4.2 seconds
-    # may be able to cut this down
-    for (j in 1:I_new) { 
-      E_prepare <- function(t) {
-        eta.kernel(t - t_new[j, ], gamma)
-      }
-      E_new[, j] <- apply(t_new, 1, E_prepare)
+    
+    E_new <- matrix(NA, ncol = I_new, nrow = I_new)
+    for (j in 1:I_new) {
+      temp_mat <- sweep(t_new, 2, t_new[j, ])
+      E_new[, j] <- apply(temp_mat, 1, eta_kernel, gamma)
     }
 
     M1_new <- cbind(
@@ -162,17 +155,11 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
     )
     sol_new <- ginv(M_new) %*% b_new
 
-    eta.func <- function(t) {
-      eta.func.prepare <- function(tau) {
-        return(eta.kernel(t - tau, gamma))
-      }
+    eta_func <- function(t) {
+      temp_mat <- sweep(-1 * t_new, 2, t, "+")
       return(
         matrix(
-          apply(
-            t_new,
-            1,
-            eta.func.prepare
-          ),
+          apply(temp_mat, 1, eta_kernel, gamma),
           ncol = 1
         )
       )
@@ -181,9 +168,8 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
     f_new <- function(t) {
       return(
         as.vector(
-          t(sol_new[1:I_new, ]) %*%
-            eta.func(t) + t(sol_new[(I_new + 1):(I_new + d_new + 1),]) %*%
-            matrix(c(1, t), ncol = 1)
+          t(sol_new[1:I_new, ]) %*% eta_func(t) +
+            t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*% matrix(c(1, t), ncol = 1)
         )
       )
     }
@@ -191,12 +177,12 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
     f0_new <- f_new
 
     X_initial_guess <- cbind(X_new, t_new)
-    projection.index.f0 <- function(x.init) {
-      projection(
-        x.init[1:D_new],
-        f0_new,
-        x.init[(D_new + 1):(D_new + d_new)]
-      )
+    projection_index_f0 <- function(x_init) { 
+      mem_projection(
+        x_init[1:D_new], 
+        f0_new, 
+        x_init[(D_new + 1):(D_new + d_new)]
+      ) 
     }
     
     ##### This step taking very long time
@@ -204,41 +190,39 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
     ##### Maybe there's a way to vectorize?
 
     t_new <- matrix(
-      t(apply(X_initial_guess, 1, projection.index.f0)),
+      t(apply(X_initial_guess, 1, projection_index_f0)),
       nrow = I_new
     )
 
-    SSD.prepare <- function(x.prin, f) {
+    SSD_prepare <- function(x_prin, f) {
       return(
-        dist.euclidean(
-          x.prin[1:D_new],
-          f(x.prin[(D_new + 1):(D_new + d_new)])
+        dist_euclidean(
+          x_prin[1:D_new],
+          f(x_prin[(D_new + 1):(D_new + d_new)])
         ) ^ 2
       )
     }
 
     X_projection_index <- cbind(X_new, t_new)
-    SSD.prepare.again <- function(x.init) {
-      return(SSD.prepare(x.init, f_new))
+    SSD_prepare_again <- function(x_init) {
+      return(SSD_prepare(x_init, f_new))
     }
-    SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
+    SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD_prepare_again)))
 
     count <- 1
     SSD_ratio <- 10 * epsilon
 
-    while ((SSD_ratio > epsilon) & (SSD_ratio <= 5) & (count <= (max.iter - 1))) {
+    while ((SSD_ratio > epsilon) & (SSD_ratio <= 5) & (count <= (max_iter - 1))) {
       SSD_old <- SSD_new
       f0 <- f_new
 
       T_new <- cbind(rep(1, I_new), t_new)
-      E_new <- matrix(NA, ncol = I_new, nrow = I_new)
+      E_new <- matrix(NA, ncol = I_new, nrow = I_new)                                          
       for (j in 1:I_new) {
-        E.prepare <- function(t) {
-          eta.kernel(t - t_new[j, ], gamma)
-        }
-        E_new[, j] <- apply(t_new, 1, E.prepare)
+        temp_mat <- sweep(t_new, 2, t_new[j, ])
+        E_new[, j] <- apply(temp_mat, 1, eta_kernel, gamma)
       }
-
+      
       M1_new <- cbind(
         2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
         2 * E_new %*% W_new %*% T_new,
@@ -266,20 +250,22 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
         matrix(0, nrow = d_new + 1, ncol = D_new)
       )
       sol_new <- ginv(M_new) %*% b_new
-
-      eta.func <- function(t) {
-        eta.func.prepare <- function(tau) {
-          return(eta.kernel(t - tau, gamma))
-        }
-        return(matrix(apply(t_new, 1, eta.func.prepare), ncol = 1))
+      
+      eta_func <- function(t) {
+        temp_mat <- sweep(-1 * t_new, 2, t, "+")
+        return(
+          matrix(
+            apply(temp_mat, 1, eta_kernel, gamma),
+            ncol = 1
+          )
+        )
       }
-
+  
       f_new <- function(t) {
         return(
           as.vector(
-            t(sol_new[1:I_new, ]) %*%
-              eta.func(t) + t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*%
-              matrix(c(1, t), ncol = 1)
+            t(sol_new[1:I_new, ]) %*% eta_func(t) +
+              t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*% matrix(c(1, t), ncol = 1)
           )
         )
       }
@@ -287,19 +273,19 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
       t_old <- t_new
 
       X_initial_guess <- cbind(X_new, t_new)
-      projection.index.f0 <- function(x.init) {
-        projection(x.init[1:D_new], f0, x.init[(D_new + 1):(D_new + d_new)])
+      projection_index_f0 <- function(x_init) {
+        mem_projection(x_init[1:D_new], f0, x_init[(D_new + 1):(D_new + d_new)])
       }
       t_new <- matrix(
-        t(apply(X_initial_guess, 1, projection.index.f0)),
+        t(apply(X_initial_guess, 1, projection_index_f0)),
         nrow = I_new
       )
 
       X_projection_index <- cbind(X_new, t_new)
-      SSD.prepare.again <- function(x.init) {
-        return(SSD.prepare(x.init, f_new))
+      SSD_prepare_again <- function(x_init) {
+        return(SSD_prepare(x_init, f_new))
       }
-      SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
+      SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD_prepare_again)))
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
 
@@ -316,41 +302,41 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
 
     data_initial <- matrix(0, nrow = 1, ncol = D_new + d_new)
     for (i in 1:I_new) {
-      length.temp <- 1
-      X.i <- matrix(X_new[i, ], nrow = 1)
-      t_temp <- matrix(rep(t_new[i, 1], length.temp))
+      length_temp <- 1
+      X_i <- matrix(X_new[i, ], nrow = 1)
+      t_temp <- matrix(rep(t_new[i, 1], length_temp))
       for (j in 1:d_new) {
         t_temp <- cbind(
           t_temp,
-          rep(t_new[i, j], length.temp)
+          rep(t_new[i, j], length_temp)
         )
       }
-      t_temp <- matrix(t_temp[, -1], nrow = length.temp)
-      data_initial <- rbind(data_initial, cbind(X.i, t_temp))
+      t_temp <- matrix(t_temp[, -1], nrow = length_temp)
+      data_initial <- rbind(data_initial, cbind(X_i, t_temp))
     }
 
     data_initial <- data_initial[-1, ]
-    proj.para.prepare <- function(data.init) {
+    proj_para_prepare <- function(data_init) {
       return(
-        projection(
-          data.init[1:D_new],
+        mem_projection(
+          data_init[1:D_new],
           f_new,
-          data.init[(D_new + 1):(D_new + d_new)]
+          data_init[(D_new + 1):(D_new + d_new)]
         )
       )
     }
     proj_para <- matrix(
-      t(apply(data_initial, 1, proj.para.prepare)),
+      t(apply(data_initial, 1, proj_para_prepare)),
       ncol = d_new
     )
     proj_points <- t(apply(proj_para, 1, f_new))
     diff_data_fit <- apply(
       data_initial[, 1:D_new] - proj_points,
       1,
-      norm.euclidean
+      norm_euclidean
     )
     MSE_new <- mean(diff_data_fit ^ 2)
-    MSE_seq_new[tuning.ind] <- MSE_new
+    MSE_seq_new[tuning_ind] <- MSE_new
     print(
       paste(
         "When gamma = ",
@@ -360,14 +346,14 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
         "."
       )
     )
-    SOL_new[[tuning.ind]] <- sol_new
-    TNEW_new[[tuning.ind]] <- t_new
+  SOL_new[[tuning_ind]] <- sol_new
+    TNEW_new[[tuning_ind]] <- t_new
 
-    if (tuning.ind >= 4) {
+    if (tuning_ind >= 4) {
       if (
-        (MSE_seq_new[tuning.ind] > MSE_seq_new[tuning.ind - 1]) &
-        (MSE_seq_new[tuning.ind - 1] > MSE_seq_new[tuning.ind - 2]) &
-        (MSE_seq_new[tuning.ind - 2] > MSE_seq_new[tuning.ind - 3])
+        (MSE_seq_new[tuning_ind] > MSE_seq_new[tuning_ind - 1]) &
+        (MSE_seq_new[tuning_ind - 1] > MSE_seq_new[tuning_ind - 2]) &
+        (MSE_seq_new[tuning_ind - 2] > MSE_seq_new[tuning_ind - 3])
       ) {
         break
       }
@@ -377,37 +363,37 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
   optimal_ind <- min(which(MSE_seq_new == min(MSE_seq_new)))
   sol_opt <- SOL_new[[optimal_ind]]
   t_new_opt <- TNEW_new[[optimal_ind]]
-  eta.func <- function(t) {
-    eta.func.prepare <- function(tau) {
-      return(eta.kernel(t - tau, gamma))
+  eta_func <- function(t) {
+    eta_func_prepare <- function(tau) {
+      return(eta_kernel(t - tau, gamma))
     }
     return(
       matrix(
-        apply(t_new_opt, 1, eta.func.prepare),
+        apply(t_new_opt, 1, eta_func_prepare),
         ncol = 1
       )
     )
   }
-  f.optimal <- function(t) {
+  f_optimal <- function(t) {
     return(
       as.vector(
         t(sol_opt[1:I_new, ]) %*%
-          eta.func(t) + t(sol_opt[(I_new + 1):(I_new + d_new + 1), ]) %*%
+          eta_func(t) + t(sol_opt[(I_new + 1):(I_new + d_new + 1), ]) %*%
           matrix(c(1, t), ncol = 1)
       )
     )
   }
 
-  if (print.MSDs == TRUE) {
+  if (print_MSDs == TRUE) {
     plot(
-      log(tuning.para.seq[1:length(MSE_seq_new)]),
+      log(tuning_para_seq[1:length(MSE_seq_new)]),
       MSE_seq_new,
       xlab = "Log Gamma",
       ylab = "MSD",
       type = "l"
     )
     lines(
-      log(tuning.para.seq[1:length(MSE_seq_new)]),
+      log(tuning_para_seq[1:length(MSE_seq_new)]),
       MSE_seq_new,
       type = "p",
       pch = 20,
@@ -415,7 +401,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
       cex = 2
     )
     abline(
-      v = log(tuning.para.seq[optimal_ind]),
+      v = log(tuning_para_seq[optimal_ind]),
       lwd = 1.5,
       col = "darkgreen",
       lty = 2
@@ -423,7 +409,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
     print(
       paste(
         "The optimal tuning parameter is ",
-        as.character(tuning.para.seq[optimal_ind]),
+        as.character(tuning_para_seq[optimal_ind]),
         ", and the MSD of the optimal fit is ",
         as.character(MSE_seq_new[optimal_ind], ".")
       )
@@ -431,7 +417,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.5)), alpha = 0.0
   }
 
   resp <- list(
-    embedding_map = f.optimal,
+    embedding_map = f_optimal,
     MSD = MSE_seq_new,
     knots = centers_new,
     weights_of_knots = theta_hat_new,
