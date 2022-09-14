@@ -106,3 +106,30 @@ df_list <- lapply(
 
 data_points2 <- reduce(df_list, rbind)
 sim_result2 <- long_pme(data_points2, 1)
+
+time_test <- seq(0, 10, 0.1)
+r_test <- seq(
+  from = -10,
+  to = 10,
+  0.1
+)
+
+pars_test <- expand_grid(time_test, r_test)
+
+sim_result1_pred <- t(apply(pars_test, 1, sim_result$embedding_map))
+sim_result1_pred_df <- cbind(pars_test[, 1], sim_result1_pred) %>% 
+  as_tibble()
+names(sim_result1_pred_df) <- c("time", "x", "y")
+sim_result1_pred_df <- sim_result1_pred_df %>% 
+  mutate(
+    idx = row_number(),
+    in_range = (x > -7.5) & (x < 7.5) & (y > -5) & (y < 5)
+  ) %>% 
+  filter(in_range)
+
+plot_ly(
+  sim_result1_pred_df,
+  x = ~x,
+  y = ~y,
+  z = ~time
+)
