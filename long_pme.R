@@ -1,4 +1,4 @@
-long_pme <- function(df, d, tuning_para_seq = exp(seq(-15, 5, 0.5)), alpha = 0.05, max_comp = 100, epsilon = 0.05, max_iter = 100, print_MSDs = TRUE) {
+lpme <- function(df, d, tuning_para_seq = exp(-20:10), alpha = 0.05, max_comp = 100, epsilon = 0.05, max_iter = 100, print_MSDs = TRUE) {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
