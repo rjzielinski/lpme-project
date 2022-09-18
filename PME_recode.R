@@ -48,7 +48,7 @@ library(tidyverse)
 
 # Norm function in an Euclidean space of any dimension
 norm_euclidean <- function(x) {
-  temp_vec <- as.vector(x)
+  temp_vec <- as.numeric(x)
   norm_val <- sum(temp_vec ^ 2) %>% 
     sqrt()
   return(norm_val)
@@ -92,6 +92,7 @@ projection <- function(x, f, initial_guess) {
   return(est$estimate)
 }
 
+# mem_projection <- memoise(projection)
 mem_projection <- memoise(projection)
 
 ##### Section 2, High Dimensional Mixture Density Estimation #######
@@ -232,7 +233,7 @@ hdmde <- function(x_obs, N0, alpha, max_comp) {
     
     ##################################################
     # The following is a repetition of the codes above.
-    km <- kmeans(x_obs, N, nstart = 100)
+    km <- kmeans(x_obs, N, iter.max = 100, nstart = 100)
     mu <- km$centers
     
     sigma_vec <- rep(NA, N)
