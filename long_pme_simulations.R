@@ -1,7 +1,7 @@
 library(tidyverse)
 library(plotly)
 
-source("long_pme.R")
+source("lpme.R")
 
 sim_D2d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) { 
   I <- 1000
@@ -80,7 +80,7 @@ sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
 }
 
 # time_vals <- seq(0, 10, 0.25)
-time_vals <- 0:10
+time_vals <- 0:5
 
 df_list <- lapply(
   time_vals, 
@@ -88,12 +88,12 @@ df_list <- lapply(
   vertical_multiplier = 1, 
   horizontal_multiplier = 1, 
   noise = 0.15, 
-  time_noise = 1
+  time_noise = 0.1
 )
 
 data_points <- reduce(df_list, rbind)
 
-sim_result <- long_pme(data_points, 1)
+sim_result <- lpme(data_points, 1)
 
 df_list <- lapply(
   time_vals,
@@ -116,7 +116,8 @@ r_test <- seq(
 
 pars_test <- expand_grid(time_test, r_test)
 
-sim_result1_pred <- t(apply(pars_test, 1, sim_result$embedding_map))
+sim_result1_pred <- apply(pars_test, 1, sim_result$embedding_map) %>% 
+  matrix(ncol = 2, byrow = TRUE)
 sim_result1_pred_df <- cbind(pars_test[, 1], sim_result1_pred) %>% 
   as_tibble()
 names(sim_result1_pred_df) <- c("time", "x", "y")
@@ -129,7 +130,8 @@ sim_result1_pred_df <- sim_result1_pred_df %>%
 
 plot_ly(
   sim_result1_pred_df,
-  x = ~x,
-  y = ~y,
-  z = ~time
+  x = ~y,
+  y = ~x,
+  z = ~time,
+  type = "scatter3d"
 )
