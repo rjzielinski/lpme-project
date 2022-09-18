@@ -22,14 +22,30 @@ lpme <- function(df, d, tuning_para_seq = exp(-20:10), alpha = 0.05, max_comp = 
     )
     funcs[[idx]] <- pme_results[[idx]]$embedding_map
     r_test <- seq(
-      from = -10,
-      to = 10,
-      length.out = dim(pme_results[[idx]]$knots)[1]
+      from = -100,
+      to = 100,
+      by = 0.1
     )
     r_length <- length(r_test)
-    x_test[[idx]] <- map(r_test, ~ funcs[[idx]](.x)) %>% 
+    x_temp <- map(r_test, ~ funcs[[idx]](.x)) %>% 
       unlist() %>% 
       matrix(nrow = r_length, byrow = TRUE)
+    x_max <- (colMaxs(df_temp, value = TRUE) + (0.1 * colrange(df_temp)))[-1]
+    x_min <- (colMins(df_temp, value = TRUE) - (0.1 * colrange(df_temp)))[-1]
+    x_inrange <- (x_temp[, 1] > x_min[1]) &
+        (x_temp[, 1] < x_max[1]) &
+        (x_temp[, 2] > x_min[2]) &
+        (x_temp[, 2] < x_max[2])
+    rmin <- r_test[min(which(x_inrange))]
+    rmax <- r_test[max(which(x_inrange))]
+    r_test <- seq(
+      from = rmin,
+      to = rmax,
+      length.out = dim(pme_results[[idx]]$knots)[1]
+    )
+    x_test[[idx]] <- map(r_test, ~ funcs[[idx]](.x)) %>% 
+      unlist() %>% 
+      matrix(nrow = length(r_test), byrow = TRUE)
     r[[idx]] <- cbind(time_points[idx], matrix(r_test, ncol = 1))
   }
   
@@ -39,15 +55,18 @@ lpme <- function(df, d, tuning_para_seq = exp(-20:10), alpha = 0.05, max_comp = 
   x_test <- reduce(x_test, rbind) 
   x_test_df <- data.frame(x_test)
   names(x_test_df) <- c("x", "y")
+  x_test_df <- bind_cols(
+    select(r_df, time),
+    x_test_df
+  )
   
-  # plot_ly(
-  #   x_test_df,
-  #   x = ~x,
-  #   y = ~y,
-  #   z = ~time,
-  #   type = "scatter3d",
-  #   mode = "lines"
-  # )
+  plot_ly(
+    x_test_df,
+    x = ~x,
+    y = ~y,
+    z = ~time,
+    type = "scatter3d"
+  )
   
   # tps <- Tps(
   #   x = x_test[, 1:2],
