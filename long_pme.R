@@ -289,8 +289,8 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
 
-      print0(
-        paste(
+      print(
+        paste0(
           "SSD = ",
           as.character(round(SSD_new)),
           ", SSD.ratio is ",
