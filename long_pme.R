@@ -1,4 +1,4 @@
-long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE) {
+long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE) {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -103,7 +103,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.
 
   for (tuning.ind in 1:length(tuning.para.seq)) {
     print(
-      paste(
+      paste0(
         "The tuning parameter is gamma[",
         as.character(tuning.ind),
         "] = ",
@@ -289,11 +289,13 @@ long_pme <- function(df, d, tuning.para.seq = exp(seq(-15, 5, 0.25)), alpha = 0.
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
 
-      print(
+      print0(
         paste(
-          "SSD.ratio is ",
+          "SSD = ",
+          as.character(round(SSD_new)),
+          ", SSD.ratio is ",
           as.character(round(SSD_ratio, 4)),
-          " and this is the ",
+          ", and this is the ",
           as.character(count),
           "th step of iteration."
         )
