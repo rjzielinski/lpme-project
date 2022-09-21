@@ -83,7 +83,7 @@ projection <- function(x, f, initial.guess) {
   DD <- function(t) { 
     return(dist.euclidean(x, f(t))) 
   }
-  est=nlm(DD,p=initial.guess)
+  est <- nlm(DD,p=initial.guess)
   return(est$estimate)
 }
 
@@ -204,8 +204,8 @@ hdmde <- function(x.obs, N0, alpha, max.comp) {
   sigma.vec <- rep(NA, N) # The following block estimates \sigma_N.
   for(j in 1:N) {                      
     index.temp <- which(km$cluster == j)   
-    xi.j <- x.obs[index.temp, ]
-    sig.prepare <- function(x) { 
+    xi.j <- matrix(x.obs[index.temp, ], nrow = length(index.temp))
+    sig.prepare <- function(x) {
       return((dist.euclidean(x, mu[j, ])) ^ 2) 
     }
     s <- apply(xi.j, 1, sig.prepare)
@@ -235,7 +235,7 @@ hdmde <- function(x.obs, N0, alpha, max.comp) {
     
     ##################################################
     # The following is a repetition of the codes above.
-    km <- kmeans(x.obs, N, nstart = 100)              
+    km <- kmeans(x.obs, N, iter.max = 100, nstart = 100)
     mu <- km$centers                   
     
     sigma.vec <- rep(NA, N)              
@@ -574,10 +574,10 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     for(i in 1:I) {
       index.temp <- which(km$cluster == i)
       length.temp <- length(index.temp)
-      X.i <- x.obs[index.temp, ]
+      X.i <- matrix(x.obs[index.temp, ], nrow = length.temp)
       t.temp <- matrix(rep(tnew[i, 1], length.temp))
-      for(j in 1:d) { 
-        t.temp <- cbind(t.temp, rep(tnew[i, j], length.temp)) 
+      for(j in 1:d) {
+        t.temp <- cbind(t.temp, rep(tnew[i, j], length.temp))
       }
       t.temp <- matrix(t.temp[, -1], nrow = length.temp)
       data.initial <- rbind(data.initial, cbind(X.i, t.temp))
