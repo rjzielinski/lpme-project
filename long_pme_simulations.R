@@ -79,7 +79,7 @@ sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
   return(data.points)
 }
 
-time_vals <- 0:5
+time_vals <- 0:3
 
 set.seed(100)
 df_list <- lapply(
@@ -94,3 +94,24 @@ df_list <- lapply(
 data_points <- reduce(df_list, rbind)
 
 sim_result <- long_pme(data_points, 1)
+
+time_vals <- seq(0, 3, 0.1)
+r_vals <- seq(-10, 10, 0.1)
+grid_mat <- expand_grid(time_vals, r_vals)
+
+sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
+for (i in 1:nrow(sim_pred)) {
+  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
+}
+
+sim_pred_full <- cbind(grid_mat, sim_pred)
+sim_pred_full_df <- data.frame(sim_pred_full)
+names(sim_pred_full_df) <- c("time", "r", "x", "y")
+
+plot_ly(
+  sim_pred_full_df,
+  x = ~x,
+  y = ~y,
+  z = ~time,
+  type = "scatter3d"
+)
