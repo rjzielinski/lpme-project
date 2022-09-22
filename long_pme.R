@@ -1,4 +1,4 @@
-long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE) {
+long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, SSD_ratio_threshold = 100) {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -287,7 +287,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
     count <- 1
     SSD_ratio <- 10 * epsilon
 
-    while ((SSD_ratio > epsilon) & (SSD_ratio <= 5) & (count <= (max.iter - 1))) {
+    while ((SSD_ratio > epsilon) & (SSD_ratio <= SSD_ratio_threshold) & (count <= (max.iter - 1))) {
       SSD_old <- SSD_new
       f0 <- f_new
 
