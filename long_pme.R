@@ -116,7 +116,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
   )
   # t_initial <- isomap_initial$points
   t_initial <- r
-
+  
   MSE_seq_new <- vector()
   SOL_new <- list()
   TNEW_new <- list()
@@ -228,6 +228,61 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
       return(SSD.prepare(x.init, f_new))
     }
     SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
+    
+    time_vals <- seq(
+      min(time_points),
+      max(time_points),
+      0.1
+    )
+    
+    r_vals <- seq(
+      -10,
+      10,
+      0.1
+    )
+    
+    pred_grid <- expand_grid(time_vals, r_vals)
+    
+    f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
+    for (i in 1:nrow(pred_grid)) {
+      f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+    }
+    
+    idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
+    for (dim_idx in 1:dim(f_pred)[2]) {
+      idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
+      idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
+      idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
+      idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
+        (f_pred[, dim_idx] < idx_max)
+    }
+        
+    # r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
+    r_inrange <- rowSums(idx_inrange) > 0
+    r_min <- min(unlist(pred_grid[, 2][r_inrange, 1]))
+    r_max <- max(unlist(pred_grid[, 2][r_inrange, 1]))
+    r_vals <- seq(
+      r_min,
+      r_max,
+      0.1
+    )
+    
+    grid_mat <- expand_grid(time_vals, r_vals)
+    
+    for (i in 1:nrow(pred_grid)) {
+      f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+    }
+    f_pred_full <- cbind(pred_grid, f_pred)
+    
+    plt <- ggplot() + 
+      geom_point(
+        aes(
+          x = f_pred_full[, 3], 
+          y = f_pred_full[, 4], 
+          color = as.factor(f_pred_full[, 1])
+        )
+      )
+    print(plt)
 
     count <- 1
     SSD_ratio <- 10 * epsilon
@@ -305,6 +360,62 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
       SSD.prepare.again <- function(x.init) {
         return(SSD.prepare(x.init, f_new))
       }
+      
+      time_vals <- seq(
+        min(time_points),
+        max(time_points),
+        0.1
+      )
+      
+      r_vals <- seq(
+        -10,
+        10,
+        0.1
+      )
+      
+      pred_grid <- expand_grid(time_vals, r_vals)
+      
+      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
+      for (i in 1:nrow(pred_grid)) {
+        f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+      }
+      
+      idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
+      for (dim_idx in 1:dim(f_pred)[2]) {
+        idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
+        idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
+        idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
+        idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
+          (f_pred[, dim_idx] < idx_max)
+      }
+          
+      # r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
+      r_inrange <- rowSums(idx_inrange) > 0
+      r_min <- min(unlist(pred_grid[, 2][r_inrange, 1]))
+      r_max <- max(unlist(pred_grid[, 2][r_inrange, 1]))
+      r_vals <- seq(
+        r_min,
+        r_max,
+        0.1
+      )
+      
+      grid_mat <- expand_grid(time_vals, r_vals)
+      
+      for (i in 1:nrow(pred_grid)) {
+        f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+      }
+      f_pred_full <- cbind(pred_grid, f_pred)
+      
+      plt <- ggplot() + 
+        geom_point(
+          aes(
+            x = f_pred_full[, 3], 
+            y = f_pred_full[, 4], 
+            color = as.factor(f_pred_full[, 1])
+          )
+        )
+      print(plt)
+      
       SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
