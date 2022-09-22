@@ -27,6 +27,26 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
       length.out = dim(pme_results[[idx]]$knots)[1]
     )
     r_length <- length(r_test)
+    x_temp <- map(r_test, ~ funcs[[idx]](.x)) %>% 
+      unlist() %>% 
+      matrix(nrow = r_length, byrow = TRUE)
+    idx_inrange <- matrix(nrow = dim(x_temp)[1], ncol = dim(x_temp)[2])
+    for (dim_idx in 1:dim(x_temp)[2]) {
+      idx_range <- max(df_temp[, dim_idx + 1]) - min(df_temp[, dim_idx + 1])
+      idx_min <- min(df_temp[, dim_idx + 1]) - (0.2 * idx_range)
+      idx_max <- max(df_temp[, dim_idx + 1]) + (0.2 * idx_range)
+      idx_inrange[, dim_idx] <- (x_temp[, dim_idx] > idx_min) & (x_temp[, dim_idx] < idx_max)
+    }
+    
+    r_inrange <- rowSums(idx_inrange) == dim(x_temp)[2]
+    r_min <- first(r_test[r_inrange])
+    r_max <- last(r_test[r_inrange])
+    r_test <- seq(
+      r_min,
+      r_max,
+      length.out = dim(pme_results[[idx]]$knots)[1]
+    )
+    
     x_test[[idx]] <- map(r_test, ~ funcs[[idx]](.x)) %>% 
       unlist() %>% 
       matrix(nrow = r_length, byrow = TRUE)
