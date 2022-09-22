@@ -279,9 +279,9 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
         aes(
           x = f_pred_full[, 3], 
           y = f_pred_full[, 4], 
-          color = as.factor(f_pred_full[, 1])
+          color = f_pred_full[, 1]
         )
-      )
+      ) 
     print(plt)
 
     count <- 1
@@ -411,7 +411,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
           aes(
             x = f_pred_full[, 3], 
             y = f_pred_full[, 4], 
-            color = as.factor(f_pred_full[, 1])
+            color = f_pred_full[, 1]
           )
         )
       print(plt)
