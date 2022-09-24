@@ -94,9 +94,11 @@ df_list <- lapply(
 
 data_points <- reduce(df_list, rbind)
 
-profvis({
-  sim_result <- long_pme(data_points, 1)
-})
+sim_result <- long_pme(data_points, 1)
+
+# profvis({
+#   sim_result <- long_pme(data_points, 1)
+# })
 
 time_vals <- seq(0, 3, 0.1)
 r_vals <- seq(-10, 10, 0.1)
