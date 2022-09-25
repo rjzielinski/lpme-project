@@ -50,9 +50,15 @@ norm.euclidean <- function(x) {
   return(norm(matrix(x, ncol=1), type = "F")) 
 }
 
+norm_euclidean <- function(x) {
+  norm_val <- sum(as.vector(x) ^ 2) %>% 
+    sqrt()
+  return(norm_val)
+}
+
 # Distance function in an Euclidean space of any dimension
 dist.euclidean <- function(x, y) { 
-  return(norm.euclidean(x - y)) 
+  return(norm_euclidean(x - y)) 
 }
 
 ## Subsection 1.2, Kernels for minimization in a semi-normed space of Sobolev type
@@ -67,13 +73,13 @@ ker <- function(x, mu, sigma) {
 # Reproducing Kernels associated with Sobolev space D^{-2}L^2(R^d)
 eta.kernel <- function(t, lambda) {
   if (lambda %% 2 == 0) {
-    if (norm.euclidean(t) == 0) {
+    if (norm_euclidean(t) == 0) {
       y <- 0
     } else {
-      y <- (norm.euclidean(t) ^ lambda) * log(norm.euclidean(t))
+      y <- (norm_euclidean(t) ^ lambda) * log(norm_euclidean(t))
     }
   } else {
-    y <- norm.euclidean(t) ^ lambda
+    y <- norm_euclidean(t) ^ lambda
   }
   return(y)
 }
@@ -594,7 +600,7 @@ PME <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     diff.data.fit <- apply(
       data.initial[, 1:D] - proj.points,
       1,
-      norm.euclidean
+      norm_euclidean
     )
     MSE <- mean(diff.data.fit ^ 2)
     
