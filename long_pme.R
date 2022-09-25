@@ -39,6 +39,9 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
     }
     
     r_inrange <- rowSums(idx_inrange) == dim(x_temp)[2]
+    if (sum(r_inrange) == 0) {
+      r_inrange <- rowSums(idx_inrange) > 0
+    }
     r_min <- first(r_test[r_inrange])
     r_max <- last(r_test[r_inrange])
     r_test <- seq(
@@ -109,11 +112,11 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
   I_new <- length(theta_hat_new)
 
   dissimilarity_matrix_new <- as.matrix(dist(X_new))
-  isomap_initial <- isomap(
-    dissimilarity_matrix_new,
-    ndim = d_new,
-    k = 10
-  )
+  # isomap_initial <- isomap(
+  #   dissimilarity_matrix_new,
+  #   ndim = d_new,
+  #   k = 10
+  # )
   # t_initial <- isomap_initial$points
   t_initial <- r
   
