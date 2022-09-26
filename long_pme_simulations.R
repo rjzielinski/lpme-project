@@ -80,6 +80,8 @@ sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
   return(data.points)
 }
 
+### Simulation Case 1
+
 time_vals <- 0:3
 
 set.seed(100)
@@ -94,7 +96,7 @@ df_list <- lapply(
 
 data_points <- reduce(df_list, rbind)
 
-sim_result <- long_pme(data_points, 1)
+sim_result <- lpme(data_points, 1)
 
 # profvis({
 #   sim_result <- long_pme(data_points, 1)
@@ -151,6 +153,8 @@ plot_ly(
   mode = "markers"
 )
 
+### Simulation Case 2
+
 time_vals <- 0:5
 
 set.seed(100)
@@ -165,7 +169,7 @@ df_list <- lapply(
 
 data_points <- reduce(df_list, rbind)
 
-sim_result <- long_pme(data_points, 1)
+sim_result <- lpme(data_points, 1)
 
 # profvis({
 #   sim_result <- long_pme(data_points, 1)
