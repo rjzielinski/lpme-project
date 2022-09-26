@@ -147,16 +147,16 @@ plot_ly(
   mode = "markers"
 )
 
-time_vals <- 0:10
+time_vals <- 0:5
 
 set.seed(100)
 df_list <- lapply(
   time_vals, 
   sim_D2d1_case2, 
-  vertical_multiplier = 1.5, 
-  horizontal_multiplier = 1.5, 
+  vertical_multiplier = 1, 
+  horizontal_multiplier = 1, 
   noise = 0.15, 
-  time_noise = 1
+  time_noise = 0.5
 )
 
 data_points <- reduce(df_list, rbind)
@@ -167,7 +167,7 @@ sim_result <- long_pme(data_points, 1)
 #   sim_result <- long_pme(data_points, 1)
 # })
 
-time_vals <- seq(0, 3, 0.1)
+time_vals <- seq(0, 5, 0.1)
 r_vals <- seq(-10, 10, 0.1)
 grid_mat <- expand_grid(time_vals, r_vals)
 
