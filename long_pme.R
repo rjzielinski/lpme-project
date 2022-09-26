@@ -264,6 +264,10 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
     r_inrange <- rowSums(idx_inrange) > 0
     r_min <- min(unlist(pred_grid[, 2][r_inrange, 1]))
     r_max <- max(unlist(pred_grid[, 2][r_inrange, 1]))
+    if (sum(r_inrange) == 0) {
+      r_min <- -10
+      r_max <- 10
+    }
     r_vals <- seq(
       r_min,
       r_max,

@@ -121,6 +121,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
 r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
+if (sum(r_inrange) == 0) {
+  r_min <- -10
+  r_max <- 10
+}
 r_vals <- seq(
   r_min,
   r_max,
