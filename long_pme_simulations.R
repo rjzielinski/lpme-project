@@ -2,7 +2,7 @@ library(tidyverse)
 library(plotly)
 library(profvis)
 
-source("long_pme.R")
+source("lpme.R")
 
 sim_D2d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) { 
   I <- 1000
