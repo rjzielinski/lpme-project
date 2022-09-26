@@ -3,7 +3,7 @@ long_pme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
   
-  source("PME_recode.R")
+  source("pme.R")
   # source("Principal_Manifold_Estimation.R")
   
   time_points <- df[, 1] %>% 
