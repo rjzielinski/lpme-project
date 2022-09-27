@@ -84,6 +84,20 @@ eta.kernel <- function(t, lambda) {
   return(y)
 }
 
+eta_kernel <- function(t, lambda) {
+  norm_val <- norm_euclidean(t)
+  if (lambda %% 2 == 0) {
+    if (norm_val == 0) {
+      y <- 0
+    } else {
+      y <- (norm_val ^ lambda) * log(norm_val)
+    }
+  } else {
+    y <- norm_val ^ lambda
+  }
+  return(y)
+}
+
 ## Subsection 1.3, Projection Index function
 projection <- function(x, f, initial.guess) {
   DD <- function(t) { 
