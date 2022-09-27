@@ -82,14 +82,14 @@ sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
 
 ### Simulation Case 1
 
-time_vals <- 0:3
+time_vals <- 0:5
 
 set.seed(100)
 df_list <- lapply(
   time_vals, 
   sim_D2d1_case1, 
-  vertical_multiplier = 1, 
-  horizontal_multiplier = 1, 
+  vertical_multiplier = 1.5,
+  horizontal_multiplier = 1.5, 
   noise = 0.15, 
   time_noise = 1
 )
