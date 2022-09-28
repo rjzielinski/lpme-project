@@ -53,6 +53,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     x_test[[idx]] <- map(r_test, ~ funcs[[idx]](.x)) %>% 
       unlist() %>% 
       matrix(nrow = r_length, byrow = TRUE)
+    if (x_test[[idx]][nrow(x_test[[idx]]), 1] - x_test[[idx]][1, 1] < 0) {
+      r_test <- rev(r_test)
+    }
     r[[idx]] <- cbind(time_points[idx], matrix(r_test, ncol = 1))
   }
   
@@ -69,7 +72,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   #   y = ~y,
   #   z = ~time,
   #   type = "scatter3d",
-  #   mode = "lines"
+  #   mode = "markers"
   # )
   
   # tps <- Tps(
