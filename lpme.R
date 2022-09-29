@@ -16,7 +16,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   
   for (idx in 1:length(time_points)) {
     df_temp <- df[df[, 1] == time_points[idx], ]
-    pme_results[[idx]] <- PME(
+    pme_results[[idx]] <- pme(
       x.obs = df_temp[, -1],
       d = d
     )
