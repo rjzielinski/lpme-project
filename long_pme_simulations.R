@@ -234,6 +234,47 @@ sim_D3d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
   return(data.points)
 }
 
+sim_D3d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) { 
+  I <- 1000
+  t <- runif(I, min = 0, max = 3 * pi)
+  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
+  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
+  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
+  sd.noise <- noise
+  e1 <- rnorm(I, mean = 0, sd = sd.noise)
+  e2 <- rnorm(I, mean = 0, sd = sd.noise)
+  e3 <- rnorm(I, mean = 0, sd = sd.noise)
+  X <- matrix(NA, nrow = I, ncol = 3)
+  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise) {
+    return(
+      c(
+        tau + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
+        cos(tau) + (vertical_multiplier * sin(time_val)) + vertical_noise,
+        sin(tau) + (depth_multiplier * sin(time_val)) + depth_noise
+      )
+    )
+  }
+  
+  X <- map(
+    t, 
+    ~ manifold(
+      .x, 
+      time_val, 
+      vertical_multiplier, 
+      horizontal_multiplier,
+      depth_multiplier,
+      vertical_noise, 
+      horizontal_noise,
+      depth_noise
+    )
+  ) %>% 
+    unlist() %>% 
+    matrix(ncol = 3, byrow = TRUE)
+  data.points <- X + cbind(e1, e2, e3)
+  data.points <- cbind(time_val, data.points)
+  return(data.points)
+}
+
 ### Simulation Case 1
 
 time_vals <- 0:5
