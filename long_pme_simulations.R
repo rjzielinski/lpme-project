@@ -634,7 +634,7 @@ time_vals <- seq(0, 5, 0.1)
 r_vals <- seq(-10, 10, 0.1)
 grid_mat <- expand_grid(time_vals, r_vals)
 
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
+sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(data_points) - 1)
 for (i in 1:nrow(sim_pred)) {
   sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
 }
@@ -663,20 +663,22 @@ r_vals <- seq(
 
 grid_mat <- expand_grid(time_vals, r_vals)
 
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
+sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(data_points) - 1)
 for (i in 1:nrow(sim_pred)) {
   sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
 }
 
 sim_pred_full <- cbind(grid_mat, sim_pred)
 sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y")
+names(sim_pred_full_df) <- c("time", "r", "x", "y", "z")
 
 plot_ly(
   sim_pred_full_df,
   x = ~x,
   y = ~y,
-  z = ~time,
+  z = ~z,
+  frame = ~time,
+  opacity = 0.5,
   type = "scatter3d",
   mode = "markers"
 )
