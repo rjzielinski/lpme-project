@@ -1,9 +1,11 @@
-lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, SSD_ratio_threshold = 100) {
+lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100) {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
   
   source("pme.R")
+  require(plotly)
+  require(svMisc)
   # source("Principal_Manifold_Estimation.R")
   
   time_points <- df[, 1] %>% 
@@ -52,7 +54,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     }
     r_min <- min(r_mat[r_inrange, ])
     r_min <- ifelse(is.na(r_min), -10, r_min)
-    r_max <- max(r_mat[r_inrange])
+    r_max <- max(r_mat[r_inrange, ])
     r_max <- ifelse(is.na(r_max), 10, r_max)
     r_test <- seq(
       r_min,
@@ -256,64 +258,89 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     }
     SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
     
-    time_vals <- seq(
-      min(time_points),
-      max(time_points),
-      0.1
-    )
-    
-    r_vals <- seq(
-      -10,
-      10,
-      0.1
-    )
-    
-    pred_grid <- expand_grid(time_vals, r_vals)
-    
-    f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
-    for (i in 1:nrow(pred_grid)) {
-      f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
-    }
-    
-    idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
-    for (dim_idx in 1:dim(f_pred)[2]) {
-      idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
-      idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
-      idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
-      idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
-        (f_pred[, dim_idx] < idx_max)
-    }
-        
-    # r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
-    r_inrange <- rowSums(idx_inrange) > 0
-    r_min <- min(unlist(pred_grid[, 2][r_inrange, 1]))
-    r_max <- max(unlist(pred_grid[, 2][r_inrange, 1]))
-    if (sum(r_inrange) == 0) {
-      r_min <- -10
-      r_max <- 10
-    }
-    r_vals <- seq(
-      r_min,
-      r_max,
-      0.1
-    )
-    
-    grid_mat <- expand_grid(time_vals, r_vals)
-    
-    for (i in 1:nrow(pred_grid)) {
-      f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
-    }
-    f_pred_full <- cbind(pred_grid, f_pred)
-    
-    plt <- ggplot() + 
-      geom_point(
-        aes(
-          x = f_pred_full[, 3], 
-          y = f_pred_full[, 4], 
-          color = f_pred_full[, 1]
+    if (print_plots == TRUE) {
+      time_vals <- seq(
+        min(time_points),
+        max(time_points),
+        0.1
+      )
+      
+      r_vals <- seq(
+        from = -10,
+        to = 10,
+        by = 1
+      )
+      r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
+      r_mat <- as.matrix(expand.grid(r_list))
+      r_length <- dim(r_mat)[1]
+      pred_grid <- expand_grid(r_vals, r_mat) %>% 
+        as.matrix()
+      
+      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
+      for (i in 1:nrow(pred_grid)) {
+        f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+        progress(i, max.value = nrow(pred_grid), console = FALSE)
+      }
+      
+      idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
+      for (dim_idx in 1:dim(f_pred)[2]) {
+        idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
+        idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
+        idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
+        idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
+          (f_pred[, dim_idx] < idx_max)
+      }
+      
+      r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
+      if (sum(r_inrange) == 0) {
+        r_inrange <- rowSums(idx_inrange) > 0
+      }
+      r_min <- min(pred_grid[r_inrange, -1])
+      r_min <- ifelse(is.na(r_min), -10, r_min)
+      r_max <- max(pred_grid[r_inrange, -1])
+      r_max <- ifelse(is.na(r_max), 10, r_max)
+      r_vals <- seq(
+        r_min,
+        r_max,
+        by = (r_max - r_min) / 40
+      )
+      r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
+      r_mat <- as.matrix(expand.grid(r_list))
+      pred_grid <- expand_grid(time_vals, r_mat) %>% 
+        as.matrix()
+      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
+      for (i in 1:nrow(pred_grid)) {
+        f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+        progress(i, max.value = nrow(pred_grid), console = FALSE)
+      }
+      
+      f_pred_full <- cbind(pred_grid, f_pred)
+      
+      if (D_new == 2) {
+        plt <- plot_ly(
+          x = f_pred_full[, d_new + 1],
+          y = f_pred_full[, d_new + 2],
+          z = f_pred_full[, 1],
+          color = f_pred_full[, 1],
+          opacity = 0.5,
+          type = "scatter3d",
+          mode = "lines"
         )
-      ) 
-    print(plt)
+        print(plt)
+      } else if (D_new == 3) {
+        plt <- plot_ly(
+          x = f_pred_full[, d_new + 1],
+          y = f_pred_full[, d_new + 2],
+          z = f_pred_full[, d_new + 3],
+          frame = f_pred_full[, 1],
+          type = "scatter3d",
+          mode = "markers",
+          opacity = 0.5
+        )
+        print(plt)
+      }  
+    }
+    
 
     count <- 1
     SSD_ratio <- 10 * epsilon
@@ -392,62 +419,89 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
         return(SSD.prepare(x.init, f_new))
       }
       
-      time_vals <- seq(
-        min(time_points),
-        max(time_points),
-        0.1
-      )
-      
-      r_vals <- seq(
-        -10,
-        10,
-        0.1
-      )
-      
-      pred_grid <- expand_grid(time_vals, r_vals)
-      
-      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
-      for (i in 1:nrow(pred_grid)) {
-        f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
-      }
-      
-      idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
-      for (dim_idx in 1:dim(f_pred)[2]) {
-        idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
-        idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
-        idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
-        idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
-          (f_pred[, dim_idx] < idx_max)
-      }
-          
-      # r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
-      r_inrange <- rowSums(idx_inrange) > 0
-      r_min <- min(unlist(pred_grid[, 2][r_inrange, 1]))
-      r_min <- ifelse(is.na(r_min), -10, r_min)
-      r_max <- max(unlist(pred_grid[, 2][r_inrange, 1]))
-      r_max <- ifelse(is.na(r_max), 10, r_max)
-      r_vals <- seq(
-        r_min,
-        r_max,
-        0.1
-      )
-      
-      grid_mat <- expand_grid(time_vals, r_vals)
-      
-      for (i in 1:nrow(pred_grid)) {
-        f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
-      }
-      f_pred_full <- cbind(pred_grid, f_pred)
-      
-      plt <- ggplot() + 
-        geom_point(
-          aes(
-            x = f_pred_full[, 3], 
-            y = f_pred_full[, 4], 
-            color = f_pred_full[, 1]
-          )
+      if (print_plots == TRUE) {
+        time_vals <- seq(
+          min(time_points),
+          max(time_points),
+          0.1
         )
-      print(plt)
+      
+        r_vals <- seq(
+          from = -10,
+          to = 10,
+          by = 1
+        )
+        r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
+        r_mat <- as.matrix(expand.grid(r_list))
+        r_length <- dim(r_mat)[1]
+        pred_grid <- expand_grid(r_vals, r_mat) %>% 
+          as.matrix()
+        
+        f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
+        for (i in 1:nrow(pred_grid)) {
+          f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+          progress(i, max.value = nrow(pred_grid), console = FALSE)
+        }
+        
+        idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
+        for (dim_idx in 1:dim(f_pred)[2]) {
+          idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
+          idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
+          idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
+          idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
+            (f_pred[, dim_idx] < idx_max)
+        }
+        
+        r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
+        if (sum(r_inrange) == 0) {
+          r_inrange <- rowSums(idx_inrange) > 0
+        }
+        r_min <- min(pred_grid[r_inrange, -1])
+        r_min <- ifelse(is.na(r_min), -10, r_min)
+        r_max <- max(pred_grid[r_inrange, -1])
+        r_max <- ifelse(is.na(r_max), 10, r_max)
+        r_vals <- seq(
+          r_min,
+          r_max,
+          by = (r_max - r_min) / 40
+        )
+        r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
+        r_mat <- as.matrix(expand.grid(r_list))
+        pred_grid <- expand_grid(time_vals, r_mat) %>% 
+          as.matrix()
+        f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
+        for (i in 1:nrow(pred_grid)) {
+          f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
+          progress(i, max.value = nrow(pred_grid), console = FALSE)
+        }
+        
+        f_pred_full <- cbind(pred_grid, f_pred)
+        
+        if (D_new == 2) {
+          plt <- plot_ly(
+            x = f_pred_full[, d_new + 1],
+            y = f_pred_full[, d_new + 2],
+            z = f_pred_full[, 1],
+            color = f_pred_full[, 1],
+            type = "scatter3d",
+            mode = "lines",
+            opacity = 0.5
+          )
+          print(plt)
+        } else if (D_new == 3) {
+          plt <- plot_ly(
+            x = f_pred_full[, d_new + 1],
+            y = f_pred_full[, d_new + 2],
+            z = f_pred_full[, d_new + 3],
+            frame = f_pred_full[, 1],
+            type = "scatter3d",
+            mode = "markers",
+            opacity = 0.5
+          )
+          print(plt)
+        }
+      }
+      
       
       SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
