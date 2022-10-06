@@ -295,7 +295,7 @@ data_points <- reduce(df_list, rbind)
 
 sim_result <- lpme(data_points, 1)
 
-time_vals <- seq(0, 3, 0.1)
+time_vals <- seq(0, 5, 0.1)
 r_vals <- seq(-10, 10, 0.1)
 grid_mat <- expand_grid(time_vals, r_vals)
 
@@ -685,7 +685,7 @@ plot_ly(
 
 ### D3, d2 Simulation Case 1
 
-time_vals <- 0:3
+time_vals <- 0:5
 
 set.seed(100)
 df_list <- lapply(
@@ -703,8 +703,13 @@ data_points <- reduce(df_list, rbind)
 sim_result <- lpme(data_points, 2)
 
 time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 0.1)
-grid_mat <- expand_grid(time_vals, r_vals)
+r_vals <- seq(-10, 10, 1)
+
+r_list <- lapply(numeric(2), function(x) r_vals)
+r_mat <- as.matrix(expand.grid(r_list))
+
+grid_mat <- expand_grid(time_vals, r_mat) %>% 
+  as.matrix()
 
 sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
 for (i in 1:nrow(sim_pred)) {
@@ -721,8 +726,8 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
 }
     
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
-r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
+r_min <- min(unlist(grid_mat[, 2:3][r_inrange,]))
+r_max <- max(unlist(grid_mat[, 2:3][r_inrange,]))
 if (sum(r_inrange) == 0) {
   r_min <- -10
   r_max <- 10
@@ -730,25 +735,57 @@ if (sum(r_inrange) == 0) {
 r_vals <- seq(
   r_min,
   r_max,
-  0.1
+  0.2
 )
+r_list <- lapply(numeric(2), function(x) r_vals)
+r_mat <- as.matrix(expand.grid(r_list))
 
-grid_mat <- expand_grid(time_vals, r_vals)
+grid_mat <- expand_grid(time_vals, r_mat) %>% 
+  as.matrix()
 
 sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
 for (i in 1:nrow(sim_pred)) {
   sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
+  progress(i, nrow(sim_pred))
 }
 
 sim_pred_full <- cbind(grid_mat, sim_pred)
 sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y")
+names(sim_pred_full_df) <- c("time", "r1", "r2", "x1", "x2", "x3")
+
+range_x1 <- max(sim_pred_full_df$x1) - min(sim_pred_full_df$x1)
+range_x2 <- max(sim_pred_full_df$x2) - min(sim_pred_full_df$x2)
+range_x3 <- max(sim_pred_full_df$x3) - min(sim_pred_full_df$x3)
 
 plot_ly(
   sim_pred_full_df,
-  x = ~x,
-  y = ~y,
-  z = ~time,
+  x = ~x1,
+  y = ~x2,
+  z = ~x3,
+  frame = ~time,
+  opacity = 0.5,
   type = "scatter3d",
   mode = "markers"
-)
+) %>% 
+  layout(
+    scene = list(
+      xaxis = list(
+        range = c(
+          min(sim_pred_full_df$x1) - (0.1 * range_x1),
+          max(sim_pred_full_df$x1) + (0.1 * range_x1)
+        )
+      ),
+      yaxis = list(
+        range = c(
+          min(sim_pred_full_df$x2) - (0.1 * range_x2),
+          max(sim_pred_full_df$x2) + (0.1 * range_x2)
+        )
+      ),
+      zaxis = list(
+        range = c(
+          min(sim_pred_full_df$x3) - (0.1 * range_x3),
+          max(sim_pred_full_df$x3) + (0.1 * range_x3)
+        )
+      )
+    )
+  )
