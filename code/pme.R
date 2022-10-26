@@ -77,12 +77,14 @@ source("code/functions/hdmde.R")
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
 
-pme <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE) {
+pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE) {
 
   # "x.obs" is the data set of interest.
   #         There are n observations, and each observation is a D-dimensional point.
   #         x.obs is a n-by-D matrix.
   # "d" is the intrinsic dimension of the underlying manifold
+  # "initialization" is an optional parameter in the form of a list with
+  # an output from the hdmde function in the first index and isomap object in the second
   # "N0" is a predetermined lower bound for N - the number of density components, default value is 20*D
   # "tuning.para.seq" is a vector of tuning parameter candidates, its default value is exp((-15:5)).
   #                   If you would like to fit a manifold for a specific lambda, set tuning.prar.seq=c(lambda).
@@ -103,19 +105,31 @@ pme <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     N0 <- 20 * D
   }
 
-  est <- hdmde(x.obs, N0, alpha, max.comp) # "hdmde" gives \hat{Q}_N.
-  theta.hat <- est$theta.hat
-  centers <- est$mu
-  sigma <- est$sigma
-  W <- diag(theta.hat) # The matrix W
-  X <- est$mu
-  I <- length(theta.hat)
+  if (is.null(initialization)) {
+    est <- hdmde(x.obs, N0, alpha, max.comp) # "hdmde" gives \hat{Q}_N.
+    theta.hat <- est$theta.hat
+    centers <- est$mu
+    sigma <- est$sigma
+    W <- diag(theta.hat) # The matrix W
+    X <- est$mu
+    I <- length(theta.hat)
 
-  # The (i,j)th element of this matrix is the Euclidean
-  # distance between mu[i,] and mu[j,].
-  dissimilarity.matrix <- as.matrix(dist(X))
-  # Give the initial projection indices by ISOMAP.
-  isomap.initial <- isomap(dissimilarity.matrix, ndim = d, k = 10)
+    # The (i,j)th element of this matrix is the Euclidean
+    # distance between mu[i,] and mu[j,].
+    dissimilarity.matrix <- as.matrix(dist(X))
+    isomap.initial <- isomap(dissimilarity.matrix, ndim = d, k = 10)
+  } else {
+    est <- initialization[[1]]
+    theta.hat <- est$theta.hat
+    centers <- est$mu
+    sigma <- est$sigma
+    W <- diag(theta.hat)
+    X <- est$mu
+    I <- length(theta.hat)
+
+    isomap.initial <- initialization[[2]]
+  }
+
   t.initial <- isomap.initial$points
 
   MSE.seq <- vector()
