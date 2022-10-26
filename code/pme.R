@@ -51,12 +51,7 @@ source("code/functions/dist_euclidean.R")
 
 ## Subsection 1.2, Kernels for minimization in a semi-normed space of Sobolev type
 
-# Smoothing kernel for density estimation
-# (We applied Gaussian kernel.)
-ker <- function(x, mu, sigma) {
-  yseq <- sapply((x - mu) / sigma, dnorm)
-  return((sigma ^ {-length(x)}) * prod(yseq))
-}
+source("code/functions/ker.R")
 
 # Reproducing Kernels associated with Sobolev space D^{-2}L^2(R^d)
 eta.kernel <- function(t, lambda) {
