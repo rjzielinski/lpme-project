@@ -28,36 +28,23 @@ weight_seq <- function(x.obs, mu, sigma, epsilon = 0.001, max.iter = 1000) {
 
   while((abs.diff > epsilon) & (count <= max.iter)) {
     W <- t(t(A) * theta.old)
-    W <- W / apply(W, 1, sum)
-    w <- apply(W, 2, sum)
+    W <- W / rowsums(W)
+    w <- colsums(W)
 
     flambda <- function(lambda) {
 
-      denom.temp <- apply(
-        t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda),
-        1,
-        sum
-      )
+      denom.temp <- rowsums(t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda))
       num.temp <- mu * w
 
       f1 <- sum(w / denom.temp)
-      f2 <- apply(
-        num.temp * (as.vector(1 / denom.temp)),
-        2,
-        sum
-      )
+      f2 <- colsums(num.temp * (as.vector(1 / denom.temp)))
       f <- dist_euclidean(f1, 1) + dist_euclidean(f2, apply(x.obs, 2, mean))
       return(f)
     }
 
     lambda.hat <- nlm(flambda, lambda.hat.old, iterlim = 1000)$estimate
 
-    theta.new <- w /
-      apply(
-        t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda.hat),
-        1,
-        sum
-      )
+    theta.new <- w / rowsums(t(t(cbind(rep(1, dim(mu)[1]), mu)) * lambda.hat))
 
     abs.diff <- dist_euclidean(theta.new, theta.old)
     if (is.na(abs.diff)) {
