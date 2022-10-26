@@ -53,33 +53,7 @@ source("code/functions/dist_euclidean.R")
 
 source("code/functions/ker.R")
 
-# Reproducing Kernels associated with Sobolev space D^{-2}L^2(R^d)
-eta.kernel <- function(t, lambda) {
-  if (lambda %% 2 == 0) {
-    if (norm_euclidean(t) == 0) {
-      y <- 0
-    } else {
-      y <- (norm_euclidean(t) ^ lambda) * log(norm_euclidean(t))
-    }
-  } else {
-    y <- norm_euclidean(t) ^ lambda
-  }
-  return(y)
-}
-
-eta_kernel <- function(t, lambda) {
-  norm_val <- norm_euclidean(t)
-  if (lambda %% 2 == 0) {
-    if (norm_val == 0) {
-      y <- 0
-    } else {
-      y <- (norm_val ^ lambda) * log(norm_val)
-    }
-  } else {
-    y <- norm_val ^ lambda
-  }
-  return(y)
-}
+source("code/functions/eta_kernel.R")
 
 ## Subsection 1.3, Projection Index function
 projection <- function(x, f, initial.guess) {
@@ -372,7 +346,7 @@ pme <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
     E <- matrix(NA, ncol = I, nrow = I)
     for(j in 1:I) {
       E.prepare <- function(t) {
-        eta.kernel(t - tnew[j, ], lambda)
+        eta_kernel(t - tnew[j, ], lambda)
       }
       E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
     }
@@ -406,7 +380,7 @@ pme <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
 
     eta.func <- function(t) {
       eta.func.prepare <- function(tau) {
-        return(eta.kernel(t - tau, lambda))
+        return(eta_kernel(t - tau, lambda))
       }
       return(
         matrix(
@@ -484,7 +458,7 @@ pme <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
 
       for(j in 1:I) {
         E.prepare <- function(t) {
-          eta.kernel(t - tnew[j, ], lambda)
+          eta_kernel(t - tnew[j, ], lambda)
         }
         E[, j] <- apply(tnew, 1, E.prepare)
       }
@@ -516,7 +490,7 @@ pme <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
 
       eta.func <- function(t) {
         eta.func.prepare <- function(tau) {
-          return(eta.kernel(t - tau, lambda))
+          return(eta_kernel(t - tau, lambda))
         }
         return(matrix(apply(tnew, 1, eta.func.prepare), ncol = 1))
       }
@@ -634,7 +608,7 @@ pme <- function(x.obs, d, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max
   tnew.opt <- TNEW[[optimal.ind]]
   eta.func <- function(t) {
     eta.func.prepare <- function(tau) {
-      return(eta.kernel(t - tau, lambda))
+      return(eta_kernel(t - tau, lambda))
     }
     return(matrix(apply(tnew.opt, 1, eta.func.prepare), ncol = 1))
   }
