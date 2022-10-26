@@ -56,13 +56,8 @@ source("code/functions/ker.R")
 source("code/functions/eta_kernel.R")
 
 ## Subsection 1.3, Projection Index function
-projection <- function(x, f, initial.guess) {
-  DD <- function(t) {
-    return(dist_euclidean(x, f(t)))
-  }
-  est <- nlm(DD,p=initial.guess)
-  return(est$estimate)
-}
+
+source("code/functions/projection.R")
 
 ##### Section 2, High Dimensional Mixture Density Estimation #######
 ####################################################################
