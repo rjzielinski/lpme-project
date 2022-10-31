@@ -99,12 +99,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     ) %>%
       matrix(nrow = dim(r_mat)[1], byrow = TRUE)
 
-    # x_test[[idx]] <- map(r_test, ~ funcs[[idx]](.x)) %>%
-    #   unlist() %>%
-    #   matrix(nrow = r_length, byrow = TRUE)
-    if (norm_euclidean(x_test[[idx]][nrow(x_test[[idx]]), ]) - norm_euclidean(x_test[[idx]][1, ]) < 0) {
-      r_mat <- r_mat[nrow(r_mat):1, ]
-    }
+    # if (norm_euclidean(x_test[[idx]][nrow(x_test[[idx]]), ]) - norm_euclidean(x_test[[idx]][1, ]) < 0) {
+    #   r_mat <- r_mat[nrow(r_mat):1, ]
+    # }
     r[[idx]] <- cbind(time_points[idx], r_mat)
   }
 
