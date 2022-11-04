@@ -107,11 +107,12 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
   if (is.null(initialization)) {
     est <- hdmde(x.obs, N0, alpha, max.comp) # "hdmde" gives \hat{Q}_N.
-    theta.hat <- est$theta.hat
-    centers <- est$mu
+    est_order <- order(est$mu[, 1])
+    theta.hat <- est$theta.hat[est_order]
+    centers <- est$mu[est_order, ]
     sigma <- est$sigma
     W <- diag(theta.hat) # The matrix W
-    X <- est$mu
+    X <- est$mu[est_order, ]
     I <- length(theta.hat)
 
     # The (i,j)th element of this matrix is the Euclidean
@@ -119,16 +120,27 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     dissimilarity.matrix <- as.matrix(dist(X))
     isomap.initial <- isomap(dissimilarity.matrix, ndim = d, k = 10)
   } else {
-    est <- initialization[[1]]
-    theta.hat <- est$theta.hat
-    centers <- est$mu
+    isomap.initial <- initialization[[2]]
+    est <- hdmde(x.obs, N0 = dim(isomap.initial$points)[1], alpha, max.comp = dim(isomap.initial$points)[1])
+    est_order <- order(est$mu[, 1])
+    theta.hat <- est$theta.hat[est_order]
+    centers <- est$mu[est_order, ]
     sigma <- est$sigma
     W <- diag(theta.hat)
-    X <- est$mu
+    X <- est$mu[est_order, ]
     I <- length(theta.hat)
-
-    isomap.initial <- initialization[[2]]
   }
+  # } else {
+  #   est <- initialization[[1]]
+  #   theta.hat <- est$theta.hat
+  #   centers <- est$mu
+  #   sigma <- est$sigma
+  #   W <- diag(theta.hat)
+  #   X <- est$mu
+  #   I <- length(theta.hat)
+  #
+  #   isomap.initial <- initialization[[2]]
+  # }
 
   t.initial <- isomap.initial$points
 
@@ -358,7 +370,8 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     km <- est$k.means.result
     data.initial <- matrix(0, nrow = 1, ncol = D + d)
     for(i in 1:I) {
-      index.temp <- which(km$cluster == i)
+      # index.temp <- which(km$cluster == i)
+      index.temp <- which(est_order[km$cluster] == i)
       length.temp <- length(index.temp)
       X.i <- matrix(x.obs[index.temp, ], nrow = length.temp)
       t.temp <- matrix(rep(tnew[i, 1], length.temp))
