@@ -1,4 +1,4 @@
-lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100) {
+lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100, init = "first") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -16,40 +16,46 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   x_test <- list()
   r <- list()
 
-  first_df <- df[df[, 1] == time_points[1], -1]
+  if (init %in% c("first", "full")) {
+    if (init == "first") {
+      init_df <- df[df[, 1] == time_points[1], -1]
+    } else if (init == "full") {
+      init_df <- df[, -1]
+    }
 
-  first_dimension.size <- dim(first_df)
-  first_D <- first_dimension.size[2] # "D" is the dimension of the input space.
-  first_n <- first_dimension.size[1] # "n" is the number of observed D-dimensional data points.
-  lambda <- 4 - d # "lambda" determines the form of reproducing kernels
+    init_dimension.size <- dim(init_df)
+    init_D <- init_dimension.size[2]
+    init_n <- init_dimension.size[1]
+    lambda <- 4 - d
 
-  first_N0 <- 20 * first_D
+    init_N0 <- 20 * init_D
+    init_est <- hdmde(init_df, init_N0, alpha, max.comp)
+    init_order <- order(init_est$mu[, 1])
+    init_theta.hat <- init_est$theta.hat[init_order]
+    init_centers <- init_est$mu[init_order, ]
+    init_sigma <- init_est$sigma
+    init_W <- diag(init_theta.hat)
+    init_X <- init_est$mu[init_order, ]
+    init_I <- length(init_theta.hat)
 
-  first_est <- hdmde(first_df, first_N0, alpha, max.comp) # "hdmde" gives \hat{Q}_N.
-  first_theta.hat <- first_est$theta.hat
-  first_centers <- first_est$mu
-  first_sigma <- first_est$sigma
-  first_W <- diag(first_theta.hat) # The matrix W
-  first_X <- first_est$mu
-  first_I <- length(first_theta.hat)
-
-  # The (i,j)th element of this matrix is the Euclidean
-  # distance between mu[i,] and mu[j,].
-  first_dissimilarity.matrix <- as.matrix(dist(first_X))
-  # Give the initial projection indices by ISOMAP.
-  first_isomap <- isomap(first_dissimilarity.matrix, ndim = d, k = 10)
+    init_dissimilarity.matrix <- as.matrix(dist(init_X))
+    init_isomap <- isomap(init_dissimilarity.matrix, ndim = d, k = 10)
+  }
 
   for (idx in 1:length(time_points)) {
     df_temp <- df[df[, 1] == time_points[idx], ]
-    pme_results[[idx]] <- pme(
-      x.obs = df_temp[, -1],
-      d = d,
-      initialization = list(first_est, first_isomap)
-    )
-    # pme_results[[idx]] <- pme(
-    #   x.obs = df_temp[, -1],
-    #   d = d
-    # )
+    if (init %in% c("first", "full")) {
+      pme_results[[idx]] <- pme(
+        x.obs = df_temp[, -1],
+        d = d,
+        initialization = list(init_est, init_isomap)
+      )
+    } else {
+      pme_results[[idx]] <- pme(
+        x.obs = df_temp[, -1],
+        d = d
+      )
+    }
     funcs[[idx]] <- pme_results[[idx]]$embedding.map
     r_test <- seq(
       from = -10,
@@ -65,9 +71,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       funcs[[idx]]
     ) %>%
       matrix(nrow = dim(r_mat)[1], byrow = TRUE)
-    # x_temp <- map(r_mat, ~ funcs[[idx]](.x)) %>%
-    #   unlist() %>%
-    #   matrix(nrow = r_length, byrow = TRUE)
+
     idx_inrange <- matrix(nrow = dim(x_temp)[1], ncol = dim(x_temp)[2])
     for (dim_idx in 1:dim(x_temp)[2]) {
       idx_range <- max(df_temp[, dim_idx + 1]) - min(df_temp[, dim_idx + 1])
@@ -99,9 +103,6 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     ) %>%
       matrix(nrow = dim(r_mat)[1], byrow = TRUE)
 
-    # if (norm_euclidean(x_test[[idx]][nrow(x_test[[idx]]), ]) - norm_euclidean(x_test[[idx]][1, ]) < 0) {
-    #   r_mat <- r_mat[nrow(r_mat):1, ]
-    # }
     r[[idx]] <- cbind(time_points[idx], r_mat)
   }
 
@@ -114,48 +115,13 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   xnames <- paste0("x", 1:(dim(x_test)[2]))
   names(x_test_df) <- xnames
 
-  # plot_ly(
-  #   x_test_df,
-  #   x = ~x,
-  #   y = ~y,
-  #   z = ~time,
-  #   type = "scatter3d",
-  #   mode = "markers"
-  # )
-
-  # tps <- Tps(
-  #   x = x_test[, 1:2],
-  #   Y = x_test[, 3]
-  # )
-  #
-  # tps_pred_x <- seq(0, 2, 0.1)
-  # tps_pred_y <- seq(-10, 10, 0.2)
-  # tps_pred_z <- predict(
-  #   tps_test,
-  #   expand.grid(tps_pred_x, tps_pred_y)
-  # ) %>%
-  #   matrix(
-  #     nrow = length(tps_pred_y),
-  #     ncol = length(tps_pred_x),
-  #     byrow = TRUE
-  #   )
-  #
-  # plot_ly(
-  #   x = tps_pred_x,
-  #   y = tps_pred_y,
-  #   z = tps_pred_z
-  # ) %>%
-  #   add_surface()
-  #
-  # return(tps)
-
   D_new <- dim(x_test)[2]
-  d_new <- dim(r)[2]
+  d_new <- dim(r_full)[2]
   n_new <- dim(x_test)[1]
   gamma <- 4 - d_new
 
   sig_new <- 0.001
-  theta_hat_new <- weight.seq(x_test, x_test, sig_new)
+  theta_hat_new <- weight_seq(x_test, x_test, sig_new)
   centers_new <- x_test
   sigma_new <- 0.001
   W_new <- diag(theta_hat_new)
@@ -163,13 +129,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   I_new <- length(theta_hat_new)
 
   dissimilarity_matrix_new <- as.matrix(dist(X_new))
-  # isomap_initial <- isomap(
-  #   dissimilarity_matrix_new,
-  #   ndim = d_new,
-  #   k = 10
-  # )
-  # t_initial <- isomap_initial$points
-  t_initial <- r
+  t_initial <- r_full
 
   MSE_seq_new <- vector()
   SOL_new <- list()
@@ -193,7 +153,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     E_new <- matrix(NA, ncol = I_new, nrow = I_new)
     for (j in 1:I_new) {
       E_prepare <- function(t) {
-        eta.kernel(t - t_new[j, ], gamma)
+        eta_kernel(t - t_new[j, ], gamma)
       }
       E_new[, j] <- apply(t_new, 1, E_prepare)
     }
@@ -228,7 +188,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
     eta.func <- function(t) {
       eta.func.prepare <- function(tau) {
-        return(eta.kernel(t - tau, gamma))
+        return(eta_kernel(t - tau, gamma))
       }
       return(
         matrix(
@@ -270,7 +230,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
     SSD.prepare <- function(x.prin, f) {
       return(
-        dist.euclidean(
+        dist_euclidean(
           x.prin[1:D_new],
           f(x.prin[(D_new + 1):(D_new + d_new)])
         ) ^ 2
@@ -378,7 +338,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       E_new <- matrix(NA, ncol = I_new, nrow = I_new)
       for (j in 1:I_new) {
         E.prepare <- function(t) {
-          eta.kernel(t - t_new[j, ], gamma)
+          eta_kernel(t - t_new[j, ], gamma)
         }
         E_new[, j] <- apply(t_new, 1, E.prepare)
       }
@@ -413,7 +373,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
       eta.func <- function(t) {
         eta.func.prepare <- function(tau) {
-          return(eta.kernel(t - tau, gamma))
+          return(eta_kernel(t - tau, gamma))
         }
         return(matrix(apply(t_new, 1, eta.func.prepare), ncol = 1))
       }
@@ -578,7 +538,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     diff_data_fit <- apply(
       data_initial[, 1:D_new] - proj_points,
       1,
-      norm.euclidean
+      norm_euclidean
     )
     MSE_new <- mean(diff_data_fit ^ 2)
     MSE_seq_new[tuning.ind] <- MSE_new
@@ -610,7 +570,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   t_new_opt <- TNEW_new[[optimal_ind]]
   eta.func <- function(t) {
     eta.func.prepare <- function(tau) {
-      return(eta.kernel(t - tau, gamma))
+      return(eta_kernel(t - tau, gamma))
     }
     return(
       matrix(
