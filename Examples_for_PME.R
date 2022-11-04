@@ -16,23 +16,24 @@ par(mfrow=c(2,2))
 
 # Simulated data
 # I=1000                              # Sample size
+set.seed(100)
 I <- 1000
 t=rnorm(I,mean = 0,sd=1)
-sd.noise=0.15                       # Standard deviation of the noise 
+sd.noise=0.15                       # Standard deviation of the noise
 e1=rnorm(I,mean = 0,sd=sd.noise)    # noise
 e2=rnorm(I,mean = 0,sd=sd.noise)
 X=matrix(NA,ncol = 2,nrow = I)
 manifold=function(tau){ return(c(tau,sin(tau+pi/2))) }
 for(i in 1:I){ X[i,]=manifold(t[i]) }
-data.points=X+cbind(e1,e2) 
+data.points=X+cbind(e1,e2)
 
 # Apply PME()
 ptm <- proc.time()
-result=PME(x.obs=data.points, d=1)
+result=pme(x.obs=data.points, d=1)
 proc.time() - ptm
 
 # Plot the fitted manifold
-f=result$embedding.map
+f=result2$embedding.map
 t.test=seq(from=-100,to=100,by=0.05)
 t.length=length(t.test)
 x.test=matrix(NA,ncol=2,nrow = t.length)
@@ -59,7 +60,7 @@ X=manifold(t)
 sd.noise=0.1
 e1=rnorm(I,mean = 0, sd=sd.noise)
 e2=rnorm(I,mean = 0, sd=sd.noise)
-data.points=X+cbind(e1,e2)  
+data.points=X+cbind(e1,e2)
 
 ptm <- proc.time()
 result=PME(x.obs=data.points, d=1)
@@ -79,15 +80,15 @@ lines(x.test[,1],x.test[,2],col="red",type = "l",lwd=3)
 
 ### Case III
 
-I=1000                             
+I=1000
 t=runif(I, min = -3*pi, max = 3*pi)
-sd.noise=0.1                       
-e1=rnorm(I,mean = 0,sd=sd.noise)    
+sd.noise=0.1
+e1=rnorm(I,mean = 0,sd=sd.noise)
 e2=rnorm(I,mean = 0,sd=sd.noise)
 X=matrix(NA,ncol = 2,nrow = I)
 manifold=function(tau){ return(c(tau,sin(tau))) }
 for(i in 1:I){ X[i,]=manifold(t[i]) }
-data.points=X+cbind(e1,e2) 
+data.points=X+cbind(e1,e2)
 
 ptm <- proc.time()
 result=PME(x.obs=data.points, d=1)
@@ -132,13 +133,13 @@ t.length=length(t.test)
 x.test=matrix(NA,ncol=3,nrow = t.length)
 for(i in 1:t.length){ x.test[i,]=f(t.test[i]) }
 index=(x.test[,1]>=min(data.points[,1]))&x.test[,1]<=max(data.points[,1])&(x.test[,2]>=min(data.points[,2]))&x.test[,2]<=max(data.points[,2])&(x.test[,3]>=min(data.points[,3]))&x.test[,3]<=max(data.points[,3])
-scatter3D(data.points[,1], data.points[,2], data.points[,3], 
-          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE, 
-          border="black", shade=0.8, 
+scatter3D(data.points[,1], data.points[,2], data.points[,3],
+          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE,
+          border="black", shade=0.8,
           bty = "g", ticktype = "detailed",
           main="Principal Manifold Estimation")
-scatter3D(x.test[index,1], x.test[index,2],x.test[index,3], 
-          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE, col = "red", 
+scatter3D(x.test[index,1], x.test[index,2],x.test[index,3],
+          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE, col = "red",
           border="black", shade=0.8, main=" ",add = TRUE)
 
 
@@ -165,13 +166,13 @@ t.length=length(t.test)
 x.test=matrix(NA,ncol=3,nrow = t.length)
 for(i in 1:t.length){ x.test[i,]=f(t.test[i]) }
 index=(x.test[,1]>=min(data.points[,1]))&x.test[,1]<=max(data.points[,1])&(x.test[,2]>=min(data.points[,2]))&x.test[,2]<=max(data.points[,2])&(x.test[,3]>=min(data.points[,3]))&x.test[,3]<=max(data.points[,3])
-scatter3D(data.points[,1], data.points[,2], data.points[,3], 
-          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE, 
-          border="black", shade=0.8, 
+scatter3D(data.points[,1], data.points[,2], data.points[,3],
+          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE,
+          border="black", shade=0.8,
           bty = "g", ticktype = "detailed",
           main="Principal Manifold Estimation")
-scatter3D(x.test[index,1], x.test[index,2],x.test[index,3], 
-          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE, col = "red", 
+scatter3D(x.test[index,1], x.test[index,2],x.test[index,3],
+          pch = 20, box=TRUE, cex = 0.2, colkey = FALSE, col = "red",
           border="black", shade=0.8, main=" ",add = TRUE)
 
 
@@ -213,13 +214,13 @@ surf.plot <- t(apply(expand_grid(t.plot.1, t.plot.2), 1, f))
 # x.test=surf.plot[-1,]
 x.test <- surf.plot
 index=(x.test[,1]>=min(data_points[,1]))&x.test[,1]<=max(data_points[,1])&(x.test[,2]>=min(data_points[,2]))&x.test[,2]<=max(data_points[,2])&(x.test[,3]>=min(data_points[,3]))&x.test[,3]<=max(data_points[,3])
-scatter3D(data_points[,1], data_points[,2], data_points[,3], 
-          pch = 20, box=FALSE, cex = 0.5, colkey = FALSE, 
-          border="black", shade=0.8, 
+scatter3D(data_points[,1], data_points[,2], data_points[,3],
+          pch = 20, box=FALSE, cex = 0.5, colkey = FALSE,
+          border="black", shade=0.8,
           ticktype = "detailed",
           main="Principal Manifold Estimation")
-scatter3D(x.test[index,1], x.test[index,2],x.test[index,3], 
-          pch = 20, box=FALSE, cex = 0.1, colkey = FALSE, col = "grey", 
+scatter3D(x.test[index,1], x.test[index,2],x.test[index,3],
+          pch = 20, box=FALSE, cex = 0.1, colkey = FALSE, col = "grey",
           border="black", shade=0.8, main=" ",add = TRUE)
 
 x_df <- data.frame(x.test[index, ])
@@ -237,7 +238,7 @@ data_df <- cbind("data", data_df)
 names(data_df) <- c(
   "type",
   "x",
-  "y", 
+  "y",
   "z"
 )
 
@@ -250,7 +251,7 @@ fig <- plot_ly(
   z = ~z,
   type = "scatter3d",
   color = ~type
-) # %>% 
+) # %>%
   add_surface(
     x = x_df$x,
     y = x_df$y,
@@ -262,5 +263,5 @@ fig2 <- plot_ly(
   x = ~x,
   y = ~y,
   z = ~z
-) %>% 
+) %>%
   add_surface()
