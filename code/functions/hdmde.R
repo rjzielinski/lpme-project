@@ -46,7 +46,9 @@ hdmde <- function(x.obs, N0, alpha, max.comp) {
   test.rejection <- 1
   while ((test.rejection == 1) & (N <= min(n, max.comp))) {
 
-    N <- N + 1
+    if (max.comp > N0) {
+      N <- N + 1
+    }
 
     ##################################################
     # The following is a repetition of the codes above.
