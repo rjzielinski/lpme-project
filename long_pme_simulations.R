@@ -4,6 +4,7 @@ library(profvis)
 
 source("code/lpme.R")
 source("code/pme.R")
+source("code/functions/lpme_init.R")
 
 sim_D2d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) {
   I <- 1000
@@ -277,6 +278,119 @@ sim_D3d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier,
   return(data.points)
 }
 
+########## INITIALIZATION SIMULATIONS ##########
+
+time_noise_vals <- c(0.1, 0.25, 0.5, 1)
+t_vals <- c(5, 10, 25)
+functions <- list(
+  sim_D2d1_case1,
+  sim_D2d1_case2,
+  sim_D2d1_case3,
+  sim_D2d1_case4,
+  sim_D3d1_case1,
+  sim_D3d1_case2,
+  sim_D3d2_case1
+)
+
+dim_names <- c(
+  "D2d1",
+  "D2d1",
+  "D2d1",
+  "D2d1",
+  "D3d1",
+  "D3d1",
+  "D3d2"
+)
+
+dim_vals <- c(1, 1, 1, 1, 1, 1, 2)
+
+case_names <- c(
+  "case1",
+  "case2",
+  "case3",
+  "case4",
+  "case1",
+  "case2",
+  "case1"
+)
+
+init_types <- c("first", "full", "separate")
+
+set.seed(500)
+for (noise_val in time_noise_vals) {
+  for (t_val in t_vals) {
+    for (fun_idx in 1:length(functions)) {
+      time_vals <- 0:t_val
+      df_list <- lapply(
+        time_vals,
+        functions[[fun_idx]],
+        vertical_multiplier = 1,
+        horizontal_multiplier = 1,
+        noise = 0.15,
+        time_noise = noise_val
+      )
+      data_points <- reduce(df_list, rbind)
+      for (init_type in init_types) {
+        sim_init_result <- lpme_init(
+          data_points,
+          dim_vals[fun_idx],
+          init = init_type
+        )
+
+        init_result_dir <- paste0(
+          "~/documents/longitudinal-manifold-estimation/results/init_sim/",
+          dim_names[fun_idx],
+          "/noise_",
+          gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
+          "/t",
+          as.character(length(time_vals)),
+          "/",
+          case_names[fun_idx],
+          "_",
+          init_type
+        )
+
+        if (!dir.exists(init_result_dir)) {
+          dir.create(init_result_dir, recursive = TRUE)
+        }
+
+        saveRDS(
+          sim_init_result,
+          paste0(init_result_dir, ".RDS")
+        )
+
+        sim_lpme_result <- lpme(
+          data_points,
+          dim_vals[fun_idx],
+          init = init_type
+        )
+
+        lpme_result_dir <- paste0(
+          "~/documents/longitudinal-manifold-estimation/results/lpme/",
+          dim_names[fun_idx],
+          "/noise_",
+          gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
+          "/t",
+          as.character(length(time_vals)),
+          "/",
+          case_names[fun_idx],
+          "_",
+          init_type
+        )
+
+        if (!dir.exists(lpme_result_dir)) {
+          dir.create(lpme_result_dir, recursive = TRUE)
+        }
+
+        saveRDS(
+          sim_lpme_result,
+          paste0(lpme_result_dir, ".RDS")
+        )
+      }
+    }
+  }
+}
+
 ### Simulation Case 1
 
 time_vals <- 0:10
@@ -348,7 +462,7 @@ plot_ly(
 
 ### Simulation Case 2
 
-time_vals <- 0:5
+time_vals <- 0:10
 
 set.seed(100)
 df_list <- lapply(
@@ -413,7 +527,7 @@ plot_ly(
 
 ### Simulation Case 3
 
-time_vals <- 0:5
+time_vals <- 0:10
 
 set.seed(100)
 df_list <- lapply(
@@ -543,7 +657,7 @@ plot_ly(
 
 ### D3, d1 Simulation Case 1
 
-time_vals <- 0:5
+time_vals <- 0:10
 
 set.seed(100)
 df_list <- lapply(
