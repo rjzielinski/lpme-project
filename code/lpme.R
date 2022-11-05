@@ -1,27 +1,61 @@
-lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100) {
+lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100, init = "first") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
-  
-  source("pme.R")
+
+  source("code/pme.R")
   require(plotly)
   require(svMisc)
   # source("Principal_Manifold_Estimation.R")
-  
-  time_points <- df[, 1] %>% 
+
+  time_points <- df[, 1] %>%
     unique()
-  
+
   pme_results <- list()
   funcs <- list()
   x_test <- list()
   r <- list()
-  
+
+  if (init %in% c("first", "full")) {
+    if (init == "first") {
+      init_df <- df[df[, 1] == time_points[1], -1]
+    } else if (init == "full") {
+      init_df <- df[, -1]
+    }
+
+    init_dimension.size <- dim(init_df)
+    init_D <- init_dimension.size[2]
+    init_n <- init_dimension.size[1]
+    lambda <- 4 - d
+
+    init_N0 <- 20 * init_D
+    init_est <- hdmde(init_df, init_N0, alpha, max.comp)
+    init_order <- order(init_est$mu[, 1])
+    init_theta.hat <- init_est$theta.hat[init_order]
+    init_centers <- init_est$mu[init_order, ]
+    init_sigma <- init_est$sigma
+    init_W <- diag(init_theta.hat)
+    init_X <- init_est$mu[init_order, ]
+    init_I <- length(init_theta.hat)
+
+    init_dissimilarity.matrix <- as.matrix(dist(init_X))
+    init_isomap <- isomap(init_dissimilarity.matrix, ndim = d, k = 10)
+  }
+
   for (idx in 1:length(time_points)) {
     df_temp <- df[df[, 1] == time_points[idx], ]
-    pme_results[[idx]] <- pme(
-      x.obs = df_temp[, -1],
-      d = d
-    )
+    if (init %in% c("first", "full")) {
+      pme_results[[idx]] <- pme(
+        x.obs = df_temp[, -1],
+        d = d,
+        initialization = list(init_est, init_isomap)
+      )
+    } else {
+      pme_results[[idx]] <- pme(
+        x.obs = df_temp[, -1],
+        d = d
+      )
+    }
     funcs[[idx]] <- pme_results[[idx]]$embedding.map
     r_test <- seq(
       from = -10,
@@ -35,11 +69,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       r_mat,
       1,
       funcs[[idx]]
-    ) %>% 
+    ) %>%
       matrix(nrow = dim(r_mat)[1], byrow = TRUE)
-    # x_temp <- map(r_mat, ~ funcs[[idx]](.x)) %>% 
-    #   unlist() %>% 
-    #   matrix(nrow = r_length, byrow = TRUE)
+
     idx_inrange <- matrix(nrow = dim(x_temp)[1], ncol = dim(x_temp)[2])
     for (dim_idx in 1:dim(x_temp)[2]) {
       idx_range <- max(df_temp[, dim_idx + 1]) - min(df_temp[, dim_idx + 1])
@@ -47,7 +79,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       idx_max <- max(df_temp[, dim_idx + 1]) + (0.2 * idx_range)
       idx_inrange[, dim_idx] <- (x_temp[, dim_idx] > idx_min) & (x_temp[, dim_idx] < idx_max)
     }
-    
+
     r_inrange <- rowSums(idx_inrange) == dim(x_temp)[2]
     if (sum(r_inrange) == 0) {
       r_inrange <- rowSums(idx_inrange) > 0
@@ -68,69 +100,28 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       r_mat,
       1,
       funcs[[idx]]
-    ) %>% 
+    ) %>%
       matrix(nrow = dim(r_mat)[1], byrow = TRUE)
-    
-    # x_test[[idx]] <- map(r_test, ~ funcs[[idx]](.x)) %>% 
-    #   unlist() %>% 
-    #   matrix(nrow = r_length, byrow = TRUE)
-    if (norm_euclidean(x_test[[idx]][nrow(x_test[[idx]]), ]) - norm_euclidean(x_test[[idx]][1, ]) < 0) {
-      r_mat <- r_mat[nrow(r_mat):1, ]
-    }
+
     r[[idx]] <- cbind(time_points[idx], r_mat)
   }
-  
-  r <- reduce(r, rbind)
-  r_df <- data.frame(r)
-  rnames <- paste0("r", 1:(dim(r)[2] - 1))
+
+  r_full <- reduce(r, rbind)
+  r_df <- data.frame(r_full)
+  rnames <- paste0("r", 1:(dim(r_full)[2] - 1))
   names(r_df) <- c("time", rnames)
-  x_test <- reduce(x_test, rbind) 
+  x_test <- reduce(x_test, rbind)
   x_test_df <- data.frame(x_test)
   xnames <- paste0("x", 1:(dim(x_test)[2]))
   names(x_test_df) <- xnames
-  
-  # plot_ly(
-  #   x_test_df,
-  #   x = ~x,
-  #   y = ~y,
-  #   z = ~time,
-  #   type = "scatter3d",
-  #   mode = "markers"
-  # )
-  
-  # tps <- Tps(
-  #   x = x_test[, 1:2],
-  #   Y = x_test[, 3]
-  # )
-  # 
-  # tps_pred_x <- seq(0, 2, 0.1)
-  # tps_pred_y <- seq(-10, 10, 0.2)
-  # tps_pred_z <- predict(
-  #   tps_test,
-  #   expand.grid(tps_pred_x, tps_pred_y)
-  # ) %>% 
-  #   matrix(
-  #     nrow = length(tps_pred_y),
-  #     ncol = length(tps_pred_x),
-  #     byrow = TRUE
-  #   )
-  # 
-  # plot_ly(
-  #   x = tps_pred_x,
-  #   y = tps_pred_y,
-  #   z = tps_pred_z
-  # ) %>% 
-  #   add_surface()
-  # 
-  # return(tps)
-  
+
   D_new <- dim(x_test)[2]
-  d_new <- dim(r)[2]
+  d_new <- dim(r_full)[2]
   n_new <- dim(x_test)[1]
   gamma <- 4 - d_new
 
   sig_new <- 0.001
-  theta_hat_new <- weight.seq(x_test, x_test, sig_new)
+  theta_hat_new <- weight_seq(x_test, x_test, sig_new)
   centers_new <- x_test
   sigma_new <- 0.001
   W_new <- diag(theta_hat_new)
@@ -138,14 +129,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   I_new <- length(theta_hat_new)
 
   dissimilarity_matrix_new <- as.matrix(dist(X_new))
-  # isomap_initial <- isomap(
-  #   dissimilarity_matrix_new,
-  #   ndim = d_new,
-  #   k = 10
-  # )
-  # t_initial <- isomap_initial$points
-  t_initial <- r
-  
+  t_initial <- r_full
+
   MSE_seq_new <- vector()
   SOL_new <- list()
   TNEW_new <- list()
@@ -168,7 +153,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     E_new <- matrix(NA, ncol = I_new, nrow = I_new)
     for (j in 1:I_new) {
       E_prepare <- function(t) {
-        eta.kernel(t - t_new[j, ], gamma)
+        eta_kernel(t - t_new[j, ], gamma)
       }
       E_new[, j] <- apply(t_new, 1, E_prepare)
     }
@@ -203,7 +188,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
     eta.func <- function(t) {
       eta.func.prepare <- function(tau) {
-        return(eta.kernel(t - tau, gamma))
+        return(eta_kernel(t - tau, gamma))
       }
       return(
         matrix(
@@ -245,7 +230,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
     SSD.prepare <- function(x.prin, f) {
       return(
-        dist.euclidean(
+        dist_euclidean(
           x.prin[1:D_new],
           f(x.prin[(D_new + 1):(D_new + d_new)])
         ) ^ 2
@@ -257,14 +242,14 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       return(SSD.prepare(x.init, f_new))
     }
     SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
-    
+
     if (print_plots == TRUE) {
       time_vals <- seq(
         min(time_points),
         max(time_points),
         0.1
       )
-      
+
       r_vals <- seq(
         from = -10,
         to = 10,
@@ -273,24 +258,24 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
       r_mat <- as.matrix(expand.grid(r_list))
       r_length <- dim(r_mat)[1]
-      pred_grid <- expand_grid(r_vals, r_mat) %>% 
+      pred_grid <- expand_grid(r_vals, r_mat) %>%
         as.matrix()
-      
+
       f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
       for (i in 1:nrow(pred_grid)) {
         f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
         progress(i, max.value = nrow(pred_grid), console = FALSE)
       }
-      
+
       idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
       for (dim_idx in 1:dim(f_pred)[2]) {
         idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
         idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
         idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
-        idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
+        idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) &
           (f_pred[, dim_idx] < idx_max)
       }
-      
+
       r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
       if (sum(r_inrange) == 0) {
         r_inrange <- rowSums(idx_inrange) > 0
@@ -306,16 +291,16 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       )
       r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
       r_mat <- as.matrix(expand.grid(r_list))
-      pred_grid <- expand_grid(time_vals, r_mat) %>% 
+      pred_grid <- expand_grid(time_vals, r_mat) %>%
         as.matrix()
       f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
       for (i in 1:nrow(pred_grid)) {
         f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
         progress(i, max.value = nrow(pred_grid), console = FALSE)
       }
-      
+
       f_pred_full <- cbind(pred_grid, f_pred)
-      
+
       if (D_new == 2) {
         plt <- plot_ly(
           x = f_pred_full[, d_new + 1],
@@ -338,9 +323,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
           opacity = 0.5
         )
         print(plt)
-      }  
+      }
     }
-    
+
 
     count <- 1
     SSD_ratio <- 10 * epsilon
@@ -353,7 +338,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       E_new <- matrix(NA, ncol = I_new, nrow = I_new)
       for (j in 1:I_new) {
         E.prepare <- function(t) {
-          eta.kernel(t - t_new[j, ], gamma)
+          eta_kernel(t - t_new[j, ], gamma)
         }
         E_new[, j] <- apply(t_new, 1, E.prepare)
       }
@@ -388,7 +373,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
       eta.func <- function(t) {
         eta.func.prepare <- function(tau) {
-          return(eta.kernel(t - tau, gamma))
+          return(eta_kernel(t - tau, gamma))
         }
         return(matrix(apply(t_new, 1, eta.func.prepare), ncol = 1))
       }
@@ -418,14 +403,14 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       SSD.prepare.again <- function(x.init) {
         return(SSD.prepare(x.init, f_new))
       }
-      
+
       if (print_plots == TRUE) {
         time_vals <- seq(
           min(time_points),
           max(time_points),
           0.1
         )
-      
+
         r_vals <- seq(
           from = -10,
           to = 10,
@@ -434,24 +419,24 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
         r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
         r_mat <- as.matrix(expand.grid(r_list))
         r_length <- dim(r_mat)[1]
-        pred_grid <- expand_grid(r_vals, r_mat) %>% 
+        pred_grid <- expand_grid(r_vals, r_mat) %>%
           as.matrix()
-        
+
         f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
         for (i in 1:nrow(pred_grid)) {
           f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
           progress(i, max.value = nrow(pred_grid), console = FALSE)
         }
-        
+
         idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
         for (dim_idx in 1:dim(f_pred)[2]) {
           idx_range <- max(X_new[, dim_idx]) - min(X_new[, dim_idx])
           idx_min <- min(X_new[, dim_idx]) - (0.2 * idx_range)
           idx_max <- max(X_new[, dim_idx]) + (0.2 * idx_range)
-          idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) & 
+          idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) &
             (f_pred[, dim_idx] < idx_max)
         }
-        
+
         r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
         if (sum(r_inrange) == 0) {
           r_inrange <- rowSums(idx_inrange) > 0
@@ -467,16 +452,16 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
         )
         r_list <- lapply(numeric(d_new - 1), function(x) r_vals)
         r_mat <- as.matrix(expand.grid(r_list))
-        pred_grid <- expand_grid(time_vals, r_mat) %>% 
+        pred_grid <- expand_grid(time_vals, r_mat) %>%
           as.matrix()
         f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
         for (i in 1:nrow(pred_grid)) {
           f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
           progress(i, max.value = nrow(pred_grid), console = FALSE)
         }
-        
+
         f_pred_full <- cbind(pred_grid, f_pred)
-        
+
         if (D_new == 2) {
           plt <- plot_ly(
             x = f_pred_full[, d_new + 1],
@@ -501,8 +486,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
           print(plt)
         }
       }
-      
-      
+
+
       SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
@@ -553,7 +538,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     diff_data_fit <- apply(
       data_initial[, 1:D_new] - proj_points,
       1,
-      norm.euclidean
+      norm_euclidean
     )
     MSE_new <- mean(diff_data_fit ^ 2)
     MSE_seq_new[tuning.ind] <- MSE_new
@@ -585,7 +570,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   t_new_opt <- TNEW_new[[optimal_ind]]
   eta.func <- function(t) {
     eta.func.prepare <- function(tau) {
-      return(eta.kernel(t - tau, gamma))
+      return(eta_kernel(t - tau, gamma))
     }
     return(
       matrix(
@@ -650,4 +635,3 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   )
   return(resp)
 }
-  

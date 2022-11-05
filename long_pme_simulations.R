@@ -2,10 +2,11 @@ library(tidyverse)
 library(plotly)
 library(profvis)
 
-source("lpme.R")
-source("pme.R")
+source("code/lpme.R")
+source("code/pme.R")
+source("code/functions/lpme_init.R")
 
-sim_D2d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) { 
+sim_D2d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) {
   I <- 1000
   t <- rnorm(I, mean = 0, sd = 1)
   horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
@@ -22,28 +23,28 @@ sim_D2d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier,
       )
     )
   }
-  
+
   X <- map(
-    t, 
+    t,
     ~ manifold(
-      .x, 
-      time_val, 
-      vertical_multiplier, 
-      horizontal_multiplier, 
-      vertical_noise, 
+      .x,
+      time_val,
+      vertical_multiplier,
+      horizontal_multiplier,
+      vertical_noise,
       horizontal_noise
     )
-  ) %>% 
-    unlist() %>% 
+  ) %>%
+    unlist() %>%
     matrix(ncol = 2, byrow = TRUE)
   data.points <- X + cbind(e1, e2)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
 
-sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) { 
+sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) {
   I <- 1000
-  t <- runif(I, min = -3 * pi, max = 3 * pi) 
+  t <- runif(I, min = -3 * pi, max = 3 * pi)
   horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
   vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
   sd.noise <- noise
@@ -58,26 +59,26 @@ sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
       )
     )
   }
-  
+
   X <- map(
-    t, 
+    t,
     ~ manifold(
-      .x, 
-      time_val, 
-      vertical_multiplier, 
-      horizontal_multiplier, 
-      vertical_noise, 
+      .x,
+      time_val,
+      vertical_multiplier,
+      horizontal_multiplier,
+      vertical_noise,
       horizontal_noise
     )
-  ) %>% 
-    unlist() %>% 
+  ) %>%
+    unlist() %>%
     matrix(ncol = 2, byrow = TRUE)
   data.points <- X + cbind(e1, e2)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
 
-sim_D2d1_case3 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) { 
+sim_D2d1_case3 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) {
   I <- 1000
   t <- runif(I, min = 0, max = 1.5 * pi)
   horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
@@ -94,30 +95,30 @@ sim_D2d1_case3 <- function(time_val, vertical_multiplier, horizontal_multiplier,
       )
     )
   }
-  
+
   X <- map(
-    t, 
+    t,
     ~ manifold(
-      .x, 
-      time_val, 
-      vertical_multiplier, 
-      horizontal_multiplier, 
-      vertical_noise, 
+      .x,
+      time_val,
+      vertical_multiplier,
+      horizontal_multiplier,
+      vertical_noise,
       horizontal_noise
     )
-  ) %>% 
-    unlist() %>% 
+  ) %>%
+    unlist() %>%
     matrix(ncol = 2, byrow = TRUE)
   data.points <- X + cbind(e1, e2)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
 
-sim_D2d1_case4 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) { 
+sim_D2d1_case4 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise) {
   I <- 1000
   t <- runif(
-    I, 
-    min = 0 + (time_val * (pi / 4)), 
+    I,
+    min = 0 + (time_val * (pi / 4)),
     max = (1.5 * pi) + (time_val * (pi / 4))
   )
   horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
@@ -134,26 +135,26 @@ sim_D2d1_case4 <- function(time_val, vertical_multiplier, horizontal_multiplier,
       )
     )
   }
-  
+
   X <- map(
-    t, 
+    t,
     ~ manifold(
-      .x, 
-      time_val, 
-      vertical_multiplier, 
-      horizontal_multiplier, 
-      vertical_noise, 
+      .x,
+      time_val,
+      vertical_multiplier,
+      horizontal_multiplier,
+      vertical_noise,
       horizontal_noise
     )
-  ) %>% 
-    unlist() %>% 
+  ) %>%
+    unlist() %>%
     matrix(ncol = 2, byrow = TRUE)
   data.points <- X + cbind(e1, e2)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
 
-sim_D3d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) { 
+sim_D3d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) {
   I <- 1000
   t <- runif(I, min = -1, max = 1)
   horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
@@ -173,28 +174,28 @@ sim_D3d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier,
       )
     )
   }
-  
+
   X <- map(
-    t, 
+    t,
     ~ manifold(
-      .x, 
-      time_val, 
-      vertical_multiplier, 
+      .x,
+      time_val,
+      vertical_multiplier,
       horizontal_multiplier,
       depth_multiplier,
-      vertical_noise, 
+      vertical_noise,
       horizontal_noise,
       depth_noise
     )
-  ) %>% 
-    unlist() %>% 
+  ) %>%
+    unlist() %>%
     matrix(ncol = 3, byrow = TRUE)
   data.points <- X + cbind(e1, e2, e3)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
 
-sim_D3d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) { 
+sim_D3d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) {
   I <- 1000
   t <- runif(I, min = 0, max = 3 * pi)
   horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
@@ -214,28 +215,28 @@ sim_D3d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
       )
     )
   }
-  
+
   X <- map(
-    t, 
+    t,
     ~ manifold(
-      .x, 
-      time_val, 
-      vertical_multiplier, 
+      .x,
+      time_val,
+      vertical_multiplier,
       horizontal_multiplier,
       depth_multiplier,
-      vertical_noise, 
+      vertical_noise,
       horizontal_noise,
       depth_noise
     )
-  ) %>% 
-    unlist() %>% 
+  ) %>%
+    unlist() %>%
     matrix(ncol = 3, byrow = TRUE)
   data.points <- X + cbind(e1, e2, e3)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
 
-sim_D3d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) { 
+sim_D3d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) {
   I <- 1000
   t1 <- runif(I, min = -1, max = 1)
   t2 <- runif(I, min = -1, max = 1)
@@ -257,37 +258,150 @@ sim_D3d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier,
       )
     )
   }
-  
+
   X <- apply(
-    t, 
+    t,
     1,
     manifold,
-    time_val = time_val, 
-    vertical_multiplier = vertical_multiplier, 
+    time_val = time_val,
+    vertical_multiplier = vertical_multiplier,
     horizontal_multiplier = horizontal_multiplier,
     depth_multiplier = depth_multiplier,
     vertical_noise = vertical_noise,
     horizontal_noise = horizontal_noise,
     depth_noise = depth_noise
-  ) %>% 
-    unlist() %>% 
+  ) %>%
+    unlist() %>%
     matrix(ncol = 3, byrow = TRUE)
   data.points <- X + cbind(e1, e2, e3)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
 
+########## INITIALIZATION SIMULATIONS ##########
+
+time_noise_vals <- c(0.1, 0.25, 0.5, 1)
+t_vals <- c(5, 10, 25)
+functions <- list(
+  sim_D2d1_case1,
+  sim_D2d1_case2,
+  sim_D2d1_case3,
+  sim_D2d1_case4,
+  sim_D3d1_case1,
+  sim_D3d1_case2,
+  sim_D3d2_case1
+)
+
+dim_names <- c(
+  "D2d1",
+  "D2d1",
+  "D2d1",
+  "D2d1",
+  "D3d1",
+  "D3d1",
+  "D3d2"
+)
+
+dim_vals <- c(1, 1, 1, 1, 1, 1, 2)
+
+case_names <- c(
+  "case1",
+  "case2",
+  "case3",
+  "case4",
+  "case1",
+  "case2",
+  "case1"
+)
+
+init_types <- c("first", "full", "separate")
+
+set.seed(500)
+for (noise_val in time_noise_vals) {
+  for (t_val in t_vals) {
+    for (fun_idx in 1:length(functions)) {
+      time_vals <- 0:t_val
+      df_list <- lapply(
+        time_vals,
+        functions[[fun_idx]],
+        vertical_multiplier = 1,
+        horizontal_multiplier = 1,
+        noise = 0.15,
+        time_noise = noise_val
+      )
+      data_points <- reduce(df_list, rbind)
+      for (init_type in init_types) {
+        sim_init_result <- lpme_init(
+          data_points,
+          dim_vals[fun_idx],
+          init = init_type
+        )
+
+        init_result_dir <- paste0(
+          "results/init_sim/",
+          dim_names[fun_idx],
+          "/noise_",
+          gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
+          "/t",
+          as.character(length(time_vals)),
+          "/",
+          case_names[fun_idx],
+          "_",
+          init_type
+        )
+
+        if (!dir.exists(init_result_dir)) {
+          dir.create(init_result_dir, recursive = TRUE)
+        }
+
+        saveRDS(
+          sim_init_result,
+          paste0(init_result_dir, ".RDS")
+        )
+
+        sim_lpme_result <- lpme(
+          data_points,
+          dim_vals[fun_idx],
+          init = init_type
+        )
+
+        lpme_result_dir <- paste0(
+          "results/lpme/",
+          dim_names[fun_idx],
+          "/noise_",
+          gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
+          "/t",
+          as.character(length(time_vals)),
+          "/",
+          case_names[fun_idx],
+          "_",
+          init_type
+        )
+
+        if (!dir.exists(lpme_result_dir)) {
+          dir.create(lpme_result_dir, recursive = TRUE)
+        }
+
+        saveRDS(
+          sim_lpme_result,
+          paste0(lpme_result_dir, ".RDS")
+        )
+      }
+    }
+  }
+}
+
 ### Simulation Case 1
 
-time_vals <- 0:5
+time_vals <- 0:10
 
 set.seed(100)
 df_list <- lapply(
-  time_vals, 
-  sim_D2d1_case1, 
+  time_vals,
+  sim_D2d1_case1,
   vertical_multiplier = 1,
-  horizontal_multiplier = 1, 
-  noise = 0.15, 
+  horizontal_multiplier = 1,
+  noise = 0.15,
   time_noise = 1
 )
 
@@ -309,10 +423,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
   idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
   idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
   idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) & 
+  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
     (sim_pred[, dim_idx] < idx_max)
 }
-    
+
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
 r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
@@ -348,15 +462,15 @@ plot_ly(
 
 ### Simulation Case 2
 
-time_vals <- 0:5
+time_vals <- 0:10
 
 set.seed(100)
 df_list <- lapply(
-  time_vals, 
-  sim_D2d1_case2, 
-  vertical_multiplier = 1, 
-  horizontal_multiplier = 1, 
-  noise = 0.15, 
+  time_vals,
+  sim_D2d1_case2,
+  vertical_multiplier = 1,
+  horizontal_multiplier = 1,
+  noise = 0.15,
   time_noise = 0.5
 )
 
@@ -378,10 +492,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
   idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
   idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
   idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) & 
+  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
     (sim_pred[, dim_idx] < idx_max)
 }
-    
+
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
 r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
@@ -413,15 +527,15 @@ plot_ly(
 
 ### Simulation Case 3
 
-time_vals <- 0:5
+time_vals <- 0:10
 
 set.seed(100)
 df_list <- lapply(
-  time_vals, 
-  sim_D2d1_case3, 
-  vertical_multiplier = 1, 
-  horizontal_multiplier = 1, 
-  noise = 0.15, 
+  time_vals,
+  sim_D2d1_case3,
+  vertical_multiplier = 1,
+  horizontal_multiplier = 1,
+  noise = 0.15,
   time_noise = 0.5
 )
 
@@ -443,10 +557,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
   idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
   idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
   idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) & 
+  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
     (sim_pred[, dim_idx] < idx_max)
 }
-    
+
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
 r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
@@ -482,11 +596,11 @@ time_vals <- seq(0, 1, 0.5)
 
 set.seed(100)
 df_list <- lapply(
-  time_vals, 
-  sim_D2d1_case4, 
-  vertical_multiplier = 1, 
-  horizontal_multiplier = 1, 
-  noise = 0.15, 
+  time_vals,
+  sim_D2d1_case4,
+  vertical_multiplier = 1,
+  horizontal_multiplier = 1,
+  noise = 0.15,
   time_noise = 0.5
 )
 
@@ -508,10 +622,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
   idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
   idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
   idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) & 
+  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
     (sim_pred[, dim_idx] < idx_max)
 }
-    
+
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
 r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
@@ -543,16 +657,16 @@ plot_ly(
 
 ### D3, d1 Simulation Case 1
 
-time_vals <- 0:5
+time_vals <- 0:10
 
 set.seed(100)
 df_list <- lapply(
-  time_vals, 
-  sim_D3d1_case1, 
+  time_vals,
+  sim_D3d1_case1,
   vertical_multiplier = 1,
   horizontal_multiplier = 1,
   depth_multiplier = 1,
-  noise = 0.15, 
+  noise = 0.15,
   time_noise = 1
 )
 
@@ -574,10 +688,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
   idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
   idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
   idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) & 
+  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
     (sim_pred[, dim_idx] < idx_max)
 }
-    
+
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
 r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
@@ -617,12 +731,12 @@ time_vals <- 0:5
 
 set.seed(100)
 df_list <- lapply(
-  time_vals, 
+  time_vals,
   sim_D3d1_case2,
   vertical_multiplier = 1,
   horizontal_multiplier = 1,
   depth_multiplier = 1,
-  noise = 0.15, 
+  noise = 0.15,
   time_noise = 1
 )
 
@@ -644,10 +758,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
   idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
   idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
   idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) & 
+  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
     (sim_pred[, dim_idx] < idx_max)
 }
-    
+
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
 r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
@@ -689,12 +803,12 @@ time_vals <- 0:5
 
 set.seed(100)
 df_list <- lapply(
-  time_vals, 
-  sim_D3d2_case1, 
+  time_vals,
+  sim_D3d2_case1,
   vertical_multiplier = 1,
   horizontal_multiplier = 1,
   depth_multiplier = 1,
-  noise = 0.15, 
+  noise = 0.15,
   time_noise = 1
 )
 
@@ -708,7 +822,7 @@ r_vals <- seq(-10, 10, 1)
 r_list <- lapply(numeric(2), function(x) r_vals)
 r_mat <- as.matrix(expand.grid(r_list))
 
-grid_mat <- expand_grid(time_vals, r_mat) %>% 
+grid_mat <- expand_grid(time_vals, r_mat) %>%
   as.matrix()
 
 sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
@@ -721,10 +835,10 @@ for (dim_idx in 1:dim(sim_pred)[2]) {
   idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
   idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
   idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) & 
+  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
     (sim_pred[, dim_idx] < idx_max)
 }
-    
+
 r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
 r_min <- min(unlist(grid_mat[, 2:3][r_inrange,]))
 r_max <- max(unlist(grid_mat[, 2:3][r_inrange,]))
@@ -740,7 +854,7 @@ r_vals <- seq(
 r_list <- lapply(numeric(2), function(x) r_vals)
 r_mat <- as.matrix(expand.grid(r_list))
 
-grid_mat <- expand_grid(time_vals, r_mat) %>% 
+grid_mat <- expand_grid(time_vals, r_mat) %>%
   as.matrix()
 
 sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
@@ -766,7 +880,7 @@ plot_ly(
   opacity = 0.5,
   type = "scatter3d",
   mode = "markers"
-) %>% 
+) %>%
   layout(
     scene = list(
       xaxis = list(
