@@ -338,7 +338,7 @@ for (noise_val in time_noise_vals) {
         )
 
         init_result_dir <- paste0(
-          "~/documents/longitudinal-manifold-estimation/results/init_sim/",
+          "results/init_sim/",
           dim_names[fun_idx],
           "/noise_",
           gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
@@ -366,7 +366,7 @@ for (noise_val in time_noise_vals) {
         )
 
         lpme_result_dir <- paste0(
-          "~/documents/longitudinal-manifold-estimation/results/lpme/",
+          "results/lpme/",
           dim_names[fun_idx],
           "/noise_",
           gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
