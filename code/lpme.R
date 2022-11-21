@@ -85,9 +85,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       r_inrange <- rowSums(idx_inrange) > 0
     }
     r_min <- min(r_mat[r_inrange, ])
-    r_min <- ifelse(is.na(r_min), -10, r_min)
+    r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
     r_max <- max(r_mat[r_inrange, ])
-    r_max <- ifelse(is.na(r_max), 10, r_max)
+    r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
     r_test <- seq(
       r_min,
       r_max,
@@ -241,7 +241,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     SSD.prepare.again <- function(x.init) {
       return(SSD.prepare(x.init, f_new))
     }
-    SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
+    SSD_new <- apply(X_projection_index, 1, SSD.prepare.again) %>%
+      as.vector() %>%
+      sum()
 
     if (print_plots == TRUE) {
       time_vals <- seq(
@@ -280,10 +282,16 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       if (sum(r_inrange) == 0) {
         r_inrange <- rowSums(idx_inrange) > 0
       }
-      r_min <- min(pred_grid[r_inrange, -1])
-      r_min <- ifelse(is.na(r_min), -10, r_min)
-      r_max <- max(pred_grid[r_inrange, -1])
-      r_max <- ifelse(is.na(r_max), 10, r_max)
+      if (sum(r_inrange) == 0) {
+        r_min <- -10
+        r_max <- 10
+      } else {
+        r_min <- min(pred_grid[r_inrange, -1])
+        r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
+        r_max <- max(pred_grid[r_inrange, -1])
+        r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
+      }
+
       r_vals <- seq(
         r_min,
         r_max,
@@ -306,11 +314,19 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
           x = f_pred_full[, d_new + 1],
           y = f_pred_full[, d_new + 2],
           z = f_pred_full[, 1],
-          color = f_pred_full[, 1],
-          opacity = 0.5,
+          # color = f_pred_full[, 1],
           type = "scatter3d",
-          mode = "lines"
-        )
+          mode = "markers",
+          marker = list(
+            size = 1
+          )
+        ) %>%
+          add_markers(
+            x = df[, 2],
+            y = df[, 3],
+            z = df[, 1],
+            opacity = 0.05
+          )
         print(plt)
       } else if (D_new == 3) {
         plt <- plot_ly(
@@ -441,10 +457,16 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
         if (sum(r_inrange) == 0) {
           r_inrange <- rowSums(idx_inrange) > 0
         }
-        r_min <- min(pred_grid[r_inrange, -1])
-        r_min <- ifelse(is.na(r_min), -10, r_min)
-        r_max <- max(pred_grid[r_inrange, -1])
-        r_max <- ifelse(is.na(r_max), 10, r_max)
+        if (sum(r_inrange) == 0) {
+          r_min <- -10
+          r_max <- 10
+        } else {
+          r_min <- min(pred_grid[r_inrange, -1])
+          r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
+          r_max <- max(pred_grid[r_inrange, -1])
+          r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
+        }
+
         r_vals <- seq(
           r_min,
           r_max,
@@ -467,11 +489,17 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
             x = f_pred_full[, d_new + 1],
             y = f_pred_full[, d_new + 2],
             z = f_pred_full[, 1],
-            color = f_pred_full[, 1],
+            # color = f_pred_full[, 1],
             type = "scatter3d",
             mode = "lines",
             opacity = 0.5
-          )
+          ) %>%
+            add_markers(
+              x = df[, 2],
+              y = df[, 3],
+              z = df[, 1],
+              opacity = 0.05
+            )
           print(plt)
         } else if (D_new == 3) {
           plt <- plot_ly(
@@ -488,7 +516,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       }
 
 
-      SSD_new <- sum(as.vector(apply(X_projection_index, 1, SSD.prepare.again)))
+      SSD_new <- apply(X_projection_index, 1, SSD.prepare.again) %>%
+        as.vector() %>%
+        sum()
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
 
