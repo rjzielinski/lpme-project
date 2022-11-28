@@ -1,0 +1,39 @@
+% basics
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{sidenotes}
+\usepackage{textcomp}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\hypersetup{
+  colorlinks,
+  linkcolor={black},
+  citecolor={black},
+  urlcolor={blue!80!black}
+}
+\usepackage{amsmath, amsfonts, mathtools, amsthm, amssymb}
+
+\newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+
+% theorems
+\usepackage{thmtools}
+\usepackage[framemethod=TikZ]{mdframed}
+\mdfsetup{skipabove=1em,skipbelow=0em, innertopmargin=5pt, innerbottommargin=6pt}
+
+\theoremstyle{definition}
+
+\declaretheorem[numberwithin=section, name=Definition]{definition}
+\declaretheorem[numberwithin=section, name=Proposition]{prop}
+\declaretheorem[numberwithin=section, name=Theorem]{theorem}
+\declaretheorem[numberwithin=section, name=Lemma]{lemma}
+\declaretheorem[numbered=no, name=Corollary]{corollary}
+\declaretheorem[numbered=no, name=Identity]{identity}
+\declaretheorem[numberwithin=section, name=Exercise]{exc}
+\declaretheorem[numberwithin=section, name=Solution]{solution}
+\declaretheorem[numbered=no, name=Remark]{remark}
+\declaretheorem[numbered=no, name=Example]{example}
+
+
