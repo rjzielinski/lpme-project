@@ -393,7 +393,7 @@ for (noise_val in time_noise_vals) {
 
 ### Simulation Case 1
 
-time_vals <- 0:10
+time_vals <- seq(0, 10, 2)
 
 set.seed(100)
 df_list <- lapply(
@@ -457,8 +457,16 @@ plot_ly(
   y = ~y,
   z = ~time,
   type = "scatter3d",
-  mode = "markers"
-)
+  mode = "markers",
+  marker = list(
+    size = 1
+  )
+) %>%
+  add_trace(
+    x = data_points[, 2],
+    y = data_points[, 3],
+    z = data_points[, 1]
+  )
 
 ### Simulation Case 2
 
@@ -471,7 +479,7 @@ df_list <- lapply(
   vertical_multiplier = 1,
   horizontal_multiplier = 1,
   noise = 0.15,
-  time_noise = 0.5
+  time_noise = 1
 )
 
 data_points <- reduce(df_list, rbind)
