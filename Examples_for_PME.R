@@ -182,7 +182,7 @@ scatter3D(x.test[index,1], x.test[index,2],x.test[index,3],
 
 ### Case I
 
-manifold=function(t){ return(c(t[1],t[2],norm.euclidean(t)^2)) }
+manifold=function(t){ return(c(t[1],t[2],norm_euclidean(t)^2)) }
 I=1000
 noise=0.05
 e1=rnorm(I,mean=0,sd=noise)
@@ -195,26 +195,26 @@ t=cbind(t.1,t.2)
 data.points=t(apply(t,1,manifold))+cbind(e1,e2,e3)
 
 ptm <- proc.time()
-result_test=PME(x.obs=data.points, d=2)
+result_test=pme(x.obs=data.points, d=2)
 proc.time() - ptm
 
-# f <- result_test$embedding.map
-f <- sim_result$embedding_map
+f <- result_test$embedding.map
+# f <- sim_result$embedding_map
 t.plot.1=seq(from=-2, to=2, length.out = 200)
 t.plot.2=seq(from=-2, to=2, length.out = 200)
 t.length=length(t.plot.1)
 surf.plot=matrix(0,ncol=3,nrow=1)
 surf.plot <- t(apply(expand_grid(t.plot.1, t.plot.2), 1, f))
-# for(i in 1:t.length){
-#   print(i)
-#   for(j in 1:t.length){
-#     surf.plot=rbind(surf.plot,f(c(t.plot.1[i],t.plot.2[j])))
-#   }
-# }
-# x.test=surf.plot[-1,]
-x.test <- surf.plot
-index=(x.test[,1]>=min(data_points[,1]))&x.test[,1]<=max(data_points[,1])&(x.test[,2]>=min(data_points[,2]))&x.test[,2]<=max(data_points[,2])&(x.test[,3]>=min(data_points[,3]))&x.test[,3]<=max(data_points[,3])
-scatter3D(data_points[,1], data_points[,2], data_points[,3],
+for(i in 1:t.length){
+  print(i)
+  for(j in 1:t.length){
+    surf.plot=rbind(surf.plot,f(c(t.plot.1[i],t.plot.2[j])))
+  }
+}
+x.test=surf.plot[-1,]
+# x.test <- surf.plot
+index=(x.test[,1]>=min(data.points[,1]))&x.test[,1]<=max(data.points[,1])&(x.test[,2]>=min(data.points[,2]))&x.test[,2]<=max(data.points[,2])&(x.test[,3]>=min(data.points[,3]))&x.test[,3]<=max(data.points[,3])
+scatter3D(data.points[,1], data.points[,2], data.points[,3],
           pch = 20, box=FALSE, cex = 0.5, colkey = FALSE,
           border="black", shade=0.8,
           ticktype = "detailed",
