@@ -1,0 +1,29 @@
+\section*{Principal manifold estimation via model complexity selection}
+\subhead{Kun Meng and Ani Eloyan, 2021}
+
+\subsection*{Helpful Definitions}
+\begin{itemize}
+    \item Seminorm: the norm of a vector space which does not need to be positive definite
+    \item Sobolev space: a vector space of functions that are sufficiently differentiable for some application, and that has a norm that measures the size and regularity of a function
+    \item Hilbert space: A vector space with an inner product that defines a distance function for which the space is a complete metric space
+    \item Reproducing kernel Hilbert space: A Hilbert space of functions in which point evaluation is a continuous linear functional
+\end{itemize}
+
+\subsection*{Introduction}
+Generally speaking, manifold learning is an approach to estimating a low-dimensional manifold underlying higher-dimensional data. The manifold learning process can be broken down into two interwoven steps:
+\begin{enumerate}
+    \item Parameterization: identifying the low-dimensional representation of the data.
+    \item Embedding: identifying a function that relates the low-dimensional manifold to the high-dimensional space that the data is in.
+\end{enumerate}
+
+This paper proposes an approach that combines these two steps, using a partial parameterization to estimate an embedding function, then finding the full parameterization from this function. This approach yields differentiable manifolds, and is able to generalize to data of any intrinsic dimension. The proposed method incorporates a model complexity selection method, which helps avoid overfitting, eliminate the effects of outliers, and reduce computational intensity.
+
+\subsection*{Notation}
+\begin{itemize}
+    \item Positive integers $d$ and $D$ represent the intrinsic dimension of the data and the dimension of the of the embedded space of the data, respectively, with $d < D$.
+    \item $\|x\|_{\mathcal{R}^q} = \left(\sum_{k=1}^{q} x_k^2\right)^{1/2}$.
+    \item Let $q_1, q_2 \in \{d, D\}$ and $k \in \{1, 2, \dots, \infty\}$, and $I$ be a subset of $\mathbb{R}^{q_1}$. Then $\mathcal{C}^k(I \to \mathbb{R}^{q_2}$ denotes the collection of $I \to \mathbb{R}^{q_2}$ maps whose components have up to the $k^{\text{th}}$ continuous derivative. To simplify, use $\mathcal{C}^k(I) = \mathcal{C}^k(I \to \mathbb{R}^1)$ and $\mathcal{C} = \mathcal{C^0}$.
+\end{itemize}
+
+\subsection*{Manifold Learning Background}
+

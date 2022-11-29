@@ -1,0 +1,160 @@
+%\documentclass[12pt]{amsart}
+\documentclass[11pt,reqno]{article}
+%\usepackage{cases}
+
+
+\RequirePackage{amsthm,amsmath,amsfonts,amssymb}
+%\RequirePackage[numbers]{natbib}
+\RequirePackage[authoryear]{natbib}%% uncomment this for author-year citations
+\RequirePackage[colorlinks,citecolor=blue,urlcolor=blue]{hyperref}%% uncomment this for coloring bibliography citations and linked URLs
+\RequirePackage{graphicx}%% uncomment this for including figures
+
+\usepackage{amsmath, amssymb, amscd, amsthm, amsfonts}
+\usepackage{graphicx}
+\usepackage[perpage,symbol*]{footmisc}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{color}  
+\usepackage{tikz}
+
+\usepackage{algorithm2e}
+
+\usepackage{natbib}
+\usepackage{authblk}
+
+\usepackage[english]{babel}
+\bibliographystyle{abbrvnat}
+\setcitestyle{authoryear,open={(},close={)}}
+
+
+\renewcommand{\baselinestretch}{1.0}
+\setlength{\oddsidemargin}{-0.5cm}
+\renewcommand{\topmargin}{-2cm}
+\renewcommand{\oddsidemargin}{0mm}
+\renewcommand{\evensidemargin}{0mm}
+\renewcommand{\textwidth}{180mm}
+\renewcommand{\textheight}{240mm}
+
+\begin{document}
+
+\title{Longitudinal Manifold Estimation}
+\author[1]{Robert Zielinski and Ani Eloyan}
+
+
+\maketitle
+
+\section{Introduction}
+
+Manifold learning is an approach to modeling high-dimensional data that is assumed to lie along a low-dimensional manifold. These approaches have become increasingly popular for medical imaging applications, where assuming an underlying manifold structure is helpful for modeling certain anatomical structures. In these settings, interacting with a structure in a low-dimensional form may be more intuitive than in a higher-dimensional space. For example, Yue et al. (2016) seeks to compute a parametric representation of the corpus callosum. A number of methods have been developed for manifold learning, including Isomap (Tenenbaum et al. 2000), locally linear embedding (Roweis and Saul, 2000), and Laplacian eigenmaps (Belkin and Niyogi, 2003). Meng and Eloyan (2021) proposed a principal manifold framework that resolved several limitations of previously developed extensions of the principal curves approach introduced by Hastie and Stuetzle (1989).
+
+In many medical imaging situations, understanding how an anatomical structure changes over time could provide meaningful information into the function of that structure, or medical conditions that affect that function. In situations where the structure is better represented by a low-dimensional manifold, interest carries over to understanding how the underlying manifold changes longitudinally as well. 
+
+While the methods given above provide a variety of approaches to retrieving a low-dimensional manifold from high-dimensional data at a single time point, they are ill-equipped to reach meaningful estimates across multiple time points. This is because these methods consider time as an additional dimension in the data, meaning they include time in the dimension-reduction process. This treatment of the time dimension causes time to be incorporated into the low-dimensional parameterization, preventing meaningful interpretation of this dimension. Here, we propose an alternative approach to estimating manifolds over time.
+
+Rather than include time as another dimension in a manifold learning method, we use a process that maintains the interpretability of the time dimension. Specifically, we use the method proposed in Meng and Eloyan (2021) to estimate an appropriate principal manifold at each given time point. We then smooth over these approximated manifolds in the time dimension, yielding an estimate showing longitudinal changes in the underlying manifold.
+
+[DISCUSS LONGITUDINAL DIMENSION REDUCTION APPROACHES CURRENTLY AVAILABLE - NEED TO REVIEW ARTICLES]
+
+The remainder of this article is laid out as follows: In Section 2, we introduce the principal manifold estimation method proposed in Meng and Eloyan (2021), discuss how this approach can be adapted for longitudinal settings, and show the algorithm being used to accomplish this. Section 3 demonstrates the performance of this approach on simulated data. In Section 4, we apply this method to longitudinal data of the hippocampus in individuals with Alzheimer's disease. The article finishes with a discussion of the method in Section 5.
+
+\section{Methods}
+
+Let $\{x_{it}\}_{i=1, t=1}^{I, T}$ be data points in $D$-dimensional space.
+
+Outline:
+\begin{enumerate}
+    \item Introduce principal surfaces / principal manifolds, PME algorithm, and the loss function it minimizes
+    \item Show updated loss function for LPME algorithm
+    \item LPME algorithm
+\end{enumerate}
+
+\section{Simulations}
+
+\section{Application}
+
+\section{Discussion}
+
+\RestyleAlgo{ruled}
+\LinesNumbered
+
+\SetKwComment{Comment}{/* }{ */}
+
+\begin{algorithm}
+\caption{Longitudinal Principal Manifold Estimation}\label{alg:two}
+\KwData{Data points $\{y_{i, t}\}_{i, t}^{I, T}$, positive integer $d$, positive integer $N_0 < I - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\{\lambda_k\}_{k=1}^K$, $\{\gamma_l\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
+\KwResult{Analytic formula of $g^*: \mathbb{R}^{d+1} \to \mathbb{R}^{D+1}$, optimal tuning parameter $\gamma^*$.}
+\For{$t = 1, 2, ... T$}{
+    Apply PME algorithm with input $(\{y_{i, t}\}_{i=1}^I, N_0, \alpha, \epsilon, \epsilon^*, \{\lambda_k\}_{k=1}^K)$ and obtain $\{f_t^*\}_{t=1}^T$ and $\{\lambda_t^*\}_{t=1}^T$\;
+    Use $\{f_t^*\}_{t=1}^T$ to map a grid of $d$-dimensional parameters $\{r_j\}_{j=1}^N$ to $\{x_{j, t}\}_{j=1}^N$ in $\mathbb{R}^D$\;
+}
+Apply ISOMAP to parameterize the newly generated collection $\{x_{j, t}\}_{j, t}^{N, T}$ by the $d$-dimensional parameters $\{r_j\}_{j=1}^N$\;
+Use parameters $\{r_j\}_{j=1}^N$ and time values $\{t_j\}_{j=1}^N$ to create new
+$\pi_{g_{(1)}}(x_{j}) \gets r_j$ for $j=1, ..., N$\;
+\For{$l = 1, 2, ..., L$}{
+    $\gamma \gets \gamma_l$.\;
+    Obtain $g_{(1)}$ by solving 
+    $\left(\begin{array}{ccc} 
+    2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
+    2\mathbf{T}^T\mathbf{W}\mathbf{E} & 2\mathbf{T}^T\mathbf{W}\mathbf{T} & \mathbf{0} \\
+    \mathbf{T}^T & \mathbf{0} & \mathbf{0} \end{array}\right)\left(\begin{array}{c} 
+    s_l \\
+    \alpha_l \\
+    m_l 
+    \end{array}\right) = \left(\begin{array}{c}
+    2\mathbf{E}\mathbf{W}\mathbf{x} \\
+    2\mathbf{T}^T\mathbf{W}\mathbf{x} \\
+    \mathbf{0} 
+    \end{array}\right)$\;
+    $\mathcal{E} \gets 2\epsilon^*$\;
+    $n \gets 1$\;
+    $\mathcal{D}_{\hat{Q}, N}(g_{(1)}) \gets \sum_{j=1}^N\|x_j - g_{(1)}\|_{\mathbb{R}^{D}}^2$\;
+    \While{$\mathcal{E} \geq \epsilon^*$, $n < itr$}{
+        Compute $g_{(n + 1)}$ by solving $\left(\begin{array}{ccc} 
+        2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
+        2\mathbf{T}^T\mathbf{W}\mathbf{E} & 2\mathbf{T}^T\mathbf{W}\mathbf{T} & \mathbf{0} \\
+        \mathbf{T}^T & \mathbf{0} & \mathbf{0} \end{array}\right)\left(\begin{array}{c} 
+        s_l \\
+        \alpha_l \\
+        m_l 
+        \end{array}\right) = \left(\begin{array}{c}
+        2\mathbf{E}\mathbf{W}\mathbf{x} \\
+        2\mathbf{T}^T\mathbf{W}\mathbf{x} \\
+        \mathbf{0} 
+        \end{array}\right)$\;
+        $\mathcal{D}_{\hat{Q}_N}(g_{(n + 1)}) \gets \sum_{j=1}^N\|x_j - g_{(n + 1)}(\pi_{g_{(n + 1)}}(x_j))\|_{\mathbb{R}^D}^2$\;
+        $\mathcal{E} \gets |\mathcal{D}_{\hat{Q}_N}(g_{(n + 1)}) - \mathcal{D}_{\hat{Q}_N}(g_{(n)})|/\mathcal{D}_{\hat{Q}_N}(g_{(n)})$\;
+        $n \gets n + 1$\;
+    }
+    $\hat{g}_l \gets g_{(n)}$\;
+}
+$\kappa \gets \text{max}\{\|\pi_{\hat{g}_{l^*}}(x_j)\|_{\mathbb{R}^d}: j = 1, 2, \dots, I\}$, where $l^* = \arg \min_l\{\frac{1}{N}\sum_{j=1}^N\|x_j - g_{(l)}(\pi_{\hat{g}_{(l)}}(x_j)\|_{\mathbb{R}^D}^2: l = 1, 2, \dots, L\}$\;
+$g^*(r) = g^{l^*}(\kappa r)$, where the analytic formula of $g^*$ is from $g_{(n + 1), l}(r) = \sum_{j=1}^N \eta_{4-d}(r - \pi_{g_{(n)}}(x_j)) + \sum_{k=1}^{d + 1} \alpha_{k, l} \times p_k(r)$, and $\gamma^* \gets \gamma_{l^*}$
+\end{algorithm}
+
+	\begin{equation}\label{PMSEF}
+	\mathcal{K}_{\lambda,\mathbb{P}}(f,g)=\mathbb{E}\left\Vert X_t - f\left(\pi_g(X_t)\right)\right\Vert^2_{\mathbb{R}^D} + \lambda \sum_{t = 1}^T \left\Vert\nabla^{\otimes 2} f(t)\right\Vert_{L^2(\mathbb{R}^d)}^2 + \gamma \sum_{X} \left\Vert\nabla^{\otimes 2} f(X_t)\right\Vert_{L^2(\mathbb{R})}^2, 
+	\end{equation}
+	\begin{equation}\nonumber
+	\mathcal{K}_{\lambda,\mathbb{P}}(f)=\mathcal{K}_{\lambda,\mathbb{P}}(f,f),
+	\end{equation}
+	where $\Vert\nabla^{\otimes 2}f \Vert_{L^2(\mathbb{R}^d)}^2 = \sum_{l=1}^D\int_{\mathbb{R}^d} \sum_{i,j=1}^d\vert\frac{\partial^2 f_l}{\partial t_i \partial t_j}(t)\vert^2dt$. A manifold $M_{f^*}^d$ determined by $f^*$ is called a principal manifold for $X$ (or $\mathbb{P}$) with the tuning parameter $\lambda$ if 
+	\begin{align}\label{def: PM}
+	f^*=\arg\min_{f\in\mathscr{F}(\mathbb{P})}\mathcal{K}_{\lambda,\mathbb{P}}(f),\ \ \mbox{ where }\mathscr{F}(\mathbb{P}):=\left\{f\in C_\infty\cap \nabla^{-\otimes 2}L^2( R^d \rightarrow R^D):\sup_{x\in supp(\mathbb{P})}\left\Vert\pi_f(x)\right\Vert_{R^d} = 1 \right\}.
+	\end{align}
+
+Questions:
+\begin{enumerate}
+    \item How can we ensure a consistent parameterization within the PME algorithm? If we aren't able to do that, can we modify parameter values after the fact to ensure that parameterization aligns at each time step? Do modifications need to differ based on the shape to be fit, or can we find universal function that generates consistency? I believe our ability to do this is key for being able to reach accurate longitudinal estimates.
+    \item Should we worry about "trimming" the manifold estimates? If so, how should we do that?
+    \item What is the best way to evaluate the performance of the estimates? We can use SSD for the embedded values, but how to assess the parameterized values?
+    \item How can we summarize information about the estimated manifolds? How can we make this process easy to interpret from clinical perspective?
+    \item Should there be updates to what is defined as the "optimal" model in the PME algorithm? Currently it is possible for a model with non-minimal MSD to be chosen.
+    \item Algorithm seems to struggle more when fitting to data with greater translations between time points. Is this something we will need to worry about in practice, or could it be solved through preprocessing and registration?
+    \item Is thin-plate spline computational strategy from Wahba the best approach, or could updated computational approach help (Wood, 2003)?
+\end{enumerate}
+
+\nocite{*}
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
