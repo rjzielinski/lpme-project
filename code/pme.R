@@ -483,7 +483,7 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
   resp <- list(
     embedding.map = f.optimal,
     MSD = MSE.seq,
-    knots = centers,
+    knots = est,
     weights.of.knots = theta.hat,
     coe.kernel = sol.opt[1:I, ],
     coe.poly = sol.opt[(I + 1):(I + d + 1), ],
