@@ -13,6 +13,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
   pme_results <- list()
   funcs <- list()
+  clusters <- list()
+  centers <- list()
   x_test <- list()
   r <- list()
 
@@ -42,6 +44,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     init_isomap <- isomap(init_dissimilarity.matrix, ndim = d, k = 10)
   }
 
+  num_clusters <- rep(0, length(time_points))
+
   for (idx in 1:length(time_points)) {
     df_temp <- df[df[, 1] == time_points[idx], ]
     if (init %in% c("first", "full")) {
@@ -57,10 +61,19 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       )
     }
     funcs[[idx]] <- pme_results[[idx]]$embedding.map
+    if (idx == 1) {
+      centers[[idx]] <- pme_results[[idx]]$knots$mu
+      clusters[[idx]] <- pme_results[[idx]]$knots$k.means.result$cluster
+      num_clusters[idx] <- dim(pme_results[[idx]]$knots$mu)[1]
+    } else {
+      centers[[idx]] <- pme_results[[idx]]$knots$mu
+      clusters[[idx]] <- pme_results[[idx]]$knots$k.means.result$cluster + sum(num_clusters)
+      num_clusters[idx] <- dim(pme_results[[idx]]$knots$mu)[1]
+    }
     r_test <- seq(
       from = -10,
       to = 10,
-      length.out = dim(pme_results[[idx]]$knots)[1]
+      length.out = dim(pme_results[[idx]]$knots$mu)[1]
     )
     r_list <- lapply(numeric(d), function(x) r_test)
     r_mat <- as.matrix(expand.grid(r_list))
@@ -91,7 +104,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     r_test <- seq(
       r_min,
       r_max,
-      length.out = max(10, round((dim(pme_results[[idx]]$knots)[1]) ^ (1 / d)))
+      length.out = max(10, round((dim(pme_results[[idx]]$knots$mu)[1]) ^ (1 / d)))
     )
     r_list <- lapply(numeric(d), function(x) r_test)
     r_mat <- as.matrix(expand.grid(r_list))
@@ -114,6 +127,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   x_test_df <- data.frame(x_test)
   xnames <- paste0("x", 1:(dim(x_test)[2]))
   names(x_test_df) <- xnames
+
+  centers_full <- reduce(centers, rbind)
+  clusters_full <- unlist(clusters)
 
   D_new <- dim(x_test)[2]
   d_new <- dim(r_full)[2]
@@ -537,18 +553,29 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
     data_initial <- matrix(0, nrow = 1, ncol = D_new + d_new)
     for (i in 1:I_new) {
-      length.temp <- 1
-      X.i <- matrix(X_new[i, ], nrow = 1)
-      t_temp <- matrix(rep(t_new[i, 1], length.temp))
+      index.temp <- which(clusters_full == i)
+      length.temp <- length(index.temp)
+      X.i <- matrix(df[index.temp, -1], nrow = length.temp)
+      t.temp <- matrix(rep(t_new[i, 1], length.temp))
       for (j in 1:d_new) {
-        t_temp <- cbind(
-          t_temp,
-          rep(t_new[i, j], length.temp)
-        )
+        t.temp <- cbind(t.temp, rep(t_new[i, j], length.temp))
       }
-      t_temp <- matrix(t_temp[, -1], nrow = length.temp)
-      data_initial <- rbind(data_initial, cbind(X.i, t_temp))
+      t.temp <- matrix(t.temp[, -1], nrow = length.temp)
+      data_initial <- rbind(data_initial, cbind(X.i, t.temp))
     }
+    # for (i in 1:I_new) {
+    #   length.temp <- 1
+    #   X.i <- matrix(X_new[i, ], nrow = 1)
+    #   t_temp <- matrix(rep(t_new[i, 1], length.temp))
+    #   for (j in 1:d_new) {
+    #     t_temp <- cbind(
+    #       t_temp,
+    #       rep(t_new[i, j], length.temp)
+    #     )
+    #   }
+    #   t_temp <- matrix(t_temp[, -1], nrow = length.temp)
+    #   data_initial <- rbind(data_initial, cbind(X.i, t_temp))
+    # }
 
     data_initial <- data_initial[-1, ]
     proj.para.prepare <- function(data.init) {
