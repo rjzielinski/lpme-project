@@ -7,6 +7,7 @@
     \item Sobolev space: a vector space of functions that are sufficiently differentiable for some application, and that has a norm that measures the size and regularity of a function
     \item Hilbert space: A vector space with an inner product that defines a distance function for which the space is a complete metric space
     \item Reproducing kernel Hilbert space: A Hilbert space of functions in which point evaluation is a continuous linear functional
+    \item Lebesgue space: A function space defined using a generalization of the p-norm for finite-dimensional vector spaces.
 \end{itemize}
 
 \subsection*{Introduction}
@@ -18,12 +19,322 @@ Generally speaking, manifold learning is an approach to estimating a low-dimensi
 
 This paper proposes an approach that combines these two steps, using a partial parameterization to estimate an embedding function, then finding the full parameterization from this function. This approach yields differentiable manifolds, and is able to generalize to data of any intrinsic dimension. The proposed method incorporates a model complexity selection method, which helps avoid overfitting, eliminate the effects of outliers, and reduce computational intensity.
 
+Approaches commonly used for manifold estimation include ISOMAP, locally linear embedding, and Laplacian eigenmaps, each of which address the problem of developing parameterizations of high-dimensional data. Hastie and Stuetzle's principal curve framework is an approach to the embedding problem.
+
+The principal curve framework is defined as follows: Let $I \in \mathbb{R}^{1}$ be a closed and possibly infinite interval. Suppose a map $f: I \to \mathbb{R}^{D}$ satisfies the following HS conditions:
+\begin{enumerate}
+  \label{enum:hs_conditions}
+
+  \item $f \in \mathcal{C}^{\infty}(I \to \mathbb{R}^{D})$ ($f$ is infinitely differentiable)
+  \item $\|f'(t)\|_{\mathbb{R}^{D}} = 1$ for all $t \in I$ ($f$ is arc-length parameterized)
+  \item $f$ does not self intersect, meaning $t_1 \neq t_2$ implies $f(t_1) \neq f(t_2)$ (this means that we aren't able to fit closed surfaces because $f$ will not connect with itself)
+  \item $\int_{\{t: f(t) \in B\}}dt < \infty$ for any finite ball $B$ in $\mathbb{R}^{D}$
+\end{enumerate}
+
+Then, $\pi_f: \mathbb{R}^{D} \to I$ is called the projection index with respect to $f$ and is defined as follows:
+\[%
+  \pi_f(x) = \text{sup}\left\{t \in I: \|x - f(t)\|_{\mathbb{R}^{D}} = \text{inf}_{t' \in I}\|x - f(t')\|_{\mathbb{R}^{D}}\right\}, \ \text{for all} \ x \in \mathbb{R}^{D}
+.\]%
+
+Essentially, this means that we denote the map from the high-dimensional space to the one-dimensional interval as $\pi_f$, and define it as the function that returns the least upper bound of the values of $t$ where the norm of $x - f(t)$ is equal to the greatest lower bound for $\|f - f(t')\|_{\mathbb{R}^{D}}$ such that $t' \in I$. Informally, we can think of this roughly meaning that $\pi_f$ gives the maximum value of $t$ that minimizes the $D$-dimensional difference between $x$ and $f(t)$.
+
+Next, we suppose that $X$ is a continuous random $D$-vector with finite second moments. Principal curves of $X$ are all maps $f: I \to \mathbb{R}^{D}$ that satisfy the HS conditions above and the self-consistency condition, which is defined as:
+\[%
+  E(X | \pi_f(X) = t) = f(t)
+.\]%
+
+The HS conditions have the following restrictions:
+\begin{enumerate}
+  \label{enum:hs_restrictions}
+
+  \item HS condition 2 requires that principal curves are arc-length parameterized, but this does not generalize to higher dimensions (essentially, they are principal curves, not surfaces).
+  \item HS condition 3 eliminates the possibility of fitting a number of curves in practice because the curve does not self-intersect.
+  \item It is difficult to verify whether HS condition 4 is met.
+\end{enumerate}
+
+While HS showed that principal curves are critical points of $\mathcal{D}_X(f)$ because they satisfy the self-consistency condition, Duchamp et al. (1996) showed that they may be saddle points, meaning that the principal curves are not necessarily the optimal curve under MSD. This is a flaw of both the HS framework and a related framework proposed by Tibshirani (1992), which also relied on self-consistency.
+
+One approach to avoiding the saddle point issue is to avoid enforcing self-consistency and instead define principal curves as a curve minimizing MSD under a length constraint or regularity penalty. Using this approach, Smola et al. (2001) proposed a regularized principal manifold framework, where principal manifolds have the following form:
+
+\[%
+  \arg \min_{f \in \mathcal{F}}\left\{E\|X - f(\pi_f(X))\|_{\mathbb{R}^{D}}^2 + \lambda\|Pf\|_{\mathcal{H}}^2\right\}
+,\]%
+
+where $\mathcal{F}$ is a collection of functions, and $P$ maps $f$ into inner product space $\mathcal{H}$.
+
+This framework also has several key limitations:
+\begin{enumerate}
+  \label{enum:smola_limitations}
+
+  \item It is still unknown how to select $\lambda$.
+  \item There is not a defined projection operator $P$ that corresponds to the selection of the tuning parameter $\lambda$.
+  \item Smola et al. (2001) does not discuss assumptions on the collection $\mathcal{F}$ that are necessary so that $\pi_f$ is well defined.
+  \item The function spaces $\mathcal{H}$ and $\mathcal{F}$ compatible with $P$ and $\pi_f$ are not defined
+\end{enumerate}
+
+This paper addresses those limitations.
+
 \subsection*{Notation}
 \begin{itemize}
     \item Positive integers $d$ and $D$ represent the intrinsic dimension of the data and the dimension of the of the embedded space of the data, respectively, with $d < D$.
-    \item $\|x\|_{\mathcal{R}^q} = \left(\sum_{k=1}^{q} x_k^2\right)^{1/2}$.
-    \item Let $q_1, q_2 \in \{d, D\}$ and $k \in \{1, 2, \dots, \infty\}$, and $I$ be a subset of $\mathbb{R}^{q_1}$. Then $\mathcal{C}^k(I \to \mathbb{R}^{q_2}$ denotes the collection of $I \to \mathbb{R}^{q_2}$ maps whose components have up to the $k^{\text{th}}$ continuous derivative. To simplify, use $\mathcal{C}^k(I) = \mathcal{C}^k(I \to \mathbb{R}^1)$ and $\mathcal{C} = \mathcal{C^0}$.
+    \item $\|x\|_{\mathbb{R}^q} = \left(\sum_{k=1}^{q} x_k^2\right)^{1/2}$.
+    \item Let $q_1, q_2 \in \{d, D\}$ and $k \in \{1, 2, \dots, \infty\}$, and $I$ be a subset of $\mathbb{R}^{q_1}$. Then $\mathcal{C}^{k}(I \to \mathbb{R}^{q_2})$ denotes the collection of $I \to \mathbb{R}^{q_2}$ maps whose components have up to the $k^{\text{th}}$ continuous derivative. To simplify, use $\mathcal{C}^{k}(I) = \mathcal{C}^{k}(I \to \mathbb{R}^{1})$ and $\mathcal{C} = \mathcal{C}^{0}$.
+    \item $\delta_x$ represents the point mass at $x$.
+    \item $L^{p}$ and $\|\cdot\|_{L^{p}}$, with $p \in [1, \infty]$ represent Lebesgue spaces and their norms.
+    \item The mean squared distance (MSD) functional is expressed $\mathcal{D}_X(f) = E\|X - f(\pi_f(X))\|_{\mathbb{R}^{D}}^2$.
+    \item $\nabla f$ denotes the gradient of $f$, $\left(\frac{\partial f}{\partial t_1}(t), \frac{\partial f}{\partial t_2}(t), \dots, \frac{\partial f}{\partial t_d}(t)\right)^{T}$.
+    \item $\|\nabla  f\|_{\mathbb{R}^{d}}$ denotes the scalar-valued function $\left(\sum_{i=1}^{d}\left|\frac{\partial f}{\partial t_i}(t)\right|^2\right)^{\frac{1}{2}}$.
+    \item $\nabla^{\bigotimes 2}f$ denotes the Hessian matrix of $f$, $\left(\frac{\partial^{2}f}{\partial t_i \partial t_j}(t)\right)_{1 \leq i, j \leq d}$.
+    \item $\|\nabla f\|_{\mathbb{R}^{d}} \in L^2(\mathbb{R}^{d})$ denotes the integral of the norm of the gradient of $f$ over the Lebesgue space, $\|\nabla f\|_{L^2(\mathbb{R}^{d})}^{2} = \int_{\mathbb{R}^{d}} \sum_{i=1}^d \left|\frac{\partial f}{\partial t_i}(t)\right|^2dt < \infty$.
+    \item $\|\nabla^{\bigotimes 2}f\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})$ denotes the integral of the norm of the Hessian matrix of $f$ over the Lebesgue space, $\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f}{\partial t_i \partial t_j}(t)\right|^2dt < \infty$.
 \end{itemize}
 
 \subsection*{Manifold Learning Background}
+
+The paper first introduces the concepts of manifolds and projection indices.
+
+Let $f \in \mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D})$. The image of $f$, $M_f^{d} = \{f(t): t \in \mathbb{R}^{d}\}$ is called a $d$-dimensional manifold determined by $f$, $f$ is called an embedding map, and $\mathbb{R}^{D}$ is called the parameter space. If $f$ has an existing inverse $f^{-1}: M_f^{d} \to \mathbb{R}^{d}$ and it is continuous, then $f$ is called a homeomorphism.
+
+In practice, $\mathbb{R}^{d}$ is the space containing the latent parameterizations $\{t_i\}_{i=1}^{I}$ of observed data $\{x_i\}_{i=1}^{I} \subset \mathbb{R}^{D}$.
+
+Next, the paper generalizes the concept of the projection matrix $\pi_f$ from the HS case, which works in cases where $d=1$, to all possible intrinsic dimensions $d$. Generally, we are looking for the parameter $t$ that minimizes $\|x - f(t)\|_{\mathbb{R}^{D}}$, but it is possible that there are multiple such values of $t$. With this in mind, the paper introduces the following function space:
+
+\[%
+  \mathcal{C}_{\infty}\left(\mathbb{R}^{d} \to \mathbb{R}^{D}\right) = \left\{f \in \mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D}): \lim_{\|t\|_{\mathbb{R}^{d}} \to \infty} \|f(t)\|_{\mathbb{R}^{D}} = \infty \right\}
+.\]%
+
+Essentially, this function space is the space of embedding maps such that as the norm of parameter $t$ in the $d$-dimensional space approaches infinity, the norm of $f(t)$ in the $D$-dimensional space is also infinite.
+
+Then, the paper proves that if $f \in \mathcal{C}_{\infty}(\mathbb{R}^{d} \to \mathbb{R}^{D})$, then the $d$-dimensional set 
+\[%
+  \mathcal{A}_f(x) = \left\{t \in \mathbb{R}^{d}: \|x - f(t)\|_{\mathbb{R}^{D}} = dist(x, f)\right\}
+\]% 
+is nonempty and compact for all $x \in \mathbb{R}^{D}$. If $\mathcal{A}_f(x)$ contains more than one element (meaning that there are multiple values of $t$ where the norm of the difference of $x$ and $f(t)$ are equal to the distance between $x$ and $f$), then the point $x$ is called an ambiguity point. Then, we define the new projection index as follows:
+
+\[%
+  \begin{aligned}
+    \pi_f(x) = (t_1^{*}, t_2^{*}, \dots, t_d^{*}), \ \text{where} \\
+    t_1^{*} = \max \left\{t_1: (t_1, t_2, \dots, t_d) \in \mathcal{A}_f(x)\right\}, \quad t_j^{*} = \max \left\{t_j: (t_1^{*}, \dots, t_{j-1}^{*}, t_j, \dots, t_d) \in \mathcal{A}_f(x)\right\}, \ j = 2, 3, \dots, d
+  \end{aligned}
+.\]%
+
+If $d=1$, then this definition of the projection index is identical to the projection index as defined by HS.
+
+\section*{Principal Manifolds}
+
+The principal manifold framework proposed in this article is conceptualized as a generalization of principal component analysis.
+
+The first $d$ linear principal components of a random $D$-vector $X$ are the $d$-dimensional hyperplane given by $\arg \min_{L \in \mathcal{L}}E\|X - \Pi_L(X)\|_{\mathbb{R}^{D}}^2$, with $\mathcal{L}$ being the collection of all $d$-dimensional hyperplanes in $\mathbb{R}^{D}$ and $\Pi_L(X)$ is the projection of $X$ to the hyperplane $L$. In the generalized principal manifold framework, we replace $\mathcal{L}$ with a Sobolev space. In the principal manifold framework, all derivatives (except those used in the definition of $\mathcal{C}^{k}(\mathbb{R}^{d} \to \mathbb{R}^{D})$) are considered generalized derivatives defined on $\mathcal{D}'(\mathbb{R}^{d})$, which is the collection of generalized functions on $\mathbb{R}^{d}$ (definitions from functional analysis).
+
+The following function spaces are introduced:
+\begin{itemize}
+  \label{item:sobolev_spaces}
+
+  \item $\nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d}) = \left\{f \in \mathcal{D'}(\mathbb{R}^{d}): \|\nabla^{\bigotimes 2}f\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})\right\}$. This is the space of the integrals of the norms of the Hessian matrices of function $f$, where $f$ belongs to the collection of generalized functions on $\mathbb{R}^{d}$.
+    
+  \end{itemize}
+Much of the notation regarding Sobolev spaces is quite difficult to work through, so it is skipped here.
+
+One of the limitations of the model proposed by Kegl et al. (2000) is that the fitted embedding function $f$ is not differentiable exactly everywhere, largely because the regularization $\|f'\|_{L^2}^2$ may not place a large enough penalty on non-smoothness. Instead of using the first derivative, this paper instead uses the second derivative. This has several advantages, one of which being that the total squared curvature of $f$, $\int \|f''(t)\|_{\mathbb{R}^{D}}^2 dt$, is the penalty term used in cubic smoothing splines. Thin plate splines use the penalty term $\sum_{l=1}^{D}\int_{\mathbb{R}^{d}}\sum_{i, j=1}^{2}\left|\frac{\partial^2f_l}{\partial t_i \partial t_j}(t)\right|^2dt$ to measure the roughness of the surface $M_f^2$.
+
+To generalize these penalty terms to larger intrinsic dimensions, we use
+\[%
+  \|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D}\|\nabla^{\bigotimes 2}f_l\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l = 1}^{D}\int_{\mathbb{R}^{d}}\sum_{i, j=1}^{d} \left|\frac{\partial^2f_l}{\partial t_i \partial t_j}(t)\right|^2dt
+.\]%
+
+We call again call this generalized term the total squared curvature. Manifolds that have high total squared curvature values tend to be more complex and less stable, so we seek to penalize this value. 
+
+With this in mind, we let $X$ be a random $D$-vector associated with the probability measure or density function $\mathbb{P}$ such that $X$ has compact support $\text{supp}(\mathbb{P})$ and finite second moments. Let $f, g \in \mathcal{C}_{\infty} \cap \nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D})$ and $\lambda \in [0, \infty]$. We define the following functionals below:
+\[%
+  \mathcal{K}_{\lambda, \mathbb{P}}(f, g) = E \|X - f(\pi_g(X))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2, \quad \mathcal{K}_{\lambda, \mathbb{P}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f)
+.\]%
+
+Then, we define a principal manifold for $X$ with the tuning parameter $\lambda$ as a manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ that satisfies
+\[%
+  f_{\lambda}^{*} = \arg \min_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f)
+,\]%
+
+where $\mathcal{F}(\mathbb{P}) = \left\{f \in C_{\infty} \cap \nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D}): \sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1\right\}$.
+
+If we know $f_{\lambda}^{*}$, then $\pi_{f_{\lambda}^{*}}(X)$ is the projection index giving a $d$-dimensional parameterization of $X$. Using the theorems presented earlier in the paper, we have the following properties:
+\begin{itemize}
+  \label{item:principal_manifold_properties}
+
+  \item $\pi_{f_{\lambda}^{*}}(X)$ is continuous under certain conditions on $f_{\lambda}^{*}$.
+  \item The parameterizations $\left\{\pi_f(x): x \in \text{supp}(\mathbb{P})\right\}$ are restricted to the unit ball $\left\{t \in \mathbb{R}^{d}: \|t\|_{\mathbb{R}^{d}} \leq 1\right\}$ (i.e. the norm of $t$ must be less than or equal to 1).
+  \item Regularity for the principal manifold holds, meaning $f_{\lambda}^{*} \in \mathcal{C}^{k}(\mathbb{R}^{d} \to \mathbb{R}^{D})$ for $k < \max\left\{2 - \frac{d}{2}, 1\right\}$.
+  \item The proposed framework is a special case of the regularized principal manifolds from Smola et al. (2001), where $P = \nabla^{\bigotimes 2}$, $\mathcal{H} = L^2(\mathbb{R}^{d})$, and $\mathcal{F} = \mathcal{F}(\mathbb{P})$.
+\end{itemize}
+
+To estimate $f_{\lambda}^{*} = \arg \min_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K_{\lambda, \mathbb{P}}}(f)$, we use an iterative procedure with 
+\[%
+  f_{(n)} = \arg \min_f\left\{\mathcal{K}_{\lambda, \mathbb{P}}(f, f_{(n-1)}): f \in C_{\infty} \cap \nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D})\right\}
+.\]%
+
+If the above procedure stops when $n = n^{*}$, we let $f_{(n^{*})} \in \mathcal{C}_{\infty} \cap \nabla^{-\bigotimes 2}L^2$. Then we obtain an estimate of $f_{\lambda}^{*}$ as $\hat{f_{\lambda}^{*}} = f_{(n^{*})}(\kappa t)$, where $\kappa = \sup\left\{\|\pi_{f_{(n^{*})}}(x)\|_{\mathbb{R}^{d}}: x \in \text{supp}(\mathbb{P})\right\}$, essentially meaning that $\kappa$ takes the maximum value of the norms of the parameterizations of all possible $x$ values.
+
+Usually, this estimation approach approximates local minima, meaning that the final outcome is sensitive to the chosen starting values.
+
+In cases with extreme values of $\lambda$, the proposed principal manifold framework takes the form of linear PCA when $\lambda = \infty$ and the HS principal curve method when $\lambda = 0$.
+
+In the case where $\lambda > 0$ but very close to 0, it is possible to encounter numerical problems due to the potentially large value of total squared curvature. This issue is called curvature singularity at $\lambda = 0$. If this problem is present, the fitted manifold may be very rough and potentially unstable for small values of $\lambda$.
+
+\section*{Estimating Principal Manifolds}
+
+The general principal manifold estimation algorithm has three main steps: reduction, fitting, and tuning. In the reduction step, the complete dataset $\left\{x_i\right\}_{i = 1}^{I}$ is reduced to points $\left\{\mu_j\right\}_{j=1}^{N}$ with smaller sample size.  Each point $\mu_j$ is associated with a weight $\theta_j$. We then use \[%
+  \mathcal{K}_{\lambda, \hat{Q}_N}(f) = \sum_{j=1}^{N}\theta_j\|\mu_j - f(\pi_f(\mu_j))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2
+\]%
+to approximate $\mathcal{K}_{\lambda, \mathbb{P}} \approx \frac{1}{I}\sum_{i=1}^{I}\|x_i - f(\pi_f(x_i))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2$. This step helps to alleviate computational burden while mitigating the effects of outliers. 
+
+In the second step, we estimate $\hat{f_{\lambda}} = \arg \min_f \mathcal{K}_{\lambda, \hat{Q}_N}(f)$ for a predefined set of tuning parameters $\lambda > 0$. In the third step, we choose the optimal value of the tuning parameter, $\lambda^{*}$.
+
+\subsection*{Data Reduction}
+
+The data reduction step uses the high-dimensional mixture density estimation (HDMDE) algorithm, a high-dimensional generalization motivated by Eloyan and Ghosh (2011) to approximate the distribution of the data as a convex combination of point masses, represented by $\hat{Q}_N = \sum_{j=1}^{N}\theta_j\delta_{\mu_j}$. The HDMDE algorithm allows us to estimate $\mu_j, \theta_j, \ \text{and} \ N$ using a mixture density estimation approach. We assume that the data were generated from the pdf $p(x) = \psi * \mathcal{Q}^{\star}(x) = \int \psi(x - t)\mathcal{Q}^{\star}(dt)$, where $\mathcal{Q}^{\star}$ is the probability measure responsible for generating the latent data, and $\psi(\cdot - t)$ is the pdf used in the data corruption stage. Then, we let $\psi_{\sigma}(x) = \frac{1}{\sigma^{D}}\psi\left(\frac{x}{\sigma}\right)$, $\left\{\mu_{j, N}\right\}_{j=1}^{N}$ be a collection of points in $\mathbb{R}^{D}$ depending on $N$, $\theta_N$ be a set of probabilities adding to 1 used as weights for the $\mu$ values, and $\sigma_N$ be a positive number. The mixture density is expressed as
+\[%
+  p_N(x | \theta_N) = \psi_{\sigma_N} * \hat{Q}_N(x) = \sum_{j=1}^{N}\theta_{j, N}\psi_{\sigma_N}(x - \mu_{j, N})
+.\]%
+
+The proposed approach estimates the parameters of interest as follows:
+\begin{itemize}
+  \label{item:hdmde_approach}
+  \item To estimate $\mu_{j, N}$, we partition $\left\{x_i\right\}_{i=1}^{I}$ into $N$ clusters using k-means clustering, and let $\left\{\mu_{j, N}\right\}_{j=1}^{J}$ be the centers of the clusters.
+  \item To estimate $\sigma_N$, we let $\left\{x_{j, l}\right\}_{l=1}^{L_j}$ be $x_i$ in the $j$th cluster, and estimate $\sigma_N$ by the scaled average of the average norms of the differences between the centers of each cluster and their included data points,
+    \[%
+    \hat{\sigma}_N = \left\{\frac{1}{D \times N}\sum_{j=1}^{N}\left(\frac{1}{L_j}\sum_{l=1}^{L_j}\|x_{j, l} - \mu_{j, N}\|_{\mathbb{R}^{D}}^2\right)\right\}^{1/2}
+    .\]%
+  \item To estimate $\theta_{j, N}$, we use a constrained EM-algorithm to achieve likelihood maximization.
+    \[%
+      \theta_{j, N}^{(k)} = \frac{\sum_{i=1}^{I}w_{ij}\theta_N^{(k-1)}}{\hat{\rho}_1 + \hat{\rho}_2^{T}\mu_{j, N}}
+    ,\]%
+    where
+    \[%
+      (\hat{\rho}_1, \hat{\rho}_2) = \arg \min_{\rho_1 \in \mathbb{R}, \rho_2 \in \mathbb{R}^{D}}\left\{\left|\sum_{j=1}^{N}\left(\frac{\sum_{i=1}^{I}w_{ij}\theta_N^{(k-1)}}{\rho_1 + \rho_2^{T}\mu_{j, N}}\right) - 1\right|^2 + \left\|\sum_{j=1}^{N}\left(\frac{\sum_{i=1}^{I}w_{ij}\theta_N^{(k-1)}}{\rho_1 + \rho_2^{T}\mu_{j, N}}\right)\mu_{j, N} - \overline{x}\right\|_{\mathbb{R}^{D}}^2\right\}
+    \]%
+    and
+    \[%
+      w_{ij}(\theta_N) = \frac{\theta_{j, N} \times \psi_{\hat{\sigma}_N}(x_i - \mu_{j, N})}{\sum_{j' = 1}^{N}\theta_{j', N} \times \psi_{\hat{\sigma}_N}(x_i - \mu_{j', N})}
+    .\]%
+    This process runs until $\sup\left\{\left|\theta_{j, N}^{(k^{*})} - \theta_{j, N}^{(k^{*} - 1)}\right|: j = 1, 2, \dots, N\right\}$ is smaller than some predefined threshold.
+\end{itemize}
+
+Estimating the appropriate value of $N$ is done by looking at the $L^{1}$-distance between $p_N(\cdot | \theta_N) = \psi * \hat{Q}_N$ and the PDF $p$ generating data $x_i$. Specifically, the hypotheses are as follows:
+\[%
+H_0: E_p\left\{p_{N+1}(X | \theta_{N + 1}) - p_N(X | \theta_N)\right\} = 0 \quad \text{versus} \quad H_a: E_p\left\{p_{N + 1}(X | \theta_{N + 1}) - p_N(X | \theta_N)\right\} \neq 0
+,\]%
+plugging in the estimates $\hat{\theta}_N$ for $\theta_N$.
+
+The full HDMDE algorithm involves iteratively combining the steps described above.
+
+\begin{algorithm}
+  \caption{HDMDE}
+  \label{alg:two}
+  \KwData{(i) Data points $\left\{x_i\right\}_{i=1}^{I}$ in $\mathbb{R}^{D}$, (ii) a positive integer $N_0 < I - 1$, and (iii) $\epsilon, \alpha \in (0, 1)$.}
+  \KwResult{$N, \left\{\mu_{j, N}\right\}_{j=1}^{N}, \hat{\theta}_N = (\hat{\theta}_{1, N}, \dots, \hat{\theta}_{N, N})^{T}, \ \text{and} \ \sigma_N$.}
+  $N \leftarrow N_0$ and formally $Z_{I, N} \leftarrow 2 \times z_{1-\alpha / 2}$\;
+  Estimate $\mu_{j, N}$ and $\sigma_N$ using k-means clustering\;
+  Use constrained EM-algorithm to calculate $\hat{\theta}_N$\;
+  Compute $p_N(x_i | \hat{\theta}_N) = \sum_{j=1}^{N}\hat{\theta}_{j, N} \times \psi_{\sigma_N}(x_i - \mu_{j, N})$ for all $i$\;
+  \While{$\left|Z_{I, N}\right| \geq z_{1-\alpha / 2}$ and $N < I - 1$}{
+    $N \leftarrow N + 1$, repeat the steps 2, 3, 4, and compute $Z_{I, N}$\;
+  }
+\end{algorithm}
+
+As discussed briefly above, this algorithm has several desirable properties. First, by using the cluster centers instead of individual data points, the algorithm greatly reduces the computational burden of manifold estimation. Second, the algorithm reduces the influence of outliers through the weights $\theta_{j, N}$. Third, the algorithm performs well in approximating the data generating distribution. The paper shows that minimizing $\mathcal{K}_{\lambda, \mathbb{P}}(f)$ is approximately equivalent to minimizing $\mathcal{K}_{\lambda, \hat{Q}_N}(f)$.
+
+\subsection*{Fitting}
+
+To fit $\hat{f}_{\lambda} = \arg \min_f \mathcal{K}_{\lambda, \hat{Q}_N}(f)$, the PME algorithm uses the iterative procedure above:
+\[%
+  f_{(n + 1)} = \arg \min_f\left\{\mathcal{K}_{\lambda, \hat{Q}_N}(f, f_{(n)}): f = (f_1, f_2, \dots, f_D)^{T} \in \mathcal{C}_{\infty} \cap \nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D})\right\}
+,\]%
+where 
+\[%
+  \mathcal{K}_{\lambda, \hat{Q}_N}(f, f_{(n)}) = \sum_{l=1}^{D}\left\{\sum_{j=1}^{N}\theta_{j, N}\left|\mu_{j, N, l} - f_{l}\left(\pi_{f_{(n)}}(\mu_{j, N})\right)\right|^2 + \lambda \left\|\nabla^{\bigotimes 2}f_l\right\|_{L^2(\mathbb{R}^{d})}^2\right\}
+,\]%
+with $\mu_{j, N, l}$ being the $l$th component of the $D$-vector $\mu_{j, N}$. 
+
+If $\nu$ is an even integer, we let $\eta_{\nu}(t) = \left\|t\right\|_{\mathbb{R}^{d}}^{\nu}\log\left(\left\|t\right\|_{\mathbb{R}^{d}}\right)$ when $\left\|t\right\|_{\mathbb{R}^{d}} \neq 0$ and $\eta_{\nu}(t) = 0$ when $\left\|t\right\|_{\mathbb{R}^{d}} = 0$. Otherwise, we let $\eta_{\nu}(t) = \left\|t\right\|_{\mathbb{R}^{d}}^{\nu}$. Additionally, we let $Poly_1[t]$ be the linear space of polynomials on $\mathbb{R}^{d}$ with degree $\leq 1$ and linear basis $\left\{p_k\right\}_{k=1}^{d+1}$.
+
+We see that the function in $\mathcal{C}_{\infty} \cap \nabla^{-\bigotimes 2}L^2$ that minimizes $\mathcal{K}_{\lambda, \hat{Q}_N}(\cdot, f_{(n)})$ is of spline form. When the intrinsic dimension is equal to 1, the minimizer is a cubic smoothing spline, and when the intrinsic dimension is 2, the minimizer is a thin plate spline.
+
+Then, for $l = 1, \dots, D$, with
+\begin{itemize}
+  \label{item:minimization_notation}
+
+  \item $\mathbf{T}$ being an $N \times (d + 1)$ matrix with the $(i, j)$th element equal to $p_j(\pi_{f_{(n)}}(\mu_{i, N}))$
+  \item $\mu_l = (\mu_{1, N, l}, \mu_{2, N, l}, \dots, \mu_{N, N, l})$
+  \item $\alpha_l = (\alpha_{1, l}, \alpha_{2, l}, \dots, \alpha_{d+1, l})^{T}$
+  \item $s_l = (s_{1, l}, s_{2, l}, \dots, s_{N, l})^{T}$
+  \item $\mathbf{E}$ being an $N \times N$ matrix with the $(i, j)$th element equal to $\eta_{4-d}\left(\pi_{f_{(n)}}(\mu_{i, N}) - \pi_{f_{(n)}}(\mu_{j, N})\right)$
+  \item $\mathbf{W} = diag(\theta_{1, N}, \theta_{2, N}, \dots, \theta_{N, N})$
+\end{itemize}
+
+solving the minimization problem is equivalent to finding
+\[%
+  \arg \min_{(s_l, \alpha_l)}\left\{\left\|\mathbf{W}^{\frac{1}{2}}\left(\mu_l - \mathbf{E}s_l - \mathbf{T}\alpha_l\right)\right\|_{\mathbb{R}^{N}}^2 + \lambda\left\|\mathbf{E}^{\frac{1}{2}}s_l\right\|_{\mathbb{R}^{N}}^2: s_l \in \mathbb{R}^{N}, \alpha_l \in \mathbb{R}^{d+1}, \ \text{and} \ \mathbf{T}^{T}s_l = 0\right\}
+.\]%
+
+We can use the Lagrange multiplier approach to find the minimizers by solving
+
+\[%
+  \left(
+    \begin{array}{ccc}
+      2\mathbf{EWE} + 2\lambda\mathbf{E} & 2\mathbf{EWT} & \mathbf{T} \\
+      2\mathbf{T}^{T}\mathbf{WE} & 2\mathbf{T}^{T}\mathbf{WT} & \mathbf{0} \\
+      \mathbf{T}^{T} & \mathbf{0} & \mathbf{0}
+    \end{array}
+  \right)\left(
+    \begin{array}{c}
+      s_l \\
+      \alpha_l \\
+      m_l
+    \end{array}
+  \right) = \left(
+    \begin{array}{c}
+      2\mathbf{EW}\mu_l \\
+      2\mathbf{T}^{T}\mathbf{W}\mu_l \\
+      \mathbf{0}
+    \end{array}
+  \right), \quad l = 1, 2, \dots, D
+,\]%
+
+where $m_l$ represent the Lagrange multipliers.
+
+\subsection*{Tuning}
+
+The approximate embedding map $\hat{f}_{\lambda}$ is estimated for each value of $\lambda > 0$. From these options, the optimal element $\hat{f}_{\lambda^{*}}$ is chosen by using the observed data $\left\{x_i\right\}_{i=1}^{I}$ to calculate the MSD $\mathcal{D}(\hat{f}_\lambda)$ as follows:
+\[%
+  \lambda^{*} = \arg\min_{\lambda > 0}\left\{\mathcal{D}(\hat{f}_{\lambda})\right\}, \ \text{where} \ \mathcal{D}(\hat{f}_\lambda) = \frac{1}{I}\sum_{i=1}^{I}\left\|x_i - \hat{f}_{\lambda}\left(\pi_{\hat{f}_{\lambda}}(x_i)\right)\right\|_{\mathbb{R}^{D}}^2
+.\]%
+
+The full PME algorithm can be expressed as follows:
+
+\begin{algorithm}
+  \caption{PME Algorithm}
+  \label{alg:pme}
+  \KwData{(i) Data points $\left\{x_i\right\}_{i=1}^{I}$ in $\mathbb{R}^{D}$; (ii) a positive integer $N_0 < I - 1$; (iii) $\alpha, \epsilon, \epsilon^{*} \in (0, 1)$; (iv) candidate tuning parameters $\left\{\lambda_g\right\}_{g=1}^{G}$; (v) $itr \geq 1$, the maximum number of iterations allowed.}
+  \KwResult{(i) Analytic formula of $f^{*}: \mathbb{R}^{d} \to \mathbb{R}^{D}$ determining the fitted manifold $M_{f^{*}}^{d}$; (ii) optimal tuning parameter $\lambda^{*}$.}
+  Apply HDMDE with input $(\left\{x_i\right\}_{i=1}^{I}, N_0, \epsilon, \alpha)$ and obtain $N$, $\left\{\mu_{j, N}\right\}_{j=1}^{N}$, and $\left\{\theta_{j, N}\right\}_{j=1}^{N}$\;
+  Parameterization: Apply ISOMAP to parameterize the reduced collection $\left\{\mu_{j, N}\right\}_{j=1}^{N}$ by the $d$-dimensional parameters $\left\{t_j\right\}_{j=1}^{N}$. Formally set $\pi_{f_{(0)}}(\mu_{j, N}) \leftarrow t_j$ for $j = 1, 2, \dots, N$\;
+  \For{$g = 1, 2, \dots, G$}{
+    $\lambda \leftarrow \lambda_g$ and obtain $f_{(1)}$ by solving the Lagrange multiplier equation\;
+    $\mathcal{E} \leftarrow 2 \times \epsilon^{*}$, $n \leftarrow 1$, and $\mathcal{D}_{\hat{Q}_N}(f_{(1)}) \leftarrow \sum_{j=1}^{N}\theta_{j, N}\left\|\mu_{j, N} - f_{(1)}(\pi_{f_{(1)}}(\mu_{j, N}))\right\|_{\mathbb{R}^{D}}^2$\;
+    \While{$\mathcal{E} \geq \epsilon^{*}$ and $n < itr$}{
+      Compute $f_{(n + 1)}$ from $f_{(n)}$ by solving the Lagrange equation and compute SSD for the updated function estimate\;
+      $\mathcal{E} \leftarrow \left|\left[\mathcal{D}_{\hat{Q}_N}(f_{(n + 1)}) - \mathcal{D}_{\hat{Q}_N}(f_{(n)})\right] / \mathcal{D}_{\hat{Q}_N}(f_{(n)})\right|$ and $n \leftarrow n + 1$\;
+    }
+    $\hat{f}_g \leftarrow f_{(n)}$
+  }
+  $\kappa \leftarrow \max\left\{\left\|\pi_{\hat{f}_{g^{*}}}(x_i)\right\|_{\mathbb{R}^{d}}: i = 1, 2, \dots, I\right\}$, where $g^{*} = \arg\min_g\left\{\frac{1}{I}\sum_{i=1}^{I}\left\|x_i - \hat{f}_g\left(\pi_{\hat{f}_g}(x_i)\right)\right\|_{\mathbb{R}^{D}}^2: g = 1, 2, \dots, G\right\}$\;
+  $f^{*}(t) = \hat{f}_{g^{*}}(\kappa t)$ and $\lambda^{*} \leftarrow \lambda_{g^{*}}$.
+\end{algorithm}
+
+\section*{Simulations}
+
+The proposed PME algorithm is compared to other existing methods on data simulated from a variety of manifolds in three main dimensional cases: $(d = 1, D = 2)$, $(d = 1, D = 3)$, and $(d = 2, D = 3)$. In the first two dimensional cases, PME is compared to the HS principal curve algorithm and ISOMAP. In the $(d = 2, D = 3)$ case, PME is compared to the principal surface algorithm proposed in Yue et al. (2016) and ISOMAP. In several scenarios, the HS principal curve algorithm displays clear difficulties. PME and ISOMAP often show similar results. However, because ISOMAP uses the entire dataset, while PME first reduces the size of the data using HDMDE, PME runs more efficiently. Note that the PME algorithm can be made more efficient through relatively simple optimization steps, or potentially by recoding in C++.
+
+\section*{Interior Identification}
+
+The interior identification section is not clearly relevant to my work at this time.
 
