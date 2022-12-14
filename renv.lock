@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.2.1",
+    "Version": "4.2.2",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -9,6 +9,32 @@
     ]
   },
   "Packages": {
+    "ANTsR": {
+      "Package": "ANTsR",
+      "Version": "0.5.6.0.0",
+      "Source": "Repository",
+      "Repository": "Neuroconductor-Devel-Releases",
+      "Hash": "fa3ba9a3400fe9160b50ead8cafb403c",
+      "Requirements": [
+        "ANTsRCore",
+        "ITKR",
+        "Rcpp",
+        "magrittr"
+      ]
+    },
+    "ANTsRCore": {
+      "Package": "ANTsRCore",
+      "Version": "0.7.4",
+      "Source": "Repository",
+      "Repository": "Neuroconductor-Devel-Releases",
+      "Hash": "da56eb679d9cccc43eb72dfaf729972d",
+      "Requirements": [
+        "ITKR",
+        "Rcpp",
+        "RcppEigen",
+        "magrittr"
+      ]
+    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.1.3",
@@ -16,6 +42,16 @@
       "Repository": "CRAN",
       "Hash": "b2866e62bab9378c3cc9476a1954226b",
       "Requirements": []
+    },
+    "ITKR": {
+      "Package": "ITKR",
+      "Version": "0.5.3",
+      "Source": "Repository",
+      "Repository": "Neuroconductor-Devel-Releases",
+      "Hash": "707b76e8a50b06972df1f560e2aa95e7",
+      "Requirements": [
+        "Rcpp"
+      ]
     },
     "MASS": {
       "Package": "MASS",
@@ -33,6 +69,47 @@
       "Hash": "539dc0c0c05636812f1080f473d2c177",
       "Requirements": [
         "lattice"
+      ]
+    },
+    "R.matlab": {
+      "Package": "R.matlab",
+      "Version": "3.7.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e64c6e63521ce9407e8deacecab95b11",
+      "Requirements": [
+        "R.methodsS3",
+        "R.oo",
+        "R.utils"
+      ]
+    },
+    "R.methodsS3": {
+      "Package": "R.methodsS3",
+      "Version": "1.8.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "278c286fd6e9e75d0c2e8f731ea445c8",
+      "Requirements": []
+    },
+    "R.oo": {
+      "Package": "R.oo",
+      "Version": "1.25.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "a0900a114f4f0194cf4aa8cd4a700681",
+      "Requirements": [
+        "R.methodsS3"
+      ]
+    },
+    "R.utils": {
+      "Package": "R.utils",
+      "Version": "2.12.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "325f01db13da12c04d8f6e7be36ff514",
+      "Requirements": [
+        "R.methodsS3",
+        "R.oo"
       ]
     },
     "R6": {
@@ -53,10 +130,10 @@
     },
     "RNifti": {
       "Package": "RNifti",
-      "Version": "1.4.2",
+      "Version": "1.4.3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "259434fbb74bd6f1b80c6ee3aa210eb3",
+      "Hash": "6b333667d8a9b92125c4759ad72c42c6",
       "Requirements": [
         "Rcpp"
       ]
@@ -76,6 +153,17 @@
       "Repository": "CRAN",
       "Hash": "411952f0aca6398392dad34f225753b9",
       "Requirements": [
+        "Rcpp"
+      ]
+    },
+    "RcppEigen": {
+      "Package": "RcppEigen",
+      "Version": "0.3.3.9.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1e035db628cefb315c571202d70202fe",
+      "Requirements": [
+        "Matrix",
         "Rcpp"
       ]
     },
@@ -110,6 +198,18 @@
         "Rcpp",
         "RcppArmadillo",
         "RcppZiggurat"
+      ]
+    },
+    "WhiteStripe": {
+      "Package": "WhiteStripe",
+      "Version": "2.4.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "39e2d7608af3f577048d36e0326a94bd",
+      "Requirements": [
+        "mgcv",
+        "neurobase",
+        "oro.nifti"
       ]
     },
     "abind": {
@@ -284,6 +384,14 @@
       "Hash": "5edbbabab6ce0bf7900a74fd4358628e",
       "Requirements": []
     },
+    "codetools": {
+      "Package": "codetools",
+      "Version": "0.2-18",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "019388fc48e48b3da0d3a76ff94608a8",
+      "Requirements": []
+    },
     "colorspace": {
       "Package": "colorspace",
       "Version": "2.0-3",
@@ -370,6 +478,17 @@
       "Hash": "bf1cd206a5d170d132ef75c7537b9bdb",
       "Requirements": []
     },
+    "doParallel": {
+      "Package": "doParallel",
+      "Version": "1.0.17",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "451e5edf411987991ab6a5410c45011f",
+      "Requirements": [
+        "foreach",
+        "iterators"
+      ]
+    },
     "dplyr": {
       "Package": "dplyr",
       "Version": "1.0.10",
@@ -426,6 +545,28 @@
       "Hash": "9a3d3c345f8a5648abe61608aaa29518",
       "Requirements": []
     },
+    "extrantsr": {
+      "Package": "extrantsr",
+      "Version": "3.9.13",
+      "Source": "Repository",
+      "Repository": "Neuroconductor-Devel-Releases",
+      "Hash": "266b1001c10cc911dd67f191c33949ee",
+      "Requirements": [
+        "ANTsR",
+        "ANTsRCore",
+        "R.matlab",
+        "R.utils",
+        "RNifti",
+        "WhiteStripe",
+        "abind",
+        "fslr",
+        "matrixStats",
+        "neurobase",
+        "oro.nifti",
+        "plyr",
+        "stapler"
+      ]
+    },
     "fansi": {
       "Package": "fansi",
       "Version": "1.0.3",
@@ -467,6 +608,17 @@
         "withr"
       ]
     },
+    "foreach": {
+      "Package": "foreach",
+      "Version": "1.5.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "618609b42c9406731ead03adf5379850",
+      "Requirements": [
+        "codetools",
+        "iterators"
+      ]
+    },
     "fs": {
       "Package": "fs",
       "Version": "1.5.2",
@@ -474,6 +626,18 @@
       "Repository": "CRAN",
       "Hash": "7c89603d81793f0d5486d91ab1fc6f1d",
       "Requirements": []
+    },
+    "fslr": {
+      "Package": "fslr",
+      "Version": "2.25.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "97d56b8d14c0b065eafd415971dbca35",
+      "Requirements": [
+        "R.utils",
+        "neurobase",
+        "oro.nifti"
+      ]
     },
     "gargle": {
       "Package": "gargle",
@@ -685,6 +849,14 @@
       "Hash": "cfdea9dea85c1a973991c8cbe299f4da",
       "Requirements": []
     },
+    "iterators": {
+      "Package": "iterators",
+      "Version": "1.0.14",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "8954069286b4b2b0d023d1b288dce978",
+      "Requirements": []
+    },
     "jquerylib": {
       "Package": "jquerylib",
       "Version": "0.1.4",
@@ -783,6 +955,14 @@
       "Hash": "7ce2733a9826b3aeb1775d56fd305472",
       "Requirements": []
     },
+    "matrixStats": {
+      "Package": "matrixStats",
+      "Version": "0.63.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "57af0c3da1f1a50680b186591c3359af",
+      "Requirements": []
+    },
     "memoise": {
       "Package": "memoise",
       "Version": "2.0.1",
@@ -846,6 +1026,20 @@
       "Hash": "6dfe8bf774944bd5595785e3229d8771",
       "Requirements": [
         "colorspace"
+      ]
+    },
+    "neurobase": {
+      "Package": "neurobase",
+      "Version": "1.32.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "8d3e4d243e57c2022188529bc5562fdc",
+      "Requirements": [
+        "R.utils",
+        "RNifti",
+        "abind",
+        "matrixStats",
+        "oro.nifti"
       ]
     },
     "nlme": {
@@ -960,6 +1154,16 @@
         "tidyr",
         "vctrs",
         "viridisLite"
+      ]
+    },
+    "plyr": {
+      "Package": "plyr",
+      "Version": "1.8.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "d744387aef9047b0b48be2933d78e862",
+      "Requirements": [
+        "Rcpp"
       ]
     },
     "prettyunits": {
@@ -1181,10 +1385,15 @@
     },
     "sass": {
       "Package": "sass",
-      "Version": "0.4.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "1b191143d7d3444d504277843f3a95fe",
+      "Version": "0.4.3.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "sass",
+      "RemoteUsername": "rstudio",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "3e61ef8cc8d8b30ba248f2a7cd10d19b34ca51d0",
+      "Hash": "72dce5d8447eaf0c812b2e532da774df",
       "Requirements": [
         "R6",
         "fs",
@@ -1219,6 +1428,17 @@
       "Requirements": [
         "R6",
         "stringr"
+      ]
+    },
+    "stapler": {
+      "Package": "stapler",
+      "Version": "0.7.2",
+      "Source": "Repository",
+      "Repository": "Neuroconductor-Devel-Releases",
+      "Hash": "e98f3df5a7be78c274e3ce93ed260527",
+      "Requirements": [
+        "RNifti",
+        "matrixStats"
       ]
     },
     "stringi": {
@@ -1384,10 +1604,10 @@
     },
     "vctrs": {
       "Package": "vctrs",
-      "Version": "0.5.0",
+      "Version": "0.5.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "001fd6a5ebfff8316baf9fb2b5516dc9",
+      "Hash": "970324f6572b4fd81db507b5d4062cb0",
       "Requirements": [
         "cli",
         "glue",
