@@ -144,13 +144,14 @@ $g^*(r) = g^{l^*}(\kappa r)$, where the analytic formula of $g^*$ is from $g_{(n
 
 Questions:
 \begin{enumerate}
-    \item How can we ensure a consistent parameterization within the PME algorithm? If we aren't able to do that, can we modify parameter values after the fact to ensure that parameterization aligns at each time step? Do modifications need to differ based on the shape to be fit, or can we find universal function that generates consistency? I believe our ability to do this is key for being able to reach accurate longitudinal estimates.
-    \item Should we worry about "trimming" the manifold estimates? If so, how should we do that?
-    \item What is the best way to evaluate the performance of the estimates? We can use SSD for the embedded values, but how to assess the parameterized values?
-    \item How can we summarize information about the estimated manifolds? How can we make this process easy to interpret from clinical perspective?
-    \item Should there be updates to what is defined as the "optimal" model in the PME algorithm? Currently it is possible for a model with non-minimal MSD to be chosen.
-    \item Algorithm seems to struggle more when fitting to data with greater translations between time points. Is this something we will need to worry about in practice, or could it be solved through preprocessing and registration?
-    \item Is thin-plate spline computational strategy from Wahba the best approach, or could updated computational approach help (Wood, 2003)?
+  \item What is the best way to evaluate the performance of the estimates? We can use SSD for the embedded values, but how to assess the parameterized values?
+  \item Should there be updates to what is defined as the "optimal" model in the PME algorithm? Currently it is possible for a model with non-minimal SSD to be chosen within the fitting of a single tuning value.
+  \item Why would we see the SSD increase substantially in late optimization steps?
+  \item Are there cases where the SSD and MSD differ substantially? Why would that be the case?
+  \item Are there any techniques that help with large amounts of noise in the data? Data reduction should help with outliers, but likely not consistently high noise levels. Early indications that possibly allowing for higher tuning parameters would help?
+  \item Why does PME algorithm struggle on Swiss Roll cross-section? It seems to work well up until spiral reaches second layer. The manifold should never intersect, but from the angle from the origin does overlap.
+  \item Generally, what are the limitations on the estimated manifolds intersecting? How close can it come to intersecting without showing strange behavior?
+  \item Is thin-plate spline computational strategy from Wahba the best approach, or could updated computational approach help (Wood, 2003)?
 \end{enumerate}
 
 \nocite{*}
