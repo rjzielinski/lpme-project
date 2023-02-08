@@ -515,7 +515,7 @@ plot_ly(
 
 ### Simulation Case 2
 
-time_vals <- 0:10
+time_vals <- seq(0, 10, 2)
 
 set.seed(100)
 df_list <- lapply(
@@ -580,7 +580,7 @@ plot_ly(
 
 ### Simulation Case 3
 
-time_vals <- 0:10
+time_vals <- seq(0, 10, 2)
 
 set.seed(100)
 df_list <- lapply(
@@ -710,7 +710,7 @@ plot_ly(
 
 ### D3, d1 Simulation Case 1
 
-time_vals <- 0:10
+time_vals <- seq(0, 10, 2)
 
 set.seed(100)
 df_list <- lapply(
@@ -780,7 +780,7 @@ plot_ly(
 
 ### D3, d1 Simulation Case 2
 
-time_vals <- 0:5
+time_vals <- seq(0, 10, 2)
 
 set.seed(100)
 df_list <- lapply(
@@ -852,7 +852,7 @@ plot_ly(
 
 ### D3, d2 Simulation Case 1
 
-time_vals <- 0:5
+time_vals <- seq(0, 10, 2)
 
 set.seed(100)
 df_list <- lapply(
