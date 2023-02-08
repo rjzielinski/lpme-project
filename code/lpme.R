@@ -1,4 +1,4 @@
-lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100, init = "first") {
+lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100, init = "full") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -18,30 +18,61 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   x_test <- list()
   r <- list()
 
+  init_timevals <- list()
+  init_theta_hat <- list()
+  init_centers <- list()
+  init_sigma <- list()
+  init_clusters <- list()
+
+
   if (init %in% c("first", "full")) {
     if (init == "first") {
       init_df <- df[df[, 1] == time_points[1], -1]
     } else if (init == "full") {
-      init_df <- df[, -1]
+      for (idx in 1:length(time_points)) {
+        init_dimension_size <- dim(df[, -1])
+        init_D <- init_dimension_size[2]
+        init_n <- init_dimension_size[1]
+        lambda <- 4 - d
+        init_N0 <- 20 * init_D
+        init_df_temp <- df[df[, 1] == time_points[idx], -1]
+        init_est_temp <- hdmde(init_df_temp, init_N0, alpha, max.comp)
+        init_timevals[[idx]] <- rep(time_points[idx], dim(init_est_temp$mu)[1])
+        init_theta_hat[[idx]] <- init_est_temp$theta.hat
+        init_centers[[idx]] <- init_est_temp$mu
+        init_sigma[[idx]] <- init_est_temp$sigma
+        init_clusters[[idx]] <- init_est_temp$k.means.result
+      }
     }
 
-    init_dimension.size <- dim(init_df)
-    init_D <- init_dimension.size[2]
-    init_n <- init_dimension.size[1]
-    lambda <- 4 - d
+    init_timevals <- reduce(init_timevals, c)
+    init_theta_hat <- reduce(init_theta_hat, c)
+    init_centers <- reduce(init_centers, rbind)
+    init_sigma <- reduce(init_sigma, c)
+    init_W <- diag(init_theta_hat)
+    init_X <- init_centers
+    init_I <- length(init_theta_hat)
 
-    init_N0 <- 20 * init_D
-    init_est <- hdmde(init_df, init_N0, alpha, max.comp)
-    init_order <- order(init_est$mu[, 1])
-    init_theta.hat <- init_est$theta.hat[init_order]
-    init_centers <- init_est$mu[init_order, ]
-    init_sigma <- init_est$sigma
-    init_W <- diag(init_theta.hat)
-    init_X <- init_est$mu[init_order, ]
-    init_I <- length(init_theta.hat)
+    init_dissimilarity_matrix <- as.matrix(dist(init_X))
+    init_isomap <- isomap(init_dissimilarity_matrix, ndim = d, k = 10)
 
-    init_dissimilarity.matrix <- as.matrix(dist(init_X))
-    init_isomap <- isomap(init_dissimilarity.matrix, ndim = d, k = 10)
+    # init_dimension.size <- dim(init_df)
+    # init_D <- init_dimension.size[2]
+    # init_n <- init_dimension.size[1]
+    # lambda <- 4 - d
+    #
+    # init_N0 <- 20 * init_D
+    # init_est <- hdmde(init_df, init_N0, alpha, max.comp)
+    # init_order <- order(init_est$mu[, 1])
+    # init_theta.hat <- init_est$theta.hat[init_order]
+    # init_centers <- init_est$mu[init_order, ]
+    # init_sigma <- init_est$sigma
+    # init_W <- diag(init_theta.hat)
+    # init_X <- init_est$mu[init_order, ]
+    # init_I <- length(init_theta.hat)
+    #
+    # init_dissimilarity.matrix <- as.matrix(dist(init_X))
+    # init_isomap <- isomap(init_dissimilarity.matrix, ndim = d, k = 10) # could changing k improve fit?
   }
 
   num_clusters <- rep(0, length(time_points))
@@ -52,7 +83,14 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       pme_results[[idx]] <- pme(
         x.obs = df_temp[, -1],
         d = d,
-        initialization = list(init_est, init_isomap)
+        initialization = list(
+          init_isomap,
+          init_theta_hat[init_timevals == time_points[idx]],
+          init_centers[init_timevals == time_points[idx], ],
+          init_sigma[idx],
+          matrix(init_isomap$points[init_timevals == time_points[idx], ], nrow = length(init_theta_hat[init_timevals == time_points[idx]])),
+          init_clusters[[idx]]
+        )
       )
     } else {
       pme_results[[idx]] <- pme(
@@ -62,18 +100,18 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     }
     funcs[[idx]] <- pme_results[[idx]]$embedding.map
     if (idx == 1) {
-      centers[[idx]] <- pme_results[[idx]]$knots$mu
-      clusters[[idx]] <- pme_results[[idx]]$knots$k.means.result$cluster
-      num_clusters[idx] <- dim(pme_results[[idx]]$knots$mu)[1]
+      centers[[idx]] <- pme_results[[idx]]$knots$centers
+      clusters[[idx]] <- pme_results[[idx]]$knots$cluster
+      num_clusters[idx] <- dim(pme_results[[idx]]$knots$centers)[1]
     } else {
-      centers[[idx]] <- pme_results[[idx]]$knots$mu
-      clusters[[idx]] <- pme_results[[idx]]$knots$k.means.result$cluster + sum(num_clusters)
-      num_clusters[idx] <- dim(pme_results[[idx]]$knots$mu)[1]
+      centers[[idx]] <- pme_results[[idx]]$knots$centers
+      clusters[[idx]] <- pme_results[[idx]]$knots$cluster + sum(num_clusters)
+      num_clusters[idx] <- dim(pme_results[[idx]]$knots$centers)[1]
     }
     r_test <- seq(
       from = -10,
       to = 10,
-      length.out = dim(pme_results[[idx]]$knots$mu)[1]
+      length.out = dim(pme_results[[idx]]$knots$centers)[1]
     )
     r_list <- lapply(numeric(d), function(x) r_test)
     r_mat <- as.matrix(expand.grid(r_list))
@@ -97,17 +135,36 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     if (sum(r_inrange) == 0) {
       r_inrange <- rowSums(idx_inrange) > 0
     }
-    r_min <- min(r_mat[r_inrange, ])
-    r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
-    r_max <- max(r_mat[r_inrange, ])
-    r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
-    r_test <- seq(
-      r_min,
-      r_max,
-      length.out = max(10, round((dim(pme_results[[idx]]$knots$mu)[1]) ^ (1 / d)))
-    )
-    r_list <- lapply(numeric(d), function(x) r_test)
-    r_mat <- as.matrix(expand.grid(r_list))
+
+    r_min <- vector()
+    r_max <- vector()
+
+    if (sum(r_inrange) == 0) {
+      r_min <- rep(-10, d)
+      r_max <- rep(-10, d)
+    } else {
+      for (dim_idx in 1:d) {
+        r_min_val <- min(r_mat[r_inrange, dim_idx])
+        r_min_val <- ifelse(is.na(r_min_val) | is.infinite(r_min_val), -10, r_min_val)
+        r_min[dim_idx] <- r_min_val
+        r_max_val <- max(r_mat[r_inrange, dim_idx])
+        r_max_val <- ifelse(is.na(r_max_val) | is.infinite(r_max_val), -10, r_max_val)
+        r_max[dim_idx] <- r_max_val
+      }
+    }
+
+    r_vals <- list()
+
+    for (dim_idx in 1:d) {
+      r_vals[[dim_idx]] <- seq(
+        r_min[dim_idx],
+        r_max[dim_idx],
+        length.out = num_clusters[idx]
+      )
+    }
+
+    r_mat <- expand.grid(r_vals)
+
     r_length <- dim(r_mat)[1]
     x_test[[idx]] <- apply(
       r_mat,
@@ -341,7 +398,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
             x = df[, 2],
             y = df[, 3],
             z = df[, 1],
-            opacity = 0.05
+            opacity = 0.15
           )
         print(plt)
       } else if (D_new == 3) {
@@ -353,7 +410,29 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
           type = "scatter3d",
           mode = "markers",
           opacity = 0.5
-        )
+        ) %>%
+          layout(
+            scene = list(
+              xaxis = list(
+                range = list(
+                  min(df[, 2]),
+                  max(df[, 2])
+                )
+              ),
+              yaxis = list(
+                range = list(
+                  min(df[, 3]),
+                  max(df[, 3])
+                )
+              ),
+              zaxis = list(
+                range = list(
+                  min(df[, 4]),
+                  max(df[, 4])
+                )
+              )
+            )
+          )
         print(plt)
       }
     }
@@ -514,7 +593,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
               x = df[, 2],
               y = df[, 3],
               z = df[, 1],
-              opacity = 0.05
+              opacity = 0.15
             )
           print(plt)
         } else if (D_new == 3) {
@@ -526,7 +605,29 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
             type = "scatter3d",
             mode = "markers",
             opacity = 0.5
-          )
+          ) %>%
+            layout(
+              scene = list(
+                xaxis = list(
+                  range = list(
+                    min(df[, 2]),
+                    max(df[, 2])
+                  )
+                ),
+                yaxis = list(
+                  range = list(
+                    min(df[, 3]),
+                    max(df[, 3])
+                  )
+                ),
+                zaxis = list(
+                  range = list(
+                    min(df[, 4]),
+                    max(df[, 4])
+                  )
+                )
+              )
+            )
           print(plt)
         }
       }
