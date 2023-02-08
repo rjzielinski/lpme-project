@@ -593,7 +593,11 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     }
 
     # For a fixed tuning parameter value, the corresponding MSD is computed by the following chunk.
-    km <- initialization[[6]]
+    if (is.null(initialization)) {
+      km <- est$k.means.result
+    } else {
+      km <- initialization[[6]]
+    }
     data.initial <- matrix(0, nrow = 1, ncol = D + d)
     for(i in 1:I) {
       index.temp <- which(km$cluster == i)
