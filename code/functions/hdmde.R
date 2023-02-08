@@ -13,7 +13,7 @@ hdmde <- function(x.obs, N0, alpha, max.comp) {
   D <- n.D[2]
   N <- N0
 
-  km <- kmeans(x.obs, N, iter.max = 100, nstart = 100) # Use k-means clustering to get N clusters of x.obs.
+  km <- kmeans(x.obs, N, iter.max = 10000, nstart = 100) # Use k-means clustering to get N clusters of x.obs.
   mu <- km$centers # Set the centers of the N clusters as the means of the density components.
 
   sigma.vec <- rep(NA, N) # The following block estimates \sigma_N.
@@ -52,7 +52,7 @@ hdmde <- function(x.obs, N0, alpha, max.comp) {
 
     ##################################################
     # The following is a repetition of the codes above.
-    km <- kmeans(x.obs, N, iter.max = 100, nstart = 100)
+    km <- kmeans(x.obs, N, iter.max = 10000, nstart = 100)
     mu <- km$centers
 
     sigma.vec <- rep(NA, N)
