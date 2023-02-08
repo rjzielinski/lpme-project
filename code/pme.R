@@ -38,6 +38,7 @@ library("vegan")
 library("plot3D")
 library(Rfast)
 library(tidyverse)
+library(plotly)
 
 
 
@@ -77,7 +78,7 @@ source("code/functions/hdmde.R")
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
 
-pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE) {
+pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE, print_plots = TRUE) {
 
   # "x.obs" is the data set of interest.
   #         There are n observations, and each observation is a D-dimensional point.
@@ -119,16 +120,16 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     # distance between mu[i,] and mu[j,].
     dissimilarity.matrix <- as.matrix(dist(X))
     isomap.initial <- isomap(dissimilarity.matrix, ndim = d, k = 10)
+    t.initial <- isomap.initial$points
   } else {
-    isomap.initial <- initialization[[2]]
-    est <- hdmde(x.obs, N0 = dim(isomap.initial$points)[1], alpha, max.comp = dim(isomap.initial$points)[1])
-    est_order <- order(est$mu[, 1])
-    theta.hat <- est$theta.hat[est_order]
-    centers <- est$mu[est_order, ]
-    sigma <- est$sigma
+    isomap.initial <- initialization[[1]]
+    theta.hat <- initialization[[2]]
+    centers <- initialization[[3]]
+    sigma <- initialization[[4]]
     W <- diag(theta.hat)
-    X <- est$mu[est_order, ]
+    X <- centers
     I <- length(theta.hat)
+    t.initial <- initialization[[5]]
   }
   # } else {
   #   est <- initialization[[1]]
@@ -142,7 +143,6 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
   #   isomap.initial <- initialization[[2]]
   # }
 
-  t.initial <- isomap.initial$points
 
   MSE.seq <- vector()
   SOL <- list()
@@ -257,6 +257,110 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     # This block gives the first step of iteration.
     ###############################################
 
+    if (print_plots == TRUE) {
+      r_vals <- seq(
+        from = -10,
+        to = 10,
+        by = 1
+      )
+      r_list <- lapply(numeric(d - 1), function(x) r_vals)
+      r_mat <- as.matrix(expand.grid(r_list))
+      if (nrow(r_mat) > 0) {
+        pred_grid <- expand_grid(r_vals, r_mat) %>%
+          as.matrix()
+      } else {
+        pred_grid <- matrix(r_vals)
+      }
+
+      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
+      for (i in 1:nrow(pred_grid)) {
+        f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
+      }
+
+      idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
+      for (dim_idx in 1:dim(f_pred)[2]) {
+        idx_range <- max(x.obs[, dim_idx]) - min(x.obs[, dim_idx])
+        idx_min <- min(x.obs[, dim_idx]) - (0.2 * idx_range)
+        idx_max <- max(x.obs[, dim_idx]) + (0.2 * idx_range)
+        idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) &
+          (f_pred[, dim_idx] < idx_max)
+      }
+
+      r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
+      if (sum(r_inrange) == 0) {
+        r_inrange <- rowSums(idx_inrange) > 0
+      }
+      if (sum(r_inrange) == 0) {
+        r_min <- -10
+        r_max <- 10
+      } else if (dim(pred_grid)[2] > 1) {
+        r_min <- min(pred_grid[r_inrange, -1])
+        r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
+        r_max <- max(pred_grid[r_inrange, -1])
+        r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
+      } else {
+        r_min <- min(pred_grid[r_inrange, ])
+        r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
+        r_max <- max(pred_grid[r_inrange, ])
+        r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
+      }
+
+      r_vals <- seq(
+        r_min,
+        r_max,
+        by = (r_max - r_min) / 40
+      )
+      r_list <- lapply(numeric(d - 1), function(x) r_vals)
+      r_mat <- as.matrix(expand.grid(r_list))
+      if (nrow(r_mat) > 0) {
+        pred_grid <- expand_grid(r_vals, r_mat) %>%
+          as.matrix()
+      } else {
+        pred_grid <- as.matrix(r_vals)
+      }
+      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
+      for (i in 1:nrow(pred_grid)) {
+        f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
+      }
+
+      f_pred_full <- cbind(pred_grid, f_pred)
+
+      if (D == 2) {
+        plt <- ggplot() +
+          geom_point(
+            aes(
+              x =x.obs[, 1],
+              y = x.obs[, 2]
+            ),
+            alpha = 0.5
+          ) +
+          geom_point(
+            aes(
+              x = f_pred_full[, d + 1],
+              y = f_pred_full[, d + 2]
+            ),
+            color = "red"
+          )
+        print(plt)
+      } else if (D == 3) {
+        plt <- plot_ly(
+          x = f_pred_full[, d + 1],
+          y = f_pred_full[, d + 2],
+          z = f_pred_full[, d + 3],
+          type = "scatter3d",
+          mode = "markers",
+          opacity = 0.5
+        ) %>%
+          add_markers(
+            x = x.obs[, 1],
+            y = x.obs[, 2],
+            z = x.obs[, 3],
+            opacity = 0.15
+          )
+        print(plt)
+      }
+    }
+
     # The iteration for PME is given by the following loop.
     count <- 1
     SSD.ratio <- 10 * epsilon # A quantity measuring the distance between f0 and fnew.
@@ -351,12 +455,135 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
         as.vector() %>%
         sum()
 
+      if (print_plots == TRUE) {
+        r_vals <- seq(
+          from = -10,
+          to = 10,
+          by = 1
+        )
+        r_list <- lapply(numeric(d - 1), function(x) r_vals)
+        r_mat <- as.matrix(expand.grid(r_list))
+        if (nrow(r_mat) > 0) {
+          pred_grid <- expand_grid(r_vals, r_mat) %>%
+            as.matrix()
+        } else {
+          pred_grid <- matrix(r_vals)
+        }
+
+        f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
+        for (i in 1:nrow(pred_grid)) {
+          f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
+        }
+
+        idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
+        for (dim_idx in 1:dim(f_pred)[2]) {
+          idx_range <- max(x.obs[, dim_idx]) - min(x.obs[, dim_idx])
+          idx_min <- min(x.obs[, dim_idx]) - (0.2 * idx_range)
+          idx_max <- max(x.obs[, dim_idx]) + (0.2 * idx_range)
+          idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) &
+            (f_pred[, dim_idx] < idx_max)
+        }
+
+        r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
+        if (sum(r_inrange) == 0) {
+          r_inrange <- rowSums(idx_inrange) > 0
+        }
+
+        r_min <- vector()
+        r_max <- vector()
+
+        if (sum(r_inrange) == 0) {
+          r_min <- rep(-10, dim(pred_grid)[2])
+          r_max <- rep(-10, dim(pred_grid)[2])
+        } else {
+          for (dim_idx in 1:dim(pred_grid)[2]) {
+            r_min_val <- min(pred_grid[r_inrange, dim_idx])
+            r_min_val <- ifelse(is.na(r_min_val) | is.infinite(r_min_val), -10, r_min_val)
+            r_min[dim_idx] <- r_min_val
+            r_max_val <- max(pred_grid[r_inrange, dim_idx])
+            r_max_val <- ifelse(is.na(r_max_val) | is.infinite(r_max_val), -10, r_max_val)
+            r_max[dim_idx] <- r_max_val
+          }
+        }
+
+        # if (sum(r_inrange) == 0) {
+        #   r_min <- -10
+        #   r_max <- 10
+        # } else if (dim(pred_grid)[2] > 1) {
+        #   r_min <- min(pred_grid[r_inrange, ])
+        #   r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
+        #   r_max <- max(pred_grid[r_inrange, ])
+        #   r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
+        # } else {
+        #   r_min <- min(pred_grid[r_inrange, ])
+        #   r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
+        #   r_max <- max(pred_grid[r_inrange, ])
+        #   r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
+        # }
+
+        r_vals <- list()
+
+        for (dim_idx in 1:dim(pred_grid)[2]) {
+          r_vals[[dim_idx]] <- seq(
+            r_min[dim_idx],
+            r_max[dim_idx],
+            length.out = I
+          )
+        }
+
+        pred_grid <- expand.grid(r_vals)
+
+        f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
+        for (i in 1:nrow(pred_grid)) {
+          f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
+        }
+
+        f_pred_full <- cbind(pred_grid, f_pred)
+
+        if (D == 2) {
+          plt <- ggplot() +
+            geom_point(
+              aes(
+                x =x.obs[, 1],
+                y = x.obs[, 2]
+              ),
+              alpha = 0.5
+            ) +
+            geom_point(
+              aes(
+                x = f_pred_full[, d + 1],
+                y = f_pred_full[, d + 2]
+              ),
+              color = "red"
+            )
+          print(plt)
+        } else if (D == 3) {
+          plt <- plot_ly(
+            x = f_pred_full[, d + 1],
+            y = f_pred_full[, d + 2],
+            z = f_pred_full[, d + 3],
+            type = "scatter3d",
+            mode = "markers",
+            opacity = 0.5
+          ) %>%
+            add_markers(
+              x = x.obs[, 1],
+              y = x.obs[, 2],
+              z = x.obs[, 3],
+              opacity = 0.15
+            )
+          print(plt)
+        }
+      }
+
       SSD.ratio <- abs(SSD.new - SSD.old) / SSD.old
       count <- count + 1
 
       print(
-        paste(
-          "SSD.ratio is ",
+        paste0(
+          "SSD is ",
+          as.character(round(SSD.new, 4)),
+          " SSD.ratio is ",
           as.character(round(SSD.ratio, 4)),
           " and this is the ",
           as.character(count),
@@ -365,13 +592,11 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
       )
     }
 
-
     # For a fixed tuning parameter value, the corresponding MSD is computed by the following chunk.
-    km <- est$k.means.result
+    km <- initialization[[6]]
     data.initial <- matrix(0, nrow = 1, ncol = D + d)
     for(i in 1:I) {
-      # index.temp <- which(km$cluster == i)
-      index.temp <- which(est_order[km$cluster] == i)
+      index.temp <- which(km$cluster == i)
       length.temp <- length(index.temp)
       X.i <- matrix(x.obs[index.temp, ], nrow = length.temp)
       t.temp <- matrix(rep(tnew[i, 1], length.temp))
@@ -483,7 +708,7 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
   resp <- list(
     embedding.map = f.optimal,
     MSD = MSE.seq,
-    knots = est,
+    knots = km,
     weights.of.knots = theta.hat,
     coe.kernel = sol.opt[1:I, ],
     coe.poly = sol.opt[(I + 1):(I + d + 1), ],
