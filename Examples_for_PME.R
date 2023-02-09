@@ -12,6 +12,8 @@ library("plot3D")
 ####################################################################
 par(mfrow=c(2,2))
 
+source("code/pme.R")
+
 ### Case I.
 
 # Simulated data
@@ -63,7 +65,7 @@ e2=rnorm(I,mean = 0, sd=sd.noise)
 data.points=X+cbind(e1,e2)
 
 ptm <- proc.time()
-result=PME(x.obs=data.points, d=1)
+result=pme(x.obs=data.points, d=1)
 proc.time() - ptm
 
 f=result$embedding.map
@@ -91,7 +93,7 @@ for(i in 1:I){ X[i,]=manifold(t[i]) }
 data.points=X+cbind(e1,e2)
 
 ptm <- proc.time()
-result=PME(x.obs=data.points, d=1)
+result=pme(x.obs=data.points, d=1)
 proc.time() - ptm
 
 f=result$embedding.map
@@ -124,7 +126,7 @@ e3=rnorm(I,mean=0,sd=noise)
 data.points=X+cbind(e1,e2,e3)
 
 ptm <- proc.time()
-result=PME(x.obs=data.points, d=1)
+result=pme(x.obs=data.points, d=1)
 proc.time() - ptm
 
 f=result$embedding.map
@@ -157,7 +159,7 @@ e3=rnorm(I,mean=0,sd=noise)
 data.points=X+cbind(e1,e2,e3)
 
 ptm <- proc.time()
-result=PME(x.obs=data.points, d=1)
+result=pme(x.obs=data.points, d=1)
 proc.time() - ptm
 
 f=result$embedding.map
