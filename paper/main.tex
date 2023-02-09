@@ -45,7 +45,7 @@
 
 \section{Introduction}
 
-Manifold learning is an approach to modeling high-dimensional data that is assumed to lie along a low-dimensional manifold. These approaches have become increasingly popular for medical imaging applications, where assuming an underlying manifold structure is helpful for modeling certain anatomical structures. In these settings, interacting with a structure in a low-dimensional form may be more intuitive than in a higher-dimensional space. For example, Yue et al. (2016) seeks to compute a parametric representation of the corpus callosum. A number of methods have been developed for manifold learning, including Isomap (Tenenbaum et al. 2000), locally linear embedding (Roweis and Saul, 2000), and Laplacian eigenmaps (Belkin and Niyogi, 2003). Meng and Eloyan (2021) proposed a principal manifold framework that resolved several limitations of previously developed extensions of the principal curves approach introduced by Hastie and Stuetzle (1989).
+Manifold learning describes a set of statistical approaches to modeling high-dimensional data that are assumed to lie along a low-dimensional manifold. These methods have become increasingly popular for medical imaging applications, where assuming an underlying manifold structure is helpful for modeling certain anatomical shapes. In these settings, interacting with a structure in a low-dimensional form may be more intuitive than in a higher-dimensional space. For example, Yue et al. (2016) seeks to compute a parametric representation of the corpus callosum. A number of methods have been developed for manifold learning, including Isomap (Tenenbaum et al. 2000), locally linear embedding (Roweis and Saul, 2000), and Laplacian eigenmaps (Belkin and Niyogi, 2003). Meng and Eloyan (2021) proposed a principal manifold framework that resolved several limitations of previously developed extensions of the principal curves approach introduced by Hastie and Stuetzle (1989).
 
 In many medical imaging situations, understanding how an anatomical structure changes over time could provide meaningful information into the function of that structure, or medical conditions that affect that function. In situations where the structure is better represented by a low-dimensional manifold, interest carries over to understanding how the underlying manifold changes longitudinally as well. 
 
@@ -53,11 +53,18 @@ While the methods given above provide a variety of approaches to retrieving a lo
 
 Rather than include time as another dimension in a manifold learning method, we use a process that maintains the interpretability of the time dimension. Specifically, we use the method proposed in Meng and Eloyan (2021) to estimate an appropriate principal manifold at each given time point. We then smooth over these approximated manifolds in the time dimension, yielding an estimate showing longitudinal changes in the underlying manifold.
 
-DISCUSS LONGITUDINAL DIMENSION REDUCTION APPROACHES CURRENTLY AVAILABLE
+Some work has been conducted on longitudinal dimension reduction methods, but this research has primarily focused on linear methods, such as the longitudinal principal component analysis approach proposed by Kinson et al. (2019). To our knowledge, the approach to longitudinal smoothing in the manifold learning setting taken in this paper is novel.
 
-The remainder of this article is laid out as follows: In Section 2, we introduce the principal manifold estimation method proposed in Meng and Eloyan (2021), discuss how this approach can be adapted for longitudinal settings, and show the algorithm being used to accomplish this. Section 3 demonstrates the performance of this approach on simulated data. In Section 4, we apply this method to longitudinal data of the hippocampus in individuals with Alzheimer's disease. The article finishes with a discussion of the method in Section 5.
+The remainder of this article is laid out as follows: In Section 2, we introduce the principal manifold estimation method proposed in Meng and Eloyan (2021). Section 3 discusses how this approach can be adapted for longitudinal settings, and shows the algorithm being used to accomplish this. Section 4 demonstrates the performance of this approach on simulated data. In Section 5, we apply this method to longitudinal data of the hippocampus in individuals with Alzheimer's disease. The article finishes with a discussion of the method in Section 6.
 
-\section{Methods}
+\section{Principal Manifolds and Estimation Algorithm}
+
+Because the algorithm proposed in this article relies on the same definitions and notation as those introduced in Meng and Eloyan (2021), we provide it here. To generalize the principal curve framework proposed in Hastie and Stuetzle (1989) to intrinsic dimensions $d > 1$, Meng and Eloyan introduce the function space 
+\[%
+  C_{\infty}(\mathbb{R}^d \to \mathbb{R}^D) = \left\{f \in C()\right\}
+.\]%
+
+\section{Longitudinal Principal Manifold Estimation Algorithm}
 
 Let $\{x_{it}\}_{i=1, t=1}^{I, T}$ be data points in $D$-dimensional space.
 
@@ -152,6 +159,7 @@ Questions:
   \item Why does PME algorithm struggle on Swiss Roll cross-section? It seems to work well up until spiral reaches second layer. The manifold should never intersect, but from the angle from the origin does overlap.
   \item Generally, what are the limitations on the estimated manifolds intersecting? How close can it come to intersecting without showing strange behavior?
   \item Is thin-plate spline computational strategy from Wahba the best approach, or could updated computational approach help (Wood, 2003)?
+  \item How much error does the registration process introduce? Can the LPME algorithm successfully handle a certain number of bad registrations or extractions?
 \end{enumerate}
 
 \nocite{*}
