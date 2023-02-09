@@ -159,7 +159,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       r_vals[[dim_idx]] <- seq(
         r_min[dim_idx],
         r_max[dim_idx],
-        length.out = num_clusters[idx]
+        length.out = round(sqrt(num_clusters[idx]))
       )
     }
 
@@ -202,7 +202,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   I_new <- length(theta_hat_new)
 
   dissimilarity_matrix_new <- as.matrix(dist(X_new))
-  t_initial <- r_full
+  t_initial <- r_full %>%
+    as.matrix()
 
   MSE_seq_new <- vector()
   SOL_new <- list()
@@ -339,7 +340,6 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(X_new))
       for (i in 1:nrow(pred_grid)) {
         f_pred[i, ] <- f_new(unlist(as.vector(pred_grid[i, ])))
-        progress(i, max.value = nrow(pred_grid), console = FALSE)
       }
 
       idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
@@ -662,7 +662,9 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
         t.temp <- cbind(t.temp, rep(t_new[i, j], length.temp))
       }
       t.temp <- matrix(t.temp[, -1], nrow = length.temp)
-      data_initial <- rbind(data_initial, cbind(X.i, t.temp))
+      if (length.temp > 0) {
+        data_initial <- rbind(data_initial, cbind(X.i, t.temp))
+      }
     }
     # for (i in 1:I_new) {
     #   length.temp <- 1
