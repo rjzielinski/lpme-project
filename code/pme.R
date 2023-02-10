@@ -39,7 +39,7 @@ library("plot3D")
 library(Rfast)
 library(tidyverse)
 library(plotly)
-
+library(Rcpp)
 
 
 ########### Section 1, Some Basic Functions ########################
@@ -74,6 +74,8 @@ source("code/functions/weight_seq.R")
 # high dimensional mixture density estiamtion function.
 
 source("code/functions/hdmde.R")
+
+sourceCpp("code/functions/pme_functions.cpp")
 
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
@@ -164,13 +166,15 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     tnew <- t.initial
     t_val <- cbind(rep(1, I), tnew) # The matrix T
 
-    E <- matrix(NA, ncol = I, nrow = I)
-    for(j in 1:I) {
-      E.prepare <- function(t) {
-        eta_kernel(t - tnew[j, ], lambda)
-      }
-      E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
-    }
+    # E <- matrix(NA, ncol = I, nrow = I)
+    # for(j in 1:I) {
+    #   E.prepare <- function(t) {
+    #     eta_kernel(t - tnew[j, ], lambda)
+    #   }
+    #   E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
+    # }
+
+    E <- calcE(tnew, lambda)
 
     # This block gives the first step of iteration.
     ###############################################
@@ -215,7 +219,8 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
       return(
         as.vector(
           t(sol[1:I, ]) %*%
-            eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*%
+            etaFunc(t, tnew, lambda) + t(sol[(I + 1):(I + d + 1), ]) %*%
+            # eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*%
             matrix(c(1, t), ncol = 1)
         )
       )
@@ -379,14 +384,15 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
       t_val <- cbind(rep(1, I), tnew)
 
-      E <- matrix(NA, ncol = I, nrow = I)
+      # E <- matrix(NA, ncol = I, nrow = I)
+      # for(j in 1:I) {
+      #   E.prepare <- function(t) {
+      #     eta_kernel(t - tnew[j, ], lambda)
+      #   }
+      #   E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
+      # }
 
-      for(j in 1:I) {
-        E.prepare <- function(t) {
-          eta_kernel(t - tnew[j, ], lambda)
-        }
-        E[, j] <- apply(tnew, 1, E.prepare)
-      }
+      E <- calcE(tnew, lambda)
 
       # This block gives the first step of iteration.
       ###############################################
@@ -423,7 +429,8 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
       fnew <- function(t) {
         as.vector(
           t(sol[1:I, ]) %*%
-            eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*%
+            etaFunc(t, tnew, lambda) + t(sol[(I + 1):(I + d + 1), ]) %*%
+            # eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*%
             matrix(c(1, t), ncol = 1)
         ) %>%
           return()
@@ -657,18 +664,19 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
   optimal.ind <- min(which(MSE.seq == min(MSE.seq)))
   sol.opt <- SOL[[optimal.ind]]
   tnew.opt <- TNEW[[optimal.ind]]
-  eta.func <- function(t) {
-    eta.func.prepare <- function(tau) {
-      return(eta_kernel(t - tau, lambda))
-    }
-    return(matrix(apply(tnew.opt, 1, eta.func.prepare), ncol = 1))
-  }
+  # eta.func <- function(t) {
+  #   eta.func.prepare <- function(tau) {
+  #     return(eta_kernel(t - tau, lambda))
+  #   }
+  #   return(matrix(apply(tnew.opt, 1, eta.func.prepare), ncol = 1))
+  # }
 
   f.optimal <- function(t) {
     return(
       as.vector(
         t(sol.opt[1:I, ]) %*%
-          eta.func(t) + t(sol.opt[(I + 1):(I + d + 1), ]) %*%
+          etaFunc(t, tnew.opt, lambda) + t(sol.opt[(I + 1):(I + d + 1), ]) %*%
+          # eta.func(t) + t(sol.opt[(I + 1):(I + d + 1), ]) %*%
           matrix(c(1, t), ncol=1)
       )
     )

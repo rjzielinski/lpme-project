@@ -6,6 +6,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   source("code/pme.R")
   require(plotly)
   require(svMisc)
+  require(Rcpp)
+  sourceCpp("code/functions/pme_functions.cpp")
   # source("Principal_Manifold_Estimation.R")
 
   time_points <- df[, 1] %>%
@@ -159,7 +161,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       r_vals[[dim_idx]] <- seq(
         r_min[dim_idx],
         r_max[dim_idx],
-        length.out = round(sqrt(num_clusters[idx]))
+        length.out = max(ceiling(sqrt(num_clusters[idx])), 20)
       )
     }
 
@@ -224,13 +226,15 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     t_new <- t_initial
     T_new <- cbind(rep(1, I_new), t_new)
 
-    E_new <- matrix(NA, ncol = I_new, nrow = I_new)
-    for (j in 1:I_new) {
-      E_prepare <- function(t) {
-        eta_kernel(t - t_new[j, ], gamma)
-      }
-      E_new[, j] <- apply(t_new, 1, E_prepare)
-    }
+    # E_new <- matrix(NA, ncol = I_new, nrow = I_new)
+    # for (j in 1:I_new) {
+    #   E_prepare <- function(t) {
+    #     eta_kernel(t - t_new[j, ], gamma)
+    #   }
+    #   E_new[, j] <- apply(t_new, 1, E_prepare)
+    # }
+
+    E_new <- calcE(t_new, gamma)
 
     M1_new <- cbind(
       2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
@@ -260,27 +264,27 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
     )
     sol_new <- ginv(M_new) %*% b_new
 
-    eta.func <- function(t) {
-      eta.func.prepare <- function(tau) {
-        return(eta_kernel(t - tau, gamma))
-      }
-      return(
-        matrix(
-          apply(
-            t_new,
-            1,
-            eta.func.prepare
-          ),
-          ncol = 1
-        )
-      )
-    }
+    # eta.func <- function(t) {
+    #   eta.func.prepare <- function(tau) {
+    #     return(eta_kernel(t - tau, gamma))
+    #   }
+    #   return(
+    #     matrix(
+    #       apply(
+    #         t_new,
+    #         1,
+    #         eta.func.prepare
+    #       ),
+    #       ncol = 1
+    #     )
+    #   )
+    # }
 
     f_new <- function(t) {
       return(
         as.vector(
           t(sol_new[1:I_new, ]) %*%
-            eta.func(t) + t(sol_new[(I_new + 1):(I_new + d_new + 1),]) %*%
+            etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1),]) %*%
             matrix(c(1, t), ncol = 1)
         )
       )
@@ -446,13 +450,15 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       f0 <- f_new
 
       T_new <- cbind(rep(1, I_new), t_new)
-      E_new <- matrix(NA, ncol = I_new, nrow = I_new)
-      for (j in 1:I_new) {
-        E.prepare <- function(t) {
-          eta_kernel(t - t_new[j, ], gamma)
-        }
-        E_new[, j] <- apply(t_new, 1, E.prepare)
-      }
+      # E_new <- matrix(NA, ncol = I_new, nrow = I_new)
+      # for (j in 1:I_new) {
+      #   E.prepare <- function(t) {
+      #     eta_kernel(t - t_new[j, ], gamma)
+      #   }
+      #   E_new[, j] <- apply(t_new, 1, E.prepare)
+      # }
+
+      E_new <- calcE(t_new, gamma)
 
       M1_new <- cbind(
         2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
@@ -482,18 +488,18 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       )
       sol_new <- ginv(M_new) %*% b_new
 
-      eta.func <- function(t) {
-        eta.func.prepare <- function(tau) {
-          return(eta_kernel(t - tau, gamma))
-        }
-        return(matrix(apply(t_new, 1, eta.func.prepare), ncol = 1))
-      }
+      # eta.func <- function(t) {
+      #   eta.func.prepare <- function(tau) {
+      #     return(eta_kernel(t - tau, gamma))
+      #   }
+      #   return(matrix(apply(t_new, 1, eta.func.prepare), ncol = 1))
+      # }
 
       f_new <- function(t) {
         return(
           as.vector(
             t(sol_new[1:I_new, ]) %*%
-              eta.func(t) + t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*%
+              etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*%
               matrix(c(1, t), ncol = 1)
           )
         )
@@ -728,22 +734,22 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
   optimal_ind <- min(which(MSE_seq_new == min(MSE_seq_new)))
   sol_opt <- SOL_new[[optimal_ind]]
   t_new_opt <- TNEW_new[[optimal_ind]]
-  eta.func <- function(t) {
-    eta.func.prepare <- function(tau) {
-      return(eta_kernel(t - tau, gamma))
-    }
-    return(
-      matrix(
-        apply(t_new_opt, 1, eta.func.prepare),
-        ncol = 1
-      )
-    )
-  }
+  # eta.func <- function(t) {
+  #   eta.func.prepare <- function(tau) {
+  #     return(eta_kernel(t - tau, gamma))
+  #   }
+  #   return(
+  #     matrix(
+  #       apply(t_new_opt, 1, eta.func.prepare),
+  #       ncol = 1
+  #     )
+  #   )
+  # }
   f.optimal <- function(t) {
     return(
       as.vector(
         t(sol_opt[1:I_new, ]) %*%
-          eta.func(t) + t(sol_opt[(I_new + 1):(I_new + d_new + 1), ]) %*%
+          etaFunc(t, t_new_opt, gamma) + t(sol_opt[(I_new + 1):(I_new + d_new + 1), ]) %*%
           matrix(c(1, t), ncol = 1)
       )
     )
