@@ -236,33 +236,35 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
     E_new <- calcE(t_new, gamma)
 
-    M1_new <- cbind(
-      2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
-      2 * E_new %*% W_new %*% T_new,
-      T_new
-    )
-    M2_new <- cbind(
-      2 * t(T_new) %*% W_new %*% E_new,
-      2 * t(T_new) %*% W_new %*% T_new,
-      matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-    )
-    M3_new <- cbind(
-      t(T_new),
-      matrix(0, ncol = d_new + 1, nrow = d_new + 1),
-      matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-    )
-    M_new <- rbind(
-      M1_new,
-      M2_new,
-      M3_new
-    )
+    # M1_new <- cbind(
+    #   2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
+    #   2 * E_new %*% W_new %*% T_new,
+    #   T_new
+    # )
+    # M2_new <- cbind(
+    #   2 * t(T_new) %*% W_new %*% E_new,
+    #   2 * t(T_new) %*% W_new %*% T_new,
+    #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
+    # )
+    # M3_new <- cbind(
+    #   t(T_new),
+    #   matrix(0, ncol = d_new + 1, nrow = d_new + 1),
+    #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
+    # )
+    # M_new <- rbind(
+    #   M1_new,
+    #   M2_new,
+    #   M3_new
+    # )
+    #
+    # b_new <- rbind(
+    #   2 * E_new %*% W_new %*% X_new,
+    #   2 * t(T_new) %*% W_new %*% X_new,
+    #   matrix(0, nrow = d_new + 1, ncol = D_new)
+    # )
+    # sol_new <- ginv(M_new) %*% b_new
 
-    b_new <- rbind(
-      2 * E_new %*% W_new %*% X_new,
-      2 * t(T_new) %*% W_new %*% X_new,
-      matrix(0, nrow = d_new + 1, ncol = D_new)
-    )
-    sol_new <- ginv(M_new) %*% b_new
+    sol_new <- solve_eq(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
 
     # eta.func <- function(t) {
     #   eta.func.prepare <- function(tau) {
@@ -301,26 +303,38 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       )
     }
 
-    t_new <- matrix(
-      t(apply(X_initial_guess, 1, projection.index.f0)),
-      nrow = I_new
-    )
+    # t_new <- matrix(
+    #   t(apply(X_initial_guess, 1, projection.index.f0)),
+    #   nrow = I_new
+    # )
 
-    SSD.prepare <- function(x.prin, f) {
-      return(
-        dist_euclidean(
-          x.prin[1:D_new],
-          f(x.prin[(D_new + 1):(D_new + d_new)])
-        ) ^ 2
-      )
-    }
+    t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
 
-    X_projection_index <- cbind(X_new, t_new)
-    SSD.prepare.again <- function(x.init) {
-      return(SSD.prepare(x.init, f_new))
-    }
-    SSD_new <- apply(X_projection_index, 1, SSD.prepare.again) %>%
-      as.vector() %>%
+  # SSD.prepare <- function(x.prin, f) {
+  #   return(
+  #     dist_euclidean(
+  #       x.prin[1:D_new],
+  #       f(x.prin[(D_new + 1):(D_new + d_new)])
+  #     ) ^ 2
+  #   )
+  # }
+
+    # X_projection_index <- cbind(X_new, t_new)
+    # SSD.prepare.again <- function(x.init) {
+    #   return(SSD.prepare(x.init, f_new))
+    # }
+    # SSD_new <- apply(X_projection_index, 1, SSD.prepare.again) %>%
+    #   as.vector() %>%
+    #   sum()
+
+    SSD_new <- map(
+      1:I_new,
+      ~ dist_euclideanC(
+        X_new[.x, ],
+        fNew(t_new[.x, ], sol_new, t_new, I_new, d_new, gamma)
+      ) ^ 2
+    ) %>%
+      unlist() %>%
       sum()
 
     if (print_plots == TRUE) {
@@ -460,33 +474,35 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
 
       E_new <- calcE(t_new, gamma)
 
-      M1_new <- cbind(
-        2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
-        2 * E_new %*% W_new %*% T_new,
-        T_new
-      )
-      M2_new <- cbind(
-        2 * t(T_new) %*% W_new %*% E_new,
-        2 * t(T_new) %*% W_new %*% T_new,
-        matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-      )
-      M3_new <- cbind(
-        t(T_new),
-        matrix(0, ncol = d_new + 1, nrow = d_new + 1),
-        matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-      )
-      M_new <- rbind(
-        M1_new,
-        M2_new,
-        M3_new
-      )
+      # M1_new <- cbind(
+      #   2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
+      #   2 * E_new %*% W_new %*% T_new,
+      #   T_new
+      # )
+      # M2_new <- cbind(
+      #   2 * t(T_new) %*% W_new %*% E_new,
+      #   2 * t(T_new) %*% W_new %*% T_new,
+      #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
+      # )
+      # M3_new <- cbind(
+      #   t(T_new),
+      #   matrix(0, ncol = d_new + 1, nrow = d_new + 1),
+      #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
+      # )
+      # M_new <- rbind(
+      #   M1_new,
+      #   M2_new,
+      #   M3_new
+      # )
+      #
+      # b_new <- rbind(
+      #   2 * E_new %*% W_new %*% X_new,
+      #   2 * t(T_new) %*% W_new %*% X_new,
+      #   matrix(0, nrow = d_new + 1, ncol = D_new)
+      # )
+      # sol_new <- ginv(M_new) %*% b_new
 
-      b_new <- rbind(
-        2 * E_new %*% W_new %*% X_new,
-        2 * t(T_new) %*% W_new %*% X_new,
-        matrix(0, nrow = d_new + 1, ncol = D_new)
-      )
-      sol_new <- ginv(M_new) %*% b_new
+      sol_new <- solve_eq(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
 
       # eta.func <- function(t) {
       #   eta.func.prepare <- function(tau) {
@@ -511,10 +527,11 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       projection.index.f0 <- function(x.init) {
         projection(x.init[1:D_new], f0, x.init[(D_new + 1):(D_new + d_new)])
       }
-      t_new <- matrix(
-        t(apply(X_initial_guess, 1, projection.index.f0)),
-        nrow = I_new
-      )
+      # t_new <- matrix(
+      #   t(apply(X_initial_guess, 1, projection.index.f0)),
+      #   nrow = I_new
+      # )
+      t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
 
       X_projection_index <- cbind(X_new, t_new)
       SSD.prepare.again <- function(x.init) {
@@ -639,9 +656,20 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       }
 
 
-      SSD_new <- apply(X_projection_index, 1, SSD.prepare.again) %>%
-        as.vector() %>%
+      # SSD_new <- apply(X_projection_index, 1, SSD.prepare.again) %>%
+      #   as.vector() %>%
+      #   sum()
+
+      SSD_new <- map(
+        1:I_new,
+        ~ dist_euclideanC(
+          X_new[.x, ],
+          fNew(t_new[.x, ], sol_new, t_new, I_new, d_new, gamma)
+        ) ^ 2
+      ) %>%
+        unlist() %>%
         sum()
+
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
 
