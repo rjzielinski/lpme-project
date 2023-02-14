@@ -75,12 +75,14 @@ source("code/functions/weight_seq.R")
 
 source("code/functions/hdmde.R")
 
+source("code/functions/solve_eq.R")
+
 sourceCpp("code/functions/pme_functions.cpp")
 
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
 
-pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE, print_plots = TRUE) {
+pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE, print_plots = FALSE) {
 
   # "x.obs" is the data set of interest.
   #         There are n observations, and each observation is a D-dimensional point.
@@ -133,18 +135,6 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     I <- length(theta.hat)
     t.initial <- initialization[[5]]
   }
-  # } else {
-  #   est <- initialization[[1]]
-  #   theta.hat <- est$theta.hat
-  #   centers <- est$mu
-  #   sigma <- est$sigma
-  #   W <- diag(theta.hat)
-  #   X <- est$mu
-  #   I <- length(theta.hat)
-  #
-  #   isomap.initial <- initialization[[2]]
-  # }
-
 
   MSE.seq <- vector()
   SOL <- list()
@@ -178,52 +168,35 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
     # This block gives the first step of iteration.
     ###############################################
-    M1 <- cbind(
-      2 * E %*% W %*% E + 2 * w * E,
-      2 * E %*% W %*% t_val,
-      t_val
-    )
-    M2 <- cbind(
-      2 * t(t_val) %*% W %*% E,
-      2 * t(t_val) %*% W %*% t_val,
-      matrix(0, ncol = d + 1, nrow = d + 1)
-    )
-    M3 <- cbind(
-      t(t_val),
-      matrix(0, ncol = d + 1, nrow = d + 1),
-      matrix(0, ncol = d + 1, nrow = d + 1)
-    )
-    M <- rbind(M1, M2, M3) # The coefficient matrix of the linear equations
 
-    # The nonhomogeneous term of the linear equations
-    b <- rbind(
-      2 * E %*% W %*% X,
-      2 * t(t_val) %*% W %*% X,
-      matrix(0, nrow = d + 1, ncol = D)
-    )
-    sol <- ginv(M) %*% b # Solve the linear equations
 
-    eta.func <- function(t) {
-      eta.func.prepare <- function(tau) {
-        return(eta_kernel(t - tau, lambda))
-      }
-      return(
-        matrix(
-          apply(tnew, 1, eta.func.prepare),
-          ncol=1
-        )
-      )
-    }
+    sol <- solve_eq(E, W, t_val, X, w, d, D)
+
+    # eta.func <- function(t) {
+    #   eta.func.prepare <- function(tau) {
+    #     return(eta_kernel(t - tau, lambda))
+    #   }
+    #   return(
+    #     matrix(
+    #       apply(tnew, 1, eta.func.prepare),
+    #       ncol=1
+    #     )
+    #   )
+    # }
 
     fnew <- function(t) {
       return(
         as.vector(
-          t(sol[1:I, ]) %*%
-            etaFunc(t, tnew, lambda) + t(sol[(I + 1):(I + d + 1), ]) %*%
-            # eta.func(t) + t(sol[(I + 1):(I + d + 1), ]) %*%
-            matrix(c(1, t), ncol = 1)
+          (t(sol[1:I, ]) %*% etaFunc(t, tnew, lambda)) +
+            (t(sol[(I + 1):(I + d + 1), ]) %*% matrix(c(1, t), ncol = 1))
         )
       )
+    }
+
+    fnew2 <- function(t, sol, tnew, I, d, lambda) {
+      out_mat <- (t(sol[1:I, ]) %*% etaFunc2(t, tnew, lambda)) +
+          (t(sol[(I + 1):(I + d + 1), ]) %*% t(cbind(1, t)))
+      return(t(out_mat))
     }
 
     # ISOMAP gives the initial projection indices. Then the initial projection indices give the initial manifold f0.
@@ -239,131 +212,37 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     # The first D columns of x.init corresponds to X and the last d columns corresponds to tnew.
     # projection() is applied to X[j,] with initial guess tnew[j,], which is the projection index for X[j,] onto the old manifold f0.
 
-    tnew <- matrix(
-      t(apply(X.initial.guess, 1, projection.index.f0)),
-      nrow = I
-    )   # This method can help us avoid the chaos from improper initial guess.
+    # tnew <- map(
+    #   1:I,
+    #   ~ projection(
+    #     X.initial.guess[.x, 1:D],
+    #     f0,
+    #     X.initial.guess[.x, (D + 1):(D + d)]
+    #   )
+    # ) %>%
+    #   unlist() %>%
+    #   matrix(nrow = I, byrow = TRUE)
+
+    tnew <- calc_tnew(X, tnew, sol, I, d, lambda)
 
     # Sum of the squared distances between x_i and its projection onto manifold f.
     # The first D columns of "x.prin" corresponds to points in the input space
     # and the last d columns of "x.prin" corresponds to the projection indices of these points onto f.
-    SSD.prepare <- function(x.prin, f) {
-      return(dist_euclidean(x.prin[1:D], f(x.prin[(D + 1):(D + d)])) ^ 2)
-    }
-
-    X.projection.index <- cbind(X, tnew) # "tnew" here is the projection index onto fnew, rather than f0.
-    SSD.prepare.again <- function(x.init) {
-      return(SSD.prepare(x.init, fnew))
-    }
-    SSD.new <- apply(X.projection.index, 1, SSD.prepare.again) %>%
-      as.vector() %>%
+    X.projection.index <- cbind(X, tnew)
+    SSD.new <- map(
+      1:I,
+      ~ dist_euclideanC(
+        X.projection.index[.x, 1:D],
+        fNew(X.projection.index[.x, (D + 1):(D + d)], sol, tnew, I, d, lambda)
+      ) ^ 2
+    ) %>%
+      unlist() %>%
       sum()
 
     # This block gives the first step of iteration.
     ###############################################
-
     if (print_plots == TRUE) {
-      r_vals <- seq(
-        from = -10,
-        to = 10,
-        by = 1
-      )
-      r_list <- lapply(numeric(d - 1), function(x) r_vals)
-      r_mat <- as.matrix(expand.grid(r_list))
-      if (nrow(r_mat) > 0) {
-        pred_grid <- expand_grid(r_vals, r_mat) %>%
-          as.matrix()
-      } else {
-        pred_grid <- matrix(r_vals)
-      }
-
-      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
-      for (i in 1:nrow(pred_grid)) {
-        f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
-      }
-
-      idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
-      for (dim_idx in 1:dim(f_pred)[2]) {
-        idx_range <- max(x.obs[, dim_idx]) - min(x.obs[, dim_idx])
-        idx_min <- min(x.obs[, dim_idx]) - (0.2 * idx_range)
-        idx_max <- max(x.obs[, dim_idx]) + (0.2 * idx_range)
-        idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) &
-          (f_pred[, dim_idx] < idx_max)
-      }
-
-      r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
-      if (sum(r_inrange) == 0) {
-        r_inrange <- rowSums(idx_inrange) > 0
-      }
-      if (sum(r_inrange) == 0) {
-        r_min <- -10
-        r_max <- 10
-      } else if (dim(pred_grid)[2] > 1) {
-        r_min <- min(pred_grid[r_inrange, -1])
-        r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
-        r_max <- max(pred_grid[r_inrange, -1])
-        r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
-      } else {
-        r_min <- min(pred_grid[r_inrange, ])
-        r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
-        r_max <- max(pred_grid[r_inrange, ])
-        r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
-      }
-
-      r_vals <- seq(
-        r_min,
-        r_max,
-        by = (r_max - r_min) / 40
-      )
-      r_list <- lapply(numeric(d - 1), function(x) r_vals)
-      r_mat <- as.matrix(expand.grid(r_list))
-      if (nrow(r_mat) > 0) {
-        pred_grid <- expand_grid(r_vals, r_mat) %>%
-          as.matrix()
-      } else {
-        pred_grid <- as.matrix(r_vals)
-      }
-      f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
-      for (i in 1:nrow(pred_grid)) {
-        f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
-      }
-
-      f_pred_full <- cbind(pred_grid, f_pred)
-
-      if (D == 2) {
-        plt <- ggplot() +
-          geom_point(
-            aes(
-              x =x.obs[, 1],
-              y = x.obs[, 2]
-            ),
-            alpha = 0.5
-          ) +
-          geom_point(
-            aes(
-              x = f_pred_full[, d + 1],
-              y = f_pred_full[, d + 2]
-            ),
-            color = "red"
-          )
-        print(plt)
-      } else if (D == 3) {
-        plt <- plot_ly(
-          x = f_pred_full[, d + 1],
-          y = f_pred_full[, d + 2],
-          z = f_pred_full[, d + 3],
-          type = "scatter3d",
-          mode = "markers",
-          opacity = 0.5
-        ) %>%
-          add_markers(
-            x = x.obs[, 1],
-            y = x.obs[, 2],
-            z = x.obs[, 3],
-            opacity = 0.15
-          )
-        print(plt)
-      }
+      plot_pme(x.obs, sol, tnew, I, d, lambda)
     }
 
     # The iteration for PME is given by the following loop.
@@ -384,47 +263,9 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
       t_val <- cbind(rep(1, I), tnew)
 
-      # E <- matrix(NA, ncol = I, nrow = I)
-      # for(j in 1:I) {
-      #   E.prepare <- function(t) {
-      #     eta_kernel(t - tnew[j, ], lambda)
-      #   }
-      #   E[, j] <- apply(tnew, 1, E.prepare) # The matrix E
-      # }
-
       E <- calcE(tnew, lambda)
 
-      # This block gives the first step of iteration.
-      ###############################################
-      M1 <- cbind(
-        2 * E %*% W %*% E + 2 * w * E,
-        2 * E %*% W %*% t_val,
-        t_val
-      )
-      M2 <- cbind(
-        2 * t(t_val) %*% W %*% E,
-        2 * t(t_val) %*% W %*% t_val,
-        matrix(0, ncol = d + 1, nrow = d + 1)
-      )
-      M3 <- cbind(
-        t(t_val),
-        matrix(0, ncol = d + 1, nrow = d + 1),
-        matrix(0, ncol = d + 1, nrow = d + 1)
-      )
-      M <- rbind(M1, M2, M3)
-
-      b <- rbind(
-        2 * E %*% W %*% X,
-        2 * t(t_val) %*% W %*% X,
-        matrix(0, nrow = d + 1, ncol = D))
-      sol <- ginv(M) %*% b
-
-      eta.func <- function(t) {
-        eta.func.prepare <- function(tau) {
-          return(eta_kernel(t - tau, lambda))
-        }
-        return(matrix(apply(tnew, 1, eta.func.prepare), ncol = 1))
-      }
+      sol <- solve_eq(E, W, t_val, X, w, d, D)
 
       fnew <- function(t) {
         as.vector(
@@ -441,146 +282,42 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
       # Repetition
       #############
 
-      X.initial.guess <- cbind(X, tnew) # The "tnew" here is the projection index to f0.
-      projection.index.f0 <- function(x.init) {
-        projection(x.init[1:D], f0, x.init[(D + 1):(D + d)])
-      }
-      tnew <- matrix(
-        t(apply(X.initial.guess, 1, projection.index.f0)),
-        nrow = I
-      ) # The "tnew" here is the projection index to fnew, rather than f0.
+      # X.initial.guess <- cbind(X, tnew) # The "tnew" here is the projection index to f0.
+      # projection.index.f0 <- function(x.init) {
+      #   projection(x.init[1:D], f0, x.init[(D + 1):(D + d)])
+      # }
+      # tnew <- matrix(
+      #   t(apply(X.initial.guess, 1, projection.index.f0)),
+      #   nrow = I
+      # ) # The "tnew" here is the projection index to fnew, rather than f0.
+
+      tnew <- calc_tnew(X, tnew, sol, I, d, lambda)
 
       X.projection.index <- cbind(X, tnew)
-      SSD.prepare.again <- function(x.init) {
-        return(SSD.prepare(x.init, fnew))
-      }
-      SSD.new <- apply(
-        X.projection.index,
-        1,
-        SSD.prepare.again
+      # SSD.prepare.again <- function(x.init) {
+      #   return(SSD.prepare(x.init, fnew))
+      # }
+      # SSD.new <- apply(
+      #   X.projection.index,
+      #   1,
+      #   SSD.prepare.again
+      # ) %>%
+      #   as.vector() %>%
+      #   sum()
+
+      SSD.new <- map(
+        1:I,
+        ~ dist_euclideanC(
+          X[.x, ],
+          fNew(tnew[.x, ], sol, tnew, I, d, lambda)
+        ) ^ 2
       ) %>%
-        as.vector() %>%
+        unlist() %>%
         sum()
 
+
       if (print_plots == TRUE) {
-        r_vals <- seq(
-          from = -10,
-          to = 10,
-          by = 1
-        )
-        r_list <- lapply(numeric(d - 1), function(x) r_vals)
-        r_mat <- as.matrix(expand.grid(r_list))
-        if (nrow(r_mat) > 0) {
-          pred_grid <- expand_grid(r_vals, r_mat) %>%
-            as.matrix()
-        } else {
-          pred_grid <- matrix(r_vals)
-        }
-
-        f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
-        for (i in 1:nrow(pred_grid)) {
-          f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
-        }
-
-        idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
-        for (dim_idx in 1:dim(f_pred)[2]) {
-          idx_range <- max(x.obs[, dim_idx]) - min(x.obs[, dim_idx])
-          idx_min <- min(x.obs[, dim_idx]) - (0.2 * idx_range)
-          idx_max <- max(x.obs[, dim_idx]) + (0.2 * idx_range)
-          idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) &
-            (f_pred[, dim_idx] < idx_max)
-        }
-
-        r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
-        if (sum(r_inrange) == 0) {
-          r_inrange <- rowSums(idx_inrange) > 0
-        }
-
-        r_min <- vector()
-        r_max <- vector()
-
-        if (sum(r_inrange) == 0) {
-          r_min <- rep(-10, dim(pred_grid)[2])
-          r_max <- rep(-10, dim(pred_grid)[2])
-        } else {
-          for (dim_idx in 1:dim(pred_grid)[2]) {
-            r_min_val <- min(pred_grid[r_inrange, dim_idx])
-            r_min_val <- ifelse(is.na(r_min_val) | is.infinite(r_min_val), -10, r_min_val)
-            r_min[dim_idx] <- r_min_val
-            r_max_val <- max(pred_grid[r_inrange, dim_idx])
-            r_max_val <- ifelse(is.na(r_max_val) | is.infinite(r_max_val), -10, r_max_val)
-            r_max[dim_idx] <- r_max_val
-          }
-        }
-
-        # if (sum(r_inrange) == 0) {
-        #   r_min <- -10
-        #   r_max <- 10
-        # } else if (dim(pred_grid)[2] > 1) {
-        #   r_min <- min(pred_grid[r_inrange, ])
-        #   r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
-        #   r_max <- max(pred_grid[r_inrange, ])
-        #   r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
-        # } else {
-        #   r_min <- min(pred_grid[r_inrange, ])
-        #   r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
-        #   r_max <- max(pred_grid[r_inrange, ])
-        #   r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
-        # }
-
-        r_vals <- list()
-
-        for (dim_idx in 1:dim(pred_grid)[2]) {
-          r_vals[[dim_idx]] <- seq(
-            r_min[dim_idx],
-            r_max[dim_idx],
-            length.out = I
-          )
-        }
-
-        pred_grid <- expand.grid(r_vals)
-
-        f_pred <- matrix(nrow = nrow(pred_grid), ncol = ncol(centers))
-        for (i in 1:nrow(pred_grid)) {
-          f_pred[i, ] <- fnew(unlist(as.vector(pred_grid[i, ])))
-        }
-
-        f_pred_full <- cbind(pred_grid, f_pred)
-
-        if (D == 2) {
-          plt <- ggplot() +
-            geom_point(
-              aes(
-                x =x.obs[, 1],
-                y = x.obs[, 2]
-              ),
-              alpha = 0.5
-            ) +
-            geom_point(
-              aes(
-                x = f_pred_full[, d + 1],
-                y = f_pred_full[, d + 2]
-              ),
-              color = "red"
-            )
-          print(plt)
-        } else if (D == 3) {
-          plt <- plot_ly(
-            x = f_pred_full[, d + 1],
-            y = f_pred_full[, d + 2],
-            z = f_pred_full[, d + 3],
-            type = "scatter3d",
-            mode = "markers",
-            opacity = 0.5
-          ) %>%
-            add_markers(
-              x = x.obs[, 1],
-              y = x.obs[, 2],
-              z = x.obs[, 3],
-              opacity = 0.15
-            )
-          print(plt)
-        }
+        plot_pme(x.obs, sol, tnew, I, d, lambda)
       }
 
       SSD.ratio <- abs(SSD.new - SSD.old) / SSD.old
