@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rprofile
+.DS_Store
+paper/main.*
+!paper/main.tex
+paper/reference_notes.*
