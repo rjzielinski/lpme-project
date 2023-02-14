@@ -45,6 +45,16 @@
 
 \section{Introduction}
 
+Neuroimaging plays a critical role in the diagnosis and monitoring of a number of common neurodegenerative conditions, such as Alzheimer's disease and Parkinson's disease (Knopman et al (2021), Poewe et al (2017)). Frequently, interest centers around changes in one or more substructures. For example, it is common to observe atrophy in the hippocampus of those with Alzheimer's disease or cognitive impairment from other causes. Image segmentation allows for the extraction and analysis of these subcortical structures.
+
+Traditionally, manual segmentation of images by a trained radiologist has been considered the most accurate approach, and is the standard. However, this approach is highly time and resource intensive. In studies analyzing a large number of images, this may be cost prohibitive. Additionally, manual segmentation suffers from meaningful inter-rater and intra-rater variability. Automated segmentation approaches, such as FSL-FIRST and FreeSurfer, have been introduced to address these concerns. While automating the segmentation process drastically reduces costs, it potentially introduces additional inaccuracies. 
+
+To demonstrate the potential extent of the inaccuracies introduced by segmentation, using FSL-FIRST to segment the hippocampus in images of one healthy individual over the course of four year in the ADNI dataset, the volume of the left and right hippocampi decreased by 3.6\% and 5.4\%, respectively, while each hippocampus was estimated to have increased in volume in subsequent images twice. In a larger comparison of the accuracy of FSL-FIRST and FreeSurfer, Mulder et al. (2014) found that 6.9\% of segmentations by FIRST failed visual inspection, as did 7.5\% of segmentations for FreeSurfer. After removing these failed segmentations, FIRST and FreeSurfer produced segmentations with variability similar to and slightly lower than manual segmentation, respectively. If failed segmentations were not removed from analysis, reflecting a more realistic situation when working with large numbers of images, variability as measured by the Limits of Agreement were much higher for FIRST and FreeSurfer than for manual segmentation. Mulder et al. (2014) also found slightly higher rates of segmentation failure among individuals with Alzheimer's disease for both automated segmentation approaches.
+
+Ultimately, high levels of variability are present at the subcortical level regardless of the segmentation approach used, but may be particularly influential when using automated segmentation methods. To address these elevated noise levels, we propose a manifold learning-based method to develop smooth estimates of the surfaces of subcortical structures over time. This approach, which extends the principal manifold estimation algorithm introduced by Meng and Eloyan (2021) for a longitudinal setting, includes a regularization parameter to limit the effects of between time-point variability.
+
+\section{Introduction - Old}
+
 Manifold learning describes a set of statistical approaches to modeling high-dimensional data that are assumed to lie along a low-dimensional manifold. These methods have become increasingly popular for medical imaging applications, where assuming an underlying manifold structure is helpful for modeling certain anatomical shapes. In these settings, interacting with a structure in a low-dimensional form may be more intuitive than in a higher-dimensional space. For example, Yue et al. (2016) seeks to compute a parametric representation of the corpus callosum. A number of methods have been developed for manifold learning, including Isomap (Tenenbaum et al. 2000), locally linear embedding (Roweis and Saul, 2000), and Laplacian eigenmaps (Belkin and Niyogi, 2003). Meng and Eloyan (2021) proposed a principal manifold framework that resolved several limitations of previously developed extensions of the principal curves approach introduced by Hastie and Stuetzle (1989).
 
 In many medical imaging situations, understanding how an anatomical structure changes over time could provide meaningful information into the function of that structure, or medical conditions that affect that function. In situations where the structure is better represented by a low-dimensional manifold, interest carries over to understanding how the underlying manifold changes longitudinally as well. 
@@ -61,7 +71,7 @@ The remainder of this article is laid out as follows: In Section 2, we introduce
 
 Because the algorithm proposed in this article relies on the same definitions and notation as those introduced in Meng and Eloyan (2021), we provide it here. To generalize the principal curve framework proposed in Hastie and Stuetzle (1989) to intrinsic dimensions $d > 1$, Meng and Eloyan introduce the function space 
 \[%
-  C_{\infty}(\mathbb{R}^d \to \mathbb{R}^D) = \left\{f \in C()\right\}
+  C_{\infty}(\mathbf{R}^d \to \mathbf{R}^D) = \left\{f \in C()\right\}
 .\]%
 
 \section{Longitudinal Principal Manifold Estimation Algorithm}
@@ -89,10 +99,10 @@ Outline:
 \begin{algorithm}
 \caption{Longitudinal Principal Manifold Estimation}\label{alg:two}
 \KwData{Data points $\{y_{i, t}\}_{i, t}^{I, T}$, positive integer $d$, positive integer $N_0 < I - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\{\lambda_k\}_{k=1}^K$, $\{\gamma_l\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
-\KwResult{Analytic formula of $g^*: \mathbb{R}^{d+1} \to \mathbb{R}^{D+1}$, optimal tuning parameter $\gamma^*$.}
+\KwResult{Analytic formula of $g^*: \mathbf{R}^{d+1} \to \mathbf{R}^{D+1}$, optimal tuning parameter $\gamma^*$.}
 \For{$t = 1, 2, ... T$}{
     Apply PME algorithm with input $(\{y_{i, t}\}_{i=1}^I, N_0, \alpha, \epsilon, \epsilon^*, \{\lambda_k\}_{k=1}^K)$ and obtain $\{f_t^*\}_{t=1}^T$ and $\{\lambda_t^*\}_{t=1}^T$\;
-    Use $\{f_t^*\}_{t=1}^T$ to map a grid of $d$-dimensional parameters $\{r_j\}_{j=1}^N$ to $\{x_{j, t}\}_{j=1}^N$ in $\mathbb{R}^D$\;
+    Use $\{f_t^*\}_{t=1}^T$ to map a grid of $d$-dimensional parameters $\{r_j\}_{j=1}^N$ to $\{x_{j, t}\}_{j=1}^N$ in $\mathbf{R}^D$\;
 }
 Apply ISOMAP to parameterize the newly generated collection $\{x_{j, t}\}_{j, t}^{N, T}$ by the $d$-dimensional parameters $\{r_j\}_{j=1}^N$\;
 Use parameters $\{r_j\}_{j=1}^N$ and time values $\{t_j\}_{j=1}^N$ to create new
@@ -114,7 +124,7 @@ $\pi_{g_{(1)}}(x_{j}) \gets r_j$ for $j=1, ..., N$\;
     \end{array}\right)$\;
     $\mathcal{E} \gets 2\epsilon^*$\;
     $n \gets 1$\;
-    $\mathcal{D}_{\hat{Q}, N}(g_{(1)}) \gets \sum_{j=1}^N\|x_j - g_{(1)}\|_{\mathbb{R}^{D}}^2$\;
+    $\mathcal{D}_{\hat{Q}, N}(g_{(1)}) \gets \sum_{j=1}^N\|x_j - g_{(1)}\|_{\mathbf{R}^{D}}^2$\;
     \While{$\mathcal{E} \geq \epsilon^*$, $n < itr$}{
         Compute $g_{(n + 1)}$ by solving $\left(\begin{array}{ccc} 
         2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
@@ -128,25 +138,25 @@ $\pi_{g_{(1)}}(x_{j}) \gets r_j$ for $j=1, ..., N$\;
         2\mathbf{T}^T\mathbf{W}\mathbf{x} \\
         \mathbf{0} 
         \end{array}\right)$\;
-        $\mathcal{D}_{\hat{Q}_N}(g_{(n + 1)}) \gets \sum_{j=1}^N\|x_j - g_{(n + 1)}(\pi_{g_{(n + 1)}}(x_j))\|_{\mathbb{R}^D}^2$\;
+        $\mathcal{D}_{\hat{Q}_N}(g_{(n + 1)}) \gets \sum_{j=1}^N\|x_j - g_{(n + 1)}(\pi_{g_{(n + 1)}}(x_j))\|_{\mathbf{R}^D}^2$\;
         $\mathcal{E} \gets |\mathcal{D}_{\hat{Q}_N}(g_{(n + 1)}) - \mathcal{D}_{\hat{Q}_N}(g_{(n)})|/\mathcal{D}_{\hat{Q}_N}(g_{(n)})$\;
         $n \gets n + 1$\;
     }
     $\hat{g}_l \gets g_{(n)}$\;
 }
-$\kappa \gets \text{max}\{\|\pi_{\hat{g}_{l^*}}(x_j)\|_{\mathbb{R}^d}: j = 1, 2, \dots, I\}$, where $l^* = \arg \min_l\{\frac{1}{N}\sum_{j=1}^N\|x_j - g_{(l)}(\pi_{\hat{g}_{(l)}}(x_j)\|_{\mathbb{R}^D}^2: l = 1, 2, \dots, L\}$\;
+$\kappa \gets \text{max}\{\|\pi_{\hat{g}_{l^*}}(x_j)\|_{\mathbf{R}^d}: j = 1, 2, \dots, I\}$, where $l^* = \arg \min_l\{\frac{1}{N}\sum_{j=1}^N\|x_j - g_{(l)}(\pi_{\hat{g}_{(l)}}(x_j)\|_{\mathbf{R}^D}^2: l = 1, 2, \dots, L\}$\;
 $g^*(r) = g^{l^*}(\kappa r)$, where the analytic formula of $g^*$ is from $g_{(n + 1), l}(r) = \sum_{j=1}^N \eta_{4-d}(r - \pi_{g_{(n)}}(x_j)) + \sum_{k=1}^{d + 1} \alpha_{k, l} \times p_k(r)$, and $\gamma^* \gets \gamma_{l^*}$
 \end{algorithm}
 
 	\begin{equation}\label{PMSEF}
-	\mathcal{K}_{\lambda,\mathbb{P}}(f,g)=\mathbb{E}\left\Vert X_t - f\left(\pi_g(X_t)\right)\right\Vert^2_{\mathbb{R}^D} + \lambda \sum_{t = 1}^T \left\Vert\nabla^{\otimes 2} f(t)\right\Vert_{L^2(\mathbb{R}^d)}^2 + \gamma \sum_{X} \left\Vert\nabla^{\otimes 2} f(X_t)\right\Vert_{L^2(\mathbb{R})}^2, 
+	\mathcal{K}_{\lambda,\mathbf{P}}(f,g)=\mathbf{E}\left\Vert X_t - f\left(\pi_g(X_t)\right)\right\Vert^2_{\mathbf{R}^D} + \lambda \sum_{t = 1}^T \left\Vert\nabla^{\otimes 2} f(t)\right\Vert_{L^2(\mathbf{R}^d)}^2 + \gamma \sum_{X} \left\Vert\nabla^{\otimes 2} f(X_t)\right\Vert_{L^2(\mathbf{R})}^2, 
 	\end{equation}
 	\begin{equation}\nonumber
-	\mathcal{K}_{\lambda,\mathbb{P}}(f)=\mathcal{K}_{\lambda,\mathbb{P}}(f,f),
+	\mathcal{K}_{\lambda,\mathbf{P}}(f)=\mathcal{K}_{\lambda,\mathbf{P}}(f,f),
 	\end{equation}
-	where $\Vert\nabla^{\otimes 2}f \Vert_{L^2(\mathbb{R}^d)}^2 = \sum_{l=1}^D\int_{\mathbb{R}^d} \sum_{i,j=1}^d\vert\frac{\partial^2 f_l}{\partial t_i \partial t_j}(t)\vert^2dt$. A manifold $M_{f^*}^d$ determined by $f^*$ is called a principal manifold for $X$ (or $\mathbb{P}$) with the tuning parameter $\lambda$ if 
+	where $\Vert\nabla^{\otimes 2}f \Vert_{L^2(\mathbf{R}^d)}^2 = \sum_{l=1}^D\int_{\mathbf{R}^d} \sum_{i,j=1}^d\vert\frac{\partial^2 f_l}{\partial t_i \partial t_j}(t)\vert^2dt$. A manifold $M_{f^*}^d$ determined by $f^*$ is called a principal manifold for $X$ (or $\mathbf{P}$) with the tuning parameter $\lambda$ if 
 	\begin{align}\label{def: PM}
-	f^*=\arg\min_{f\in\mathscr{F}(\mathbb{P})}\mathcal{K}_{\lambda,\mathbb{P}}(f),\ \ \mbox{ where }\mathscr{F}(\mathbb{P}):=\left\{f\in C_\infty\cap \nabla^{-\otimes 2}L^2( R^d \rightarrow R^D):\sup_{x\in supp(\mathbb{P})}\left\Vert\pi_f(x)\right\Vert_{R^d} = 1 \right\}.
+	f^*=\arg\min_{f\in\mathscr{F}(\mathbf{P})}\mathcal{K}_{\lambda,\mathbf{P}}(f),\ \ \mbox{ where }\mathscr{F}(\mathbf{P}):=\left\{f\in C_\infty\cap \nabla^{-\otimes 2}L^2( R^d \rightarrow R^D):\sup_{x\in supp(\mathbf{P})}\left\Vert\pi_f(x)\right\Vert_{R^d} = 1 \right\}.
 	\end{align}
 
 Questions:
