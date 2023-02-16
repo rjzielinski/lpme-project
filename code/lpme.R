@@ -1,4 +1,4 @@
-lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100, init = "full") {
+lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 100, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100, init = "full") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -110,64 +110,65 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 1
       clusters[[idx]] <- pme_results[[idx]]$knots$cluster + sum(num_clusters)
       num_clusters[idx] <- dim(pme_results[[idx]]$knots$centers)[1]
     }
-    r_test <- seq(
-      from = -10,
-      to = 10,
-      length.out = dim(pme_results[[idx]]$knots$centers)[1]
-    )
-    r_list <- lapply(numeric(d), function(x) r_test)
-    r_mat <- as.matrix(expand.grid(r_list))
-    r_length <- dim(r_mat)[1]
-    x_temp <- apply(
-      r_mat,
-      1,
-      funcs[[idx]]
-    ) %>%
-      matrix(nrow = dim(r_mat)[1], byrow = TRUE)
-
-    idx_inrange <- matrix(nrow = dim(x_temp)[1], ncol = dim(x_temp)[2])
-    for (dim_idx in 1:dim(x_temp)[2]) {
-      idx_range <- max(df_temp[, dim_idx + 1]) - min(df_temp[, dim_idx + 1])
-      idx_min <- min(df_temp[, dim_idx + 1]) - (0.2 * idx_range)
-      idx_max <- max(df_temp[, dim_idx + 1]) + (0.2 * idx_range)
-      idx_inrange[, dim_idx] <- (x_temp[, dim_idx] > idx_min) & (x_temp[, dim_idx] < idx_max)
-    }
-
-    r_inrange <- rowSums(idx_inrange) == dim(x_temp)[2]
-    if (sum(r_inrange) == 0) {
-      r_inrange <- rowSums(idx_inrange) > 0
-    }
-
-    r_min <- vector()
-    r_max <- vector()
-
-    if (sum(r_inrange) == 0) {
-      r_min <- rep(-10, d)
-      r_max <- rep(-10, d)
-    } else {
-      for (dim_idx in 1:d) {
-        r_min_val <- min(r_mat[r_inrange, dim_idx])
-        r_min_val <- ifelse(is.na(r_min_val) | is.infinite(r_min_val), -10, r_min_val)
-        r_min[dim_idx] <- r_min_val
-        r_max_val <- max(r_mat[r_inrange, dim_idx])
-        r_max_val <- ifelse(is.na(r_max_val) | is.infinite(r_max_val), -10, r_max_val)
-        r_max[dim_idx] <- r_max_val
-      }
-    }
-
-    r_vals <- list()
-
-    for (dim_idx in 1:d) {
-      r_vals[[dim_idx]] <- seq(
-        r_min[dim_idx],
-        r_max[dim_idx],
-        length.out = max(ceiling(sqrt(num_clusters[idx])), 20)
-      )
-    }
-
-    r_mat <- expand.grid(r_vals)
-
-    r_length <- dim(r_mat)[1]
+    # r_test <- seq(
+    #   from = -10,
+    #   to = 10,
+    #   length.out = dim(pme_results[[idx]]$knots$centers)[1]
+    # )
+    # r_list <- lapply(numeric(d), function(x) r_test)
+    # r_mat <- as.matrix(expand.grid(r_list))
+    # r_length <- dim(r_mat)[1]
+    # x_temp <- apply(
+    #   r_mat,
+    #   1,
+    #   funcs[[idx]]
+    # ) %>%
+    #   matrix(nrow = dim(r_mat)[1], byrow = TRUE)
+    #
+    # idx_inrange <- matrix(nrow = dim(x_temp)[1], ncol = dim(x_temp)[2])
+    # for (dim_idx in 1:dim(x_temp)[2]) {
+    #   idx_range <- max(df_temp[, dim_idx + 1]) - min(df_temp[, dim_idx + 1])
+    #   idx_min <- min(df_temp[, dim_idx + 1]) - (0.2 * idx_range)
+    #   idx_max <- max(df_temp[, dim_idx + 1]) + (0.2 * idx_range)
+    #   idx_inrange[, dim_idx] <- (x_temp[, dim_idx] > idx_min) & (x_temp[, dim_idx] < idx_max)
+    # }
+    #
+    # r_inrange <- rowSums(idx_inrange) == dim(x_temp)[2]
+    # if (sum(r_inrange) == 0) {
+    #   r_inrange <- rowSums(idx_inrange) > 0
+    # }
+    #
+    # r_min <- vector()
+    # r_max <- vector()
+    #
+    # if (sum(r_inrange) == 0) {
+    #   r_min <- rep(-10, d)
+    #   r_max <- rep(-10, d)
+    # } else {
+    #   for (dim_idx in 1:d) {
+    #     r_min_val <- min(r_mat[r_inrange, dim_idx])
+    #     r_min_val <- ifelse(is.na(r_min_val) | is.infinite(r_min_val), -10, r_min_val)
+    #     r_min[dim_idx] <- r_min_val
+    #     r_max_val <- max(r_mat[r_inrange, dim_idx])
+    #     r_max_val <- ifelse(is.na(r_max_val) | is.infinite(r_max_val), -10, r_max_val)
+    #     r_max[dim_idx] <- r_max_val
+    #   }
+    # }
+    #
+    # r_vals <- list()
+    #
+    # for (dim_idx in 1:d) {
+    #   r_vals[[dim_idx]] <- seq(
+    #     r_min[dim_idx],
+    #     r_max[dim_idx],
+    #     length.out = max(ceiling(sqrt(num_clusters[idx])), 20)
+    #   )
+    # }
+    #
+    # r_mat <- expand.grid(r_vals)
+    #
+    # r_length <- dim(r_mat)[1]
+    r_mat <- pme_results[[idx]]$TNEW[[which.min(pme_results[[idx]]$MSD)]]
     x_test[[idx]] <- apply(
       r_mat,
       1,
