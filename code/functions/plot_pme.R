@@ -1,10 +1,5 @@
-plot_pme <- function(time_points, x.obs, sol, tnew, I, d, lambda) {
-  time_vals <- seq(
-    min(time_points),
-    max(time_points),
-    0.1
-  )
-
+plot_pme <- function(x.obs, sol, tnew, I, d, lambda) {
+  D <- dim(x.obs)[2]
   r_vals <- seq(
     from = -10,
     to = 10,
@@ -109,7 +104,7 @@ plot_pme <- function(time_points, x.obs, sol, tnew, I, d, lambda) {
         color = "red"
       )
     print(plt)
-  } else if (D == 3) {
+  } else if (D >= 3) {
     plt <- plot_ly(
       x = f_pred_full[, d + 1],
       y = f_pred_full[, d + 2],
