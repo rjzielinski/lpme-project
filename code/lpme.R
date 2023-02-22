@@ -420,7 +420,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 1
             opacity = 0.15
           )
         print(plt)
-      } else if (D_new == 3) {
+      } else if (D_new >= 3) {
         plt <- plot_ly(
           x = f_pred_full[, d_new + 1],
           y = f_pred_full[, d_new + 2],
