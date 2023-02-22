@@ -78,6 +78,7 @@ source("code/functions/hdmde.R")
 source("code/functions/solve_eq.R")
 
 sourceCpp("code/functions/pme_functions.cpp")
+source("code/functions/plot_pme.R")
 
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
