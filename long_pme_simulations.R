@@ -340,6 +340,52 @@ sim_D3d2_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier,
   return(data.points)
 }
 
+sim_D4d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise, shape_noise) {
+  I <- 1000
+  t1 <- runif(I, min = 0, max = 10)
+  t2 <- runif(I, min = -1, max = 1)
+  t <- cbind(t1, t2)
+  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
+  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
+  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
+  sd.noise <- noise
+  e1 <- rnorm(I, mean = 0, sd = sd.noise)
+  e2 <- rnorm(I, mean = 0, sd = sd.noise)
+  e3 <- rnorm(I, mean = 0, sd = sd.noise)
+  e4 <- rnorm(I, mean = 0, sd = 0.000001)
+  amp_noise <- rnorm(2, mean = 10, sd = shape_noise)
+  X <- matrix(NA, nrow = I, ncol = 4)
+  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise, amp_noise) {
+    return(
+      c(
+        (amp_noise[1] * tau[1]) * cos(amp_noise[1] * tau[1]) + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
+        (amp_noise[2] * tau[1]) * sin(amp_noise[2] * tau[1]) + (vertical_multiplier * sin(time_val)) + vertical_noise,
+        tau[2],
+        tau[1]
+      )
+    )
+  }
+
+  X <- apply(
+    t,
+    1,
+    manifold,
+    time_val = time_val,
+    vertical_multiplier = vertical_multiplier,
+    horizontal_multiplier = horizontal_multiplier,
+    depth_multiplier = depth_multiplier,
+    vertical_noise = vertical_noise,
+    horizontal_noise = horizontal_noise,
+    depth_noise = depth_noise,
+    amp_noise = amp_noise
+  ) %>%
+    unlist() %>%
+    matrix(ncol = 4, byrow = TRUE)
+  data.points <- X + cbind(e1, e2, e3, e4)
+  data.points <- cbind(time_val, data.points)
+  return(data.points)
+}
+
 ########## INITIALIZATION SIMULATIONS ##########
 
 time_noise_vals <- c(0.1, 0.25, 0.5, 1)
@@ -810,9 +856,9 @@ set.seed(100)
 df_list <- lapply(
   time_vals,
   sim_D3d1_case2,
-  vertical_multiplier = 1,
-  horizontal_multiplier = 1,
-  depth_multiplier = 1,
+  vertical_multiplier = 0,
+  horizontal_multiplier = 0,
+  depth_multiplier = 0,
   noise = 0.15,
   time_noise = 1
 )
@@ -989,7 +1035,7 @@ time_vals <- 0:5
 set.seed(100)
 df_list <- lapply(
   time_vals,
-  sim_D3d2_case2,
+  sim_D4d2_case1,
   vertical_multiplier = 0.1,
   horizontal_multiplier = 0.1,
   depth_multiplier = 0.1,
