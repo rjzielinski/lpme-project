@@ -110,7 +110,9 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
   if (N0 == 0) {
     N0 <- 20 * D
   }
-
+  if (N0 > max.comp) {
+    max.comp <- 2 * N0
+  }
   if (is.null(initialization)) {
     est <- hdmde(x.obs, N0, alpha, max.comp) # "hdmde" gives \hat{Q}_N.
     est_order <- order(est$mu[, 1])
