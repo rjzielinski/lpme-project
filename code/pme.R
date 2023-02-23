@@ -243,7 +243,7 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     # This block gives the first step of iteration.
     ###############################################
     if (print_plots == TRUE) {
-      plot_pme(x.obs, sol, tnew, I, d, lambda)
+      plot_pme(x.obs, X, sol, tnew, I, d, lambda)
     }
 
     # The iteration for PME is given by the following loop.
@@ -318,7 +318,7 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
 
       if (print_plots == TRUE) {
-        plot_pme(x.obs, sol, tnew, I, d, lambda)
+        plot_pme(x.obs, X, sol, tnew, I, d, lambda)
       }
 
       SSD.ratio <- abs(SSD.new - SSD.old) / SSD.old
