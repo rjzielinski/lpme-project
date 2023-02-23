@@ -1,75 +1,17 @@
-plot_pme <- function(x.obs, sol, tnew, I, d, lambda) {
-  D <- dim(x.obs)[2]
-  r_vals <- seq(
-    from = -10,
-    to = 10,
-    by = 1
-  )
-  r_list <- lapply(numeric(d - 1), function(x) r_vals)
+plot_pme <- function(x.obs, centers, sol, tnew, I, d, lambda) {
+  pred_grid <- calc_tnew(centers, tnew, sol, I, d, lambda)
+  r_bounds <- colMinsMaxs(pred_grid)
+  r_list <- list()
+  for (idx in 1:dim(r_bounds)[2]) {
+    r_list[[idx]] <- seq(
+      r_bounds[1, idx],
+      r_bounds[2, idx],
+      length.out = nrow(centers)
+    )
+  }
   r_mat <- as.matrix(expand.grid(r_list))
-  if (nrow(r_mat) > 0) {
-    pred_grid <- expand_grid(r_vals, r_mat) %>%
-      as.matrix()
-  } else {
-    pred_grid <- matrix(r_vals)
-  }
 
-  f_pred <- map(
-    1:nrow(pred_grid),
-    ~ fNew(
-      unlist(as.vector(pred_grid[.x, ])),
-      sol,
-      tnew,
-      I,
-      d,
-      lambda
-    ) %>%
-      as.vector()
-  ) %>%
-    unlist() %>%
-    matrix(nrow = nrow(pred_grid), byrow = TRUE)
-
-  idx_inrange <- matrix(nrow = dim(f_pred)[1], ncol = dim(f_pred)[2])
-  for (dim_idx in 1:dim(f_pred)[2]) {
-    idx_range <- max(x.obs[, dim_idx]) - min(x.obs[, dim_idx])
-    idx_min <- min(x.obs[, dim_idx]) - (0.2 * idx_range)
-    idx_max <- max(x.obs[, dim_idx]) + (0.2 * idx_range)
-    idx_inrange[, dim_idx] <- (f_pred[, dim_idx] > idx_min) &
-      (f_pred[, dim_idx] < idx_max)
-  }
-
-  r_inrange <- rowSums(idx_inrange) == dim(f_pred)[2]
-  if (sum(r_inrange) == 0) {
-    r_inrange <- rowSums(idx_inrange) > 0
-  }
-  if (sum(r_inrange) == 0) {
-    r_min <- -10
-    r_max <- 10
-  } else if (dim(pred_grid)[2] > 1) {
-    r_min <- min(pred_grid[r_inrange, -1])
-    r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
-    r_max <- max(pred_grid[r_inrange, -1])
-    r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
-  } else {
-    r_min <- min(pred_grid[r_inrange, ])
-    r_min <- ifelse(is.na(r_min) | is.infinite(r_min), -10, r_min)
-    r_max <- max(pred_grid[r_inrange, ])
-    r_max <- ifelse(is.na(r_max) | is.infinite(r_max), 10, r_max)
-  }
-
-  r_vals <- seq(
-    r_min,
-    r_max,
-    by = (r_max - r_min) / 40
-  )
-  r_list <- lapply(numeric(d - 1), function(x) r_vals)
-  r_mat <- as.matrix(expand.grid(r_list))
-  if (nrow(r_mat) > 0) {
-    pred_grid <- expand_grid(r_vals, r_mat) %>%
-      as.matrix()
-  } else {
-    pred_grid <- as.matrix(r_vals)
-  }
+  pred_grid <- r_mat
   f_pred <- map(
     1:nrow(pred_grid),
     ~ fNew(
