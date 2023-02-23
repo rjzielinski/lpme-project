@@ -114,59 +114,51 @@ Outline:
     \item LPME algorithm
 \end{enumerate}
 
+\SetKwComment{Comment}{/* }{ */}
+
+	\begin{equation}\label{PMSEF}
+	\mathcal{K}_{\lambda,\mathbb{P}}(f,g)=\mathbb{E}\left\Vert X_t - f\left(\pi_g(X_t)\right)\right\Vert^2_{\mathbb{R}^D} + \lambda \sum_{t = 1}^T \left\Vert\nabla^{\otimes 2} f(t)\right\Vert_{L^2(\mathbb{R}^d)}^2 + \gamma \sum_{X} \left\Vert\nabla^{\otimes 2} f(X_t)\right\Vert_{L^2(\mathbb{R})}^2, 
+	\end{equation}
+	\begin{equation}%\nonumber
+	\mathcal{K}_{\lambda,\mathbb{P}}(f)=\mathcal{K}_{\lambda,\mathbb{P}}(f,f),
+	\end{equation}
+	where $\Vert\nabla^{\otimes 2}f \Vert_{L^2(\mathbb{R}^d)}^2 = \sum_{l=1}^D\int_{\mathbb{R}^d} \sum_{i,j=1}^d\vert\frac{\partial^2 f_l}{\partial t_i \partial t_j}(t)\vert^2dt$. A manifold $M_{f^*}^d$ determined by $f^*$ is called a principal manifold for $X$ (or $\mathbb{P}$) with the tuning parameter $\lambda$ if 
+	\begin{align}\label{def: PM}
+	f^*=\argmin_{f\in\mathscr{F}(\mathbb{P})}\mathcal{K}_{\lambda,\mathbb{P}}(f),\ \ \mbox{ where }\mathscr{F}(\mathbb{P}):=\left\{f\in C_\infty\cap \nabla^{-\otimes 2}L^2( R^d \rightarrow R^D):\sup_{x\in supp(\mathbb{P})}\left\Vert\pi_f(x)\right\Vert_{R^d} = 1 \right\}.
+	\end{align}
+
+\RestyleAlgo{ruled}
+\LinesNumbered
+
 \begin{algorithm}
-\caption{Longitudinal Principal Manifold Estimation}\label{alg:two}
-\KwData{Data points $\{y_{i, t}\}_{i, t}^{I, T}$, positive integer $d$, positive integer $N_0 < I - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\{\lambda_k\}_{k=1}^K$, $\{\gamma_l\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
-\KwResult{Analytic formula of $g^*: \mathbb{R}^{d+1} \to \mathbb{R}^{D+1}$, optimal tuning parameter $\gamma^*$.}
-\For{$t = 1, 2, ... T$}{
-    Apply PME algorithm with input $(\{y_{i, t}\}_{i=1}^I, N_0, \alpha, \epsilon, \epsilon^*, \{\lambda_k\}_{k=1}^K)$ and obtain $\{f_t^*\}_{t=1}^T$ and $\{\lambda_t^*\}_{t=1}^T$\;
-    Use $\{f_t^*\}_{t=1}^T$ to map a grid of $d$-dimensional parameters $\{r_j\}_{j=1}^N$ to $\{x_{j, t}\}_{j=1}^N$ in $\mathbb{R}^D$\;
+\caption{Longitudinal Principal Manifold Estimation}\label{alg:lpme}
+\KwData{Data points $\left\{y_{i, t}\right\}_{i, t}^{I_t, T}$, positive integer $d$, positive integer $N_0 < I - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\left\{\lambda_k\right\}_{k=1}^K$, $\left\{\gamma_l\right\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
+\KwResult{Analytic formula of $\hat{g}^*: \mathbb{R}^{d + 1} \to \mathbb{R}^{D}$, optimal tuning parameter $\gamma^*$.}
+\For{$t = 1, 2, \dots, T$} {
+  Apply HDMDE algorithm with input $\left(\left\{y_{i, t}\right\}_{i = 1}^{I_t}, N_0, \epsilon, \alpha\right)$ and obtain $N_t$, $\left\{\mu_{j, N_t, t}\right\}_{j = 1}^{N_t}$, and $\left\{\theta_{j, N_t, t}\right\}_{j = 1}^{N_t}$\;
 }
-Apply ISOMAP to parameterize the newly generated collection $\{x_{j, t}\}_{j, t}^{N, T}$ by the $d$-dimensional parameters $\{r_j\}_{j=1}^N$\;
-Use parameters $\{r_j\}_{j=1}^N$ and time values $\{t_j\}_{j=1}^N$ to create new
-$\pi_{g_{(1)}}(x_{j}) \gets r_j$ for $j=1, ..., N$\;
-\For{$l = 1, 2, ..., L$}{
-    $\gamma \gets \gamma_l$.\;
-    Obtain $g_{(1)}$ by solving 
-    $\left(\begin{array}{ccc} 
-    2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
-    2\mathbf{T}^T\mathbf{W}\mathbf{E} & 2\mathbf{T}^T\mathbf{W}\mathbf{T} & \mathbf{0} \\
-    \mathbf{T}^T & \mathbf{0} & \mathbf{0} \end{array}\right)\left(\begin{array}{c} 
-    s_l \\
-    \alpha_l \\
-    m_l 
-    \end{array}\right) = \left(\begin{array}{c}
-    2\mathbf{E}\mathbf{W}\mathbf{x} \\
-    2\mathbf{T}^T\mathbf{W}\mathbf{x} \\
-    \mathbf{0} 
-    \end{array}\right)$\;
-    $\mathcal{E} \gets 2\epsilon^*$\;
-    $n \gets 1$\;
-    $\mathcal{D}_{\hat{Q}, N}(g_{(1)}) \gets \sum_{j=1}^N\|x_j - g_{(1)}\|_{\mathbb{R}^{D}}^2$\;
-    \While{$\mathcal{E} \geq \epsilon^*$, $n < itr$}{
-        Compute $g_{(n + 1)}$ by solving $\left(\begin{array}{ccc} 
-        2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
-        2\mathbf{T}^T\mathbf{W}\mathbf{E} & 2\mathbf{T}^T\mathbf{W}\mathbf{T} & \mathbf{0} \\
-        \mathbf{T}^T & \mathbf{0} & \mathbf{0} \end{array}\right)\left(\begin{array}{c} 
-        s_l \\
-        \alpha_l \\
-        m_l 
-        \end{array}\right) = \left(\begin{array}{c}
-        2\mathbf{E}\mathbf{W}\mathbf{x} \\
-        2\mathbf{T}^T\mathbf{W}\mathbf{x} \\
-        \mathbf{0} 
-        \end{array}\right)$\;
-        $\mathcal{D}_{\hat{Q}_N}(g_{(n + 1)}) \gets \sum_{j=1}^N\|x_j - g_{(n + 1)}(\pi_{g_{(n + 1)}}(x_j))\|_{\mathbb{R}^D}^2$\;
-        $\mathcal{E} \gets |\mathcal{D}_{\hat{Q}_N}(g_{(n + 1)}) - \mathcal{D}_{\hat{Q}_N}(g_{(n)})|/\mathcal{D}_{\hat{Q}_N}(g_{(n)})$\;
-        $n \gets n + 1$\;
-    }
-    $\hat{g}_l \gets g_{(n)}$\;
+
+Parameterization: Apply ISOMAP to parameterize $\left\{\mu_{j, N_t, t}\right\}_{j = 1, t = 1}^{N_t, T}$ by the $d$-dimensional parameters $\left\{r_{j, t}\right\}_{j = 1, t = 1}^{N_t, T}$. Formally set $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets r_j$ for $j = 1, 2, \dots, N_t$, $t = 1, 2, \dots, T$\;
+
+\For{t = 1, 2, \dots, T} {
+  Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^N_t$ and obtain $f_t^*$ and $\lambda_t^*$\;
+  $\left\{r_{j, t}\right\} \gets \pi_{f_t^*}(\mu_{j, N_t, t})$ for $j = 1, \dots, N_t$ and $x_{j, t} \gets f_t^*(r_{j, t})$ for $j = 1, \dots, N_t$\;
+  Add column vector $\mathbf{t}$ as first column of $\mathbf{r}$\;
 }
-$\kappa \gets \text{max}\{\|\pi_{\hat{g}_{l^*}}(x_j)\|_{\mathbb{R}^d}: j = 1, 2, \dots, I\}$, where $l^* = \argmin_l\{\frac{1}{N}\sum_{j=1}^N\|x_j - g_{(l)}(\pi_{\hat{g}_{(l)}}(x_j)\|_{\mathbb{R}^D}^2: l = 1, 2, \dots, L\}$\;
-$g^*(r) = g^{l^*}(\kappa r)$, where the analytic formula of $g^*$ is from $g_{(n + 1), l}(r) = \sum_{j=1}^N \eta_{4-d}(r - \pi_{g_{(n)}}(x_j)) + \sum_{k=1}^{d + 1} \alpha_{k, l} \times p_k(r)$, and $\gamma^* \gets \gamma_{l^*}$
+
+Let $N = \sum_{t=1}^{T}N_t$, $\mathbf{x}$ be a $N \times D$ matrix of stacked values of $\left\{x_{j, t}\right\}_{t = 1}^T$, and $\mathbf{r}$ be a $N \times d + 1$ matrix of stacked values of $\left\{r_{j, t}\right\}_{t = 1}^T$ \;
+
+Set $\pi_{g(0)}(x_i) \gets r_i$ for $i = 1, 2, \dots, N$\;
+
+\For{l = 1, 2, \dots, L}{
+  $\gamma \gets \gamma_l$\;
+  Obtain $g_{(1)}$ by solving $\left(\begin{array}{ccc}
+      2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
+      2\mathbf{T}^{T}\mathbf{W}\mathbf{E} & 2\mathbf{T}^{T}\mathbf{W}\mathbf{T} & \mathbf{0} \\
+      \mathbf{T}^{T} & \mathbf{0} & \mathbf{0}
+  \end{array}\right) = $\;
+}
 \end{algorithm}
-
-
 
 \section{Simulations}
 
@@ -186,22 +178,6 @@ Limitations:
 \end{enumerate}
 
 Future Work:
-
-\RestyleAlgo{ruled}
-\LinesNumbered
-
-\SetKwComment{Comment}{/* }{ */}
-
-	\begin{equation}\label{PMSEF}
-	\mathcal{K}_{\lambda,\mathbb{P}}(f,g)=\mathbb{E}\left\Vert X_t - f\left(\pi_g(X_t)\right)\right\Vert^2_{\mathbb{R}^D} + \lambda \sum_{t = 1}^T \left\Vert\nabla^{\otimes 2} f(t)\right\Vert_{L^2(\mathbb{R}^d)}^2 + \gamma \sum_{X} \left\Vert\nabla^{\otimes 2} f(X_t)\right\Vert_{L^2(\mathbb{R})}^2, 
-	\end{equation}
-	\begin{equation}\nonumber
-	\mathcal{K}_{\lambda,\mathbb{P}}(f)=\mathcal{K}_{\lambda,\mathbb{P}}(f,f),
-	\end{equation}
-	where $\Vert\nabla^{\otimes 2}f \Vert_{L^2(\mathbb{R}^d)}^2 = \sum_{l=1}^D\int_{\mathbb{R}^d} \sum_{i,j=1}^d\vert\frac{\partial^2 f_l}{\partial t_i \partial t_j}(t)\vert^2dt$. A manifold $M_{f^*}^d$ determined by $f^*$ is called a principal manifold for $X$ (or $\mathbb{P}$) with the tuning parameter $\lambda$ if 
-	\begin{align}\label{def: PM}
-	f^*=\argmin_{f\in\mathscr{F}(\mathbb{P})}\mathcal{K}_{\lambda,\mathbb{P}}(f),\ \ \mbox{ where }\mathscr{F}(\mathbb{P}):=\left\{f\in C_\infty\cap \nabla^{-\otimes 2}L^2( R^d \rightarrow R^D):\sup_{x\in supp(\mathbb{P})}\left\Vert\pi_f(x)\right\Vert_{R^d} = 1 \right\}.
-	\end{align}
 
 Questions:
 \begin{enumerate}
