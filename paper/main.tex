@@ -36,6 +36,7 @@ style=authoryear
 %\setcitestyle{authoryear,open={(},close={)}}
 \usepackage{authblk}
 
+\usepackage{csquotes}
 \usepackage[english]{babel}
 
 \renewcommand{\baselinestretch}{1.0}
@@ -156,7 +157,7 @@ Outline:
 Parameterization: Apply ISOMAP to parameterize $\left\{\mu_{j, N_t, t}\right\}_{j = 1, t = 1}^{N_t, T}$ by the $d$-dimensional parameters $\left\{r_{j, t}\right\}_{j = 1, t = 1}^{N_t, T}$. Formally set $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets r_j$ for $j = 1, 2, \dots, N_t$, $t = 1, 2, \dots, T$\;
 
 \For{t = 1, 2, \dots, T} {
-  Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^N_t$ and obtain $f_t^*$ and $\lambda_t^*$\;
+  Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^{N_t}$ and obtain $f_t^*$ and $\lambda_t^*$\;
   $\left\{r_{j, t}\right\} \gets \pi_{f_t^*}(\mu_{j, N_t, t})$ for $j = 1, \dots, N_t$ and $x_{j, t} \gets f_t^*(r_{j, t})$ for $j = 1, \dots, N_t$\;
   Add column vector $\mathbf{t}$ as first column of $\mathbf{r}$\;
 }
@@ -226,7 +227,7 @@ Questions:
 \end{enumerate}
 
 \nocite{*}
-\bibliographystyle{plain}
+%\bibliographystyle{plain}
 %\bibliography{references}
 \printbibliography
 
