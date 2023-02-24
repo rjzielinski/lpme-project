@@ -77,7 +77,7 @@ The remainder of this article is laid out as follows: In Section 2, we introduce
 The notation below is used to build to a definition of principal manifolds [still need to formally write out]:
 \begin{itemize}
   \item Observed data $\left\{x_i\right\}_{i=1}^I \subset \mathbb{R}^D$
-  \item Associated latent parameterizations $\left\{t_i\right\}_{i=1}^I \subset \mathbb{R}^d$ [may change this notation to allow for time points]
+  \item Associated latent parameterizations $\left\{t_i\right\}_{i=1}^I \subset \mathbb{R}^d$
   \item $C_{\infty}\left(\mathbb{R}^d \to \mathbb{R}^D\right) = \left\{f \in C(\mathbb{R}^d \to \mathbb{R}^D): \lim_{\|t\|_{\mathbb{R}^d} \to \infty} \|f(t)\|_{\mathbb{R}^D} = \infty\right\}$ 
   \item $\nabla f$ denotes the gradient of $f$
   \item $\nabla^{\bigotimes 2}f$ denotes the Hessian matrix of $f$
@@ -85,7 +85,7 @@ The notation below is used to build to a definition of principal manifolds [stil
   \item $\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l = 1}^{D}\|\nabla^{\bigotimes 2}f_l\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D}\int_{\mathbb{R}^d}\sum_{i,j = 1}^{d}|\frac{\partial^2f_l}{\partial t_i \partial t_j}(t)|^2dt$ represents the total squared curvature of manifold $M_f^{d}$
   \item $\mathcal{K}_{\lambda, \mathbb{P}}(f, g) = \mathbb{E}\|X - f(\pi_{g}(X))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2$, with $\mathcal{K_{\lambda, \mathbb{P}}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f)$
   \item A manifold $M_{f^*}^{d}$ determined by $f^*$ is a principal manifold for random $D$-vector $X$ with compact support $\text{supp}(\mathbb{P})$ with the tuning parameter $\lambda$ if \[%
-    f_{\lambda}^{*} = \argmin_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f)
+    f_{\lambda}^{*} = \arg \min_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f)
   ,\]%
     where \[%
       \mathcal{F}(\mathbb{P}) = \left\{f \in C_{\infty} \cap \nabla^{-biot 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D}): \sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1\right\}
@@ -95,13 +95,13 @@ The notation below is used to build to a definition of principal manifolds [stil
 
 Given this definition, we now summarize the estimation method provided. This algorithm has three main steps: data reduction, fitting, and tuning. In the reduction step, the HDMDE algorithm is used to summarize the data $\left\{x_i\right\}_{i=1}^{I}$ by points $\left\{\mu_j\right\}_{j=1}^{N}$ with $N \leq I$, and each $\mu_j$ associated with weight $\theta_j$. The fitting stage of the algorithm finds estimated functions 
 \[%
-  \hat{f}_\lambda = \argmin_f \mathcal{K}_{\lambda, \hat{Q}_N}(f)
+  \hat{f}_\lambda = \arg\min_f \mathcal{K}_{\lambda, \hat{Q}_N}(f)
 ,\]%
 where 
 \[%
   \mathcal{K}_{\lambda, \hat{Q}_N}(f) = \sum_{j = 1}^{N}\theta_j \|\mu_j - f(\pi_f(\mu_j))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2
 \]% 
-approximates $\mathcal{K}_{\lambda, \mathbb{P}}(f)$. The tuning stage chooses $\lambda^{*} = \argmin_{\lambda > 0}(\mathcal{D}(\hat{f}_\lambda))$, where 
+approximates $\mathcal{K}_{\lambda, \mathbb{P}}(f)$. The tuning stage chooses $\lambda^{*} = \arg\min_{\lambda > 0}(\mathcal{D}(\hat{f}_\lambda))$, where 
 \[%
   \mathcal{D}(\hat{f}_\lambda) = \frac{1}{I}\sum_{i=1}^{I}\|x_i - \hat{f}_\lambda(\pi_{\hat{f}_\lambda}(x_i))\|_{\mathbb{R}^{D}}^2
 .\]%
@@ -117,6 +117,28 @@ Outline:
     \item Show updated loss function for LPME algorithm
     \item LPME algorithm
 \end{enumerate}
+
+\section{Simulations}
+
+\section{Application}
+
+\section{Discussion}
+
+Contributions:
+
+Limitations:
+\begin{enumerate}
+  \item Self-consistency condition means that the model cannot fit to self-intersecting manifolds. This is why partitioning is necessary.
+  \item Partitioning approach is somewhat ad hoc and may not work in every situation. In testing it struggled when the structure shape changed drastically, or when orientation was not equivalent. There is not a clear approach to automatic partitioning.
+  \item The process of joining the partitions may introduce error.
+  \item Algorithm initialization is sensitive to magnitude of change between time points.
+  \item Computation time.
+\end{enumerate}
+
+Future Work:
+
+\RestyleAlgo{ruled}
+\LinesNumbered
 
 \SetKwComment{Comment}{/* }{ */}
 
