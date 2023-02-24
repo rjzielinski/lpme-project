@@ -4,9 +4,16 @@
 
 
 %\RequirePackage[numbers]{natbib}
-\RequirePackage[authoryear]{natbib}%% uncomment this for author-year citations
+%\RequirePackage[authoryear]{natbib}%% uncomment this for author-year citations
 \RequirePackage[colorlinks,citecolor=blue,urlcolor=blue]{hyperref}%% uncomment this for coloring bibliography citations and linked URLs
 \RequirePackage{graphicx}%% uncomment this for including figures
+
+\usepackage[
+backend=biber,
+style=authoryear
+]{biblatex}
+
+\addbibresource{references.bib}
 
 \usepackage{setspace}
 \usepackage{amsmath}
@@ -24,13 +31,12 @@
 
 \usepackage{algorithm2e}
 
-\usepackage{natbib}
+%\usepackage{natbib}
+%\bibliographystyle{abbrvnat}
+%\setcitestyle{authoryear,open={(},close={)}}
 \usepackage{authblk}
 
 \usepackage[english]{babel}
-\bibliographystyle{abbrvnat}
-\setcitestyle{authoryear,open={(},close={)}}
-
 
 \renewcommand{\baselinestretch}{1.0}
 \setlength{\oddsidemargin}{-0.5cm}
@@ -56,23 +62,25 @@
 
 \section{Introduction}
 
-Neuroimaging plays a critical role in the diagnosis and monitoring of a number of common neurodegenerative conditions, such as Alzheimer's disease and Parkinson's disease (Knopman et al. 2021, Poewe et al. 2017). Frequently, interest centers around longitudinal changes in one or more neurological substructures. For example, it is common to observe atrophy the hippocampus of those with Alzheimer's disease or cognitive impairment related to other causes. Image segmentation allows for the extraction of subcortical structures from images of the complete brain for further analysis.
+Neuroimaging plays a critical role in the diagnosis and monitoring of a number of common neurodegenerative conditions, such as Alzheimer's disease and Parkinson's disease (\cite{knopmanAlzheimerDisease2021}, \cite{poeweParkinsonDisease2017}). Frequently, interest centers around longitudinal changes in one or more neurological substructures. For example, it is common to observe atrophy the hippocampus of those with Alzheimer's disease or cognitive impairment related to other causes. Image segmentation allows for the extraction of subcortical structures from images of the complete brain for further analysis.
 
-Traditionally, manual segmentation of images by a trained radiologist has been considered the most accurate approach and is the gold standard. However, this approach is highly time and resource intensive. In studies analyzing a large number of images, this approach may impose prohibitive costs. Additionally, manual segmentation suffers from meaningful inter-rater and intra-rater variability (Source). Automated segmentation approaches, such as FSL-FIRST and FreeSurfer, have been introduced to address these concerns [sources]. While automating the segmentation process drastically reduces costs, it potentially introduces additional inaccuracies.
+Traditionally, manual segmentation of images by a trained radiologist has been considered the most accurate approach and is the gold standard. However, this approach is highly time and resource intensive. In studies analyzing a large number of images, this approach may impose prohibitive costs. Additionally, manual segmentation suffers from meaningful inter-rater and intra-rater variability (\cite{boccardiSurveyProtocolsManual2011}). Automated segmentation approaches, such as FSL-FIRST and FreeSurfer, have been introduced to address these concerns (\cite{patenaudeBayesianModelShape2011}, \cite{reuterWithinsubjectTemplateEstimation2012}). While automating the segmentation process drastically reduces costs, it potentially introduces additional inaccuracies.
 
-To anecdotally demonstrate the potential extent of the inaccuracies introduced by segmentation, using FIRST to segment the hippocampus in images of one healthy individual over the course of four years in the ADNI dataset, the volume of the left and right hippocampus decreased by 3.6\% and 5.4\%, respectively, but each hippocampus was estimated to have increased in volume between subsequent study visits twice. In a larger comparison of the accuracy of FIRST and FreeSurfer, Mulder et al. (2014) found that 6.9\% of segmentations by FIRST failed visual inspection for accuracy, as did 7.5\% of segmentations by FreeSurfer. After removing these failed segmentations, FIRST and FreeSurfer produced segmentations with variability similar to and slightly lower than manual segmentation, respectively. If failed segmentations were not removed from analysis, reflecting a more realistic situation when working with a large number of images, variability as measured by the Limits of Agreement were much higher for FIRST and FreeSurfer than for manual segmentation. Mulder et al. (2014) also found slightly higher rates of segmentation failure among individuals with Alzheimer's disease for both automated segmentation approaches, suggesting that variability increases as images are taken from individuals with greater deviations from the healthy brains on which the segmentation models were trained [See original articles to confirm, see if there are any confirming studies].
+To anecdotally demonstrate the potential extent of the inaccuracies introduced by segmentation, using FIRST to segment the hippocampus in images of one healthy individual over the course of four years in the ADNI dataset, the volume of the left and right hippocampus decreased by 3.6\% and 5.4\%, respectively, but each hippocampus was estimated to have increased in volume between subsequent study visits twice. In a larger comparison of the accuracy of FIRST and FreeSurfer, \cite{mulderHippocampalVolumeChange2014} found that 6.9\% of segmentations by FIRST failed visual inspection for accuracy, as did 7.5\% of segmentations by FreeSurfer. After removing these failed segmentations, FIRST and FreeSurfer produced segmentations with variability similar to and slightly lower than manual segmentation, respectively. If failed segmentations were not removed from analysis, reflecting a more realistic situation when working with a large number of images, variability as measured by the Limits of Agreement were much higher for FIRST and FreeSurfer than for manual segmentation. \cite{mulderHippocampalVolumeChange2014} also found slightly higher rates of segmentation failure among individuals with Alzheimer's disease for both automated segmentation approaches, suggesting that variability increases as images are taken from individuals with greater deviations from the healthy brains on which the segmentation models were trained [See original articles to confirm, see if there are any confirming studies].
 
-Ultimately, high levels of variability are present at the subcortical level, both between study visits for the same individual and between individuals, regardless of the segmentation approach used, and may be particularly influential when using automated segmentation methods. Mitigating the extent of this variability is a priority from a statistical perspective. To this end, in this article, we propose a manifold learning-based method to develop smooth estimates of the surfaces of subcortical structures over time. Manifold learning describes a set of statistical approaches to modeling high-dimensional data that are assumed to lie along a low-dimensional manifold. In medical imaging applications, interacting with a low-dimensional interpretation of a structure may be more intuitive than working with the structure in its original high-dimensional space. For example, Yue et al. (2016) seeks to compute a parametric representation of the corpus callosum. To obtain the low-dimensional parameterization of the substructures of interest, the proposed approach extends the principal manifold estimation approach introduced by Meng and Eloyan (2021).
+Ultimately, high levels of variability are present at the subcortical level, both between study visits for the same individual and between individuals, regardless of the segmentation approach used, and may be particularly influential when using automated segmentation methods. Mitigating the extent of this variability is a priority from a statistical perspective. To this end, in this article, we propose a manifold learning-based method to develop smooth estimates of the surfaces of subcortical structures over time. Manifold learning describes a set of statistical approaches to modeling high-dimensional data that are assumed to lie along a low-dimensional manifold. In medical imaging applications, interacting with a low-dimensional interpretation of a structure may be more intuitive than working with the structure in its original high-dimensional space. For example, \cite{yueParameterizationWhiteMatter2016} seeks to compute a parametric representation of the corpus callosum. To obtain the low-dimensional parameterization of the substructures of interest, the proposed approach extends the principal manifold estimation approach introduced by \cite{mengPrincipalManifoldEstimation2021}.
 
-Previously introduced methods for manifold learning, such as Isomap (Tenenbaum et al. 2000), locally linear embedding (Roweis and Saul, 2000), and Laplacian eigenmaps (Belkin and Niyogi, 2003), are ill-equipped to reach meaningful estimates across multiple time points. This is because these methods consider time as an additional dimension in the data, meaning they include time in the dimension reduction process. This treatment of the time dimension causes it to be incorporated into the low-dimensional parameterization, preventing meaningful interpretation of this dimension. Here, we propose an alternative approach to estimating manifolds over time.
+Previously introduced methods for manifold learning, such as Isomap (\cite{tenenbaumGlobalGeometricFramework2000}), locally linear embedding (\cite{roweisNonlinearDimensionalityReduction2000}), and Laplacian eigenmaps (\cite{belkinLaplacianEigenmapsDimensionality2003a}), are ill-equipped to reach meaningful estimates across multiple time points. This is because these methods consider time as an additional dimension in the data, meaning they include time in the dimension reduction process. This treatment of the time dimension causes it to be incorporated into the low-dimensional parameterization, preventing meaningful interpretation of this dimension. Here, we propose an alternative approach to estimating manifolds over time.
 
-Rather than include time as another dimension in a manifold learning method, we use a process that maintains the interpretability of the time dimension. Specifically, we use the method proposed in Meng and Eloyan (2021) to estimate the appropriate principal manifold at each given time point. We then smooth over these approximated manifolds in the time dimension, yielding an estimate showing longitudinal changes in the underlying manifold. The regularization involved in this process mitigates the effects of variability between study visits.
+Rather than include time as another dimension in a manifold learning method, we use a process that maintains the interpretability of the time dimension. Specifically, we use the method proposed in \cite{mengPrincipalManifoldEstimation2021} to estimate the appropriate principal manifold at each given time point. We then smooth over these approximated manifolds in the time dimension, yielding an estimate showing longitudinal changes in the underlying manifold. The regularization involved in this process mitigates the effects of variability between study visits.
 
-Some previous work has been conducted on longitudinal dimension reduction methods, but this research has primarily focused on linear methods, such as the longitudinal principal component analysis approach proposed by Kinson et al. (2019). To our knowledge, the approach to longitudinal smoothing in the manifold learning setting taken in this article is novel.
+Some previous work has been conducted on longitudinal dimension reduction methods, but this research has primarily focused on linear methods, such as the longitudinal principal component analysis approach proposed by \cite{kinsonLongitudinalPrincipalComponent2020}. To our knowledge, the approach to longitudinal smoothing in the manifold learning setting taken in this article is novel.
 
-The remainder of this article is laid out as follows: In Section 2, we introduce the principal manifold framework proposed in Meng and Eloyan (2021). Section 3 discusses how this approach can be adapted for longitudinal settings, and shows the algorithm being used to accomplish this. Section 4 demonstrates the performance of this approach on simulated data. In Section 5, we apply this method to longitudinal data of the hippocampus in individuals with Alzheimer's disease. The article concludes with a discussion of the method's contributions in Section 6.
+The remainder of this article is laid out as follows: In Section 2, we introduce the principal manifold framework proposed in \cite{mengPrincipalManifoldEstimation2021}. Section 3 discusses how this approach can be adapted for longitudinal settings, and shows the algorithm being used to accomplish this. Section 4 demonstrates the performance of this approach on simulated data. In Section 5, we apply this method to longitudinal data of the hippocampus in individuals with Alzheimer's disease. The article concludes with a discussion of the method's contributions in Section 6.
 
 \section{Principal Manifolds and Estimation Algorithm}
+
+The framework for principal manifolds originated with the concept of principal curves and surfaces (\cite{hastiePrincipalCurves1989}), which are essentially curves or surfaces that pass through the middle of the data. Principal manifolds extend this concept to higher dimensions.
 
 The notation below is used to build to a definition of principal manifolds [still need to formally write out]:
 \begin{itemize}
@@ -117,25 +125,6 @@ Outline:
     \item Show updated loss function for LPME algorithm
     \item LPME algorithm
 \end{enumerate}
-
-\section{Simulations}
-
-\section{Application}
-
-\section{Discussion}
-
-Contributions:
-
-Limitations:
-\begin{enumerate}
-  \item Self-consistency condition means that the model cannot fit to self-intersecting manifolds. This is why partitioning is necessary.
-  \item Partitioning approach is somewhat ad hoc and may not work in every situation. In testing it struggled when the structure shape changed drastically, or when orientation was not equivalent. There is not a clear approach to automatic partitioning.
-  \item The process of joining the partitions may introduce error.
-  \item Algorithm initialization is sensitive to magnitude of change between time points.
-  \item Computation time.
-\end{enumerate}
-
-Future Work:
 
 \RestyleAlgo{ruled}
 \LinesNumbered
@@ -182,8 +171,26 @@ Set $\pi_{g(0)}(x_i) \gets r_i$ for $i = 1, 2, \dots, N$\;
       2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
       2\mathbf{T}^{T}\mathbf{W}\mathbf{E} & 2\mathbf{T}^{T}\mathbf{W}\mathbf{T} & \mathbf{0} \\
       \mathbf{T}^{T} & \mathbf{0} & \mathbf{0}
-  \end{array}\right) = $\;
+    \end{array}\right)\left(\begin{array}{c}
+    s_l \\
+    \alpha_l \\
+    m_l
+    \end{array}\right) = \left(\begin{array}{c}
+    2\mathbf{E}\mathbf{W}\mu_l \\
+    2\mathbf{T}^{T}\mathbf{W}\mu_l \\
+    \mathbf{0}
+  \end{array}\right)$\;
+  $\mathcal{\epsilon} \gets 2 \times \epsilon^*$, $n \gets 1$, $\mathcal{D}_{\hat{Q}_N}(f_{(n + 1)}) \gets \frac{1}{N}\sum_{j = 1}^{N}\|x_{j} - f_{(1)}(\pi_{f_{(1)}}(x_j))\|_{\mathbb{R}^{D}}^2$ \;
+  \While{$\epsilon > \epsilon^*$ and $n \leq itr$} {
+    Compute $f_{(n + 1)})$ from $f_{(n)}$ by solving (15) \;
+    $\mathcal{D}_{\hat{Q}_N}(f_{(n + 1)}) \gets \frac{1}{N}\sum_{j=1}^{N}\|x_j - f_{(n + 1)}(\pi_{f_{(n + 1)}}(x_j))\|_{\mathbb{R}^D}^2$ \;
+    $\epsilon \gets |\mathcal{D}_{\hat{Q}_N}(f_{(n + 1)}) - \mathcal{D}_{\hat{Q}_N}(f_{(n)})| / \mathcal{D}_{\hat{Q}_N}(f_{(n)})$ and $n \gets n + 1$\;
+  }
+  $\hat{f}_l \gets f_{(n)}$\;
 }
+$l^* \gets \argmin_l\left\{\frac{1}{T}\sum_{t = 1}^{T}\frac{1}{I_t}\sum_{i = 1}^{I_t}\|y_{i, t} - \hat{f}_l(\pi_{f_l}(y_{i, t}))\|_{\mathbb{R}^D}^2: \ l = 1, 2, \dots, L \right\}$ \;
+$\kappa \gets \max\left\{\|\pi_{\hat{f}_{g^*}}(y_i, t)\|_{\mathbb{R}^{d}}: \ i = 1, 2, \dots, I_t; j = 1, 2, \dots, T \right\}$ \;
+$f^*(r) = \hat{f}_{l^*}(r)$, where the analytic formula of $f^*$ is from (14), and $\gamma^* \gets \gamma_l^*$.
 \end{algorithm}
 
 \section{Simulations}
@@ -220,6 +227,7 @@ Questions:
 
 \nocite{*}
 \bibliographystyle{plain}
-\bibliography{references}
+%\bibliography{references}
+\printbibliography
 
 \end{document}
