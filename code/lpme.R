@@ -430,6 +430,13 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
           mode = "markers",
           opacity = 0.5
         ) %>%
+          add_markers(
+            x = df[, 2],
+            y = df[, 3],
+            z = df[, 4],
+            frame = df[, 1],
+            opacity = 0.15
+          ) %>%
           layout(
             scene = list(
               xaxis = list(
@@ -677,7 +684,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
       print(
         paste0(
           "SSD = ",
-          as.character(round(SSD_new)),
+          as.character(round(SSD_new, 4)),
           ", SSD.ratio is ",
           as.character(round(SSD_ratio, 4)),
           ", and this is the ",
