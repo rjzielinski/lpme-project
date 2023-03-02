@@ -1,5 +1,6 @@
 library(tidyverse)
 library(plotly)
+library(pracma)
 library(profvis)
 
 source("code/lpme.R")
@@ -1244,17 +1245,22 @@ time_vals <- 0:5
 set.seed(100)
 df_list <- lapply(
   time_vals,
-  sim_D4d2_case1,
+  sim_D5d2_case2,
   vertical_multiplier = 0.1,
   horizontal_multiplier = 0.1,
   depth_multiplier = 0.1,
   noise = 0.15,
   time_noise = 0.1,
-  shape_noise = 0.0001,
-  curvature = 1
+  shape_noise = 0.0001
+  # curvature = 1
 )
 
-data_points <- reduce(df_list, rbind)
+data_points <- reduce(df_list, rbind)[, -(5:6)]
+data_points_sph <- cart2sph(data_points[, 2:4])
+data_points <- cbind(data_points, data_points_sph)
+
+test_df <- data_points[data_points[, 1] == 0, -1]
+pme_result <- pme(test_df, 2, print_plots = TRUE)
 
 sim_result <- lpme(data_points, 2)
 
