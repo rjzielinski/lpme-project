@@ -29,7 +29,7 @@ plot_pme <- function(x.obs, centers, sol, tnew, I, d, lambda) {
 
   f_pred_full <- cbind(pred_grid, f_pred)
 
-  if (D == 2) {
+  if (dim(x.obs)[2] == 2) {
     plt <- ggplot() +
       geom_point(
         aes(
@@ -46,7 +46,7 @@ plot_pme <- function(x.obs, centers, sol, tnew, I, d, lambda) {
         color = "red"
       )
     print(plt)
-  } else if (D >= 3) {
+  } else if (dim(x.obs)[2] >= 3) {
     plt <- plot_ly(
       x = f_pred_full[, d + 1],
       y = f_pred_full[, d + 2],
