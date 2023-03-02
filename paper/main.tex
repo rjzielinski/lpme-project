@@ -50,6 +50,10 @@ style=authoryear
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
 
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+
 \begin{document}
 
 \title{Longitudinal Manifold Estimation}
@@ -81,7 +85,33 @@ The remainder of this article is laid out as follows: In Section 2, we introduce
 
 \section{Principal Manifolds and Estimation Algorithm}
 
-The framework for principal manifolds originated with the concept of principal curves and surfaces (\cite{hastiePrincipalCurves1989}), which are essentially curves or surfaces that pass through the middle of the data. Principal manifolds extend this concept to higher dimensions.
+The framework for principal manifolds originated with the concept of principal curves (\cite{hastiePrincipalCurves1989}), which are essentially curves that pass through the middle of the data. \cite{hastiePrincipalCurves1989} defines principal curves as follows:
+
+\begin{definition}
+  \label{def:principal_curves}
+
+  (Part I) Let $I \in \mathbb{R}^{1}$ be a closed and possibly infinite interval. Suppose a map $f:I \to \mathbb{R}^{D}$ satisfies the conditions:
+  \begin{enumerate}
+    \label{enum:hs_conditions}
+  
+    \item $f \in \mathcal{C}^{\infty}(I \to \mathbb{R}^{D})$
+    \item $\|f'(r)\|_{\mathbb{R}^{D}} = 1$ for all $r \in I$
+    \item $f$ does not self intersect, meaning $r_1 \neq r_2$ implies that $f(r_1) \neq f(r_2)$
+    \item $\int_{\left\{r: f(r) \in B\right\}}dt < \infty$ for any finite ball $B$ in $\mathbb{R}^{D}$
+  \end{enumerate}
+  Then the projection index with respect to $f$ is defined as \[%
+    \pi_f(x) = \sup\left\{r \in I: \|x - f(r)\|_{\mathbb{R}^{D}} = \inf_{r' \in I}\|x - f(r')\|_{\mathbb{R}^{D}} \right\}, \ \text{for all} \ x \in \mathbb{R}^{D}
+  .\]%
+
+  (Part II) Suppose $X$ is a continuous random $D$-vector with finite second moments. Principal curves of $X$ are all maps $f: I \to \mathbb{R}^{D}$ satisfying the conditions above and the Self-consistency defined as \[%
+    E(X | \pi_f(X) = t) = f(r)
+  .\]%
+\end{definition}
+
+Principal manifolds seek to extend this concept to higher dimensions. \cite{smolaRegularizedPrincipalManifolds2001} proposed a regularized principal manifold framework, where principal manifolds minimize \[%
+  \argmin_{f \in \mathcal{F}}\left\{E\|X - f\left(\pi_f(X)\right)\|_{\mathbb{R}^D}^2 + \lambda\|Pf\|_{\mathcal{H}}^2\right\}
+\]%
+with $\mathcal{F}$ being a collection of functions and $P$ being an operator that maps $f$ into inner product space $\mathcal{H}$. \cite{mengPrincipalManifoldEstimation2021} build on this framework to provide a more complete definition of principal manifolds, and proposes an algorithm to estimate these principal manifolds.
 
 The notation below is used to build to a definition of principal manifolds [still need to formally write out]:
 \begin{itemize}
@@ -218,9 +248,6 @@ Questions:
   \item What is the best way to evaluate the performance of the estimates? We can use SSD for the embedded values, but how to assess the parameterized values?
   \item Should there be updates to what is defined as the "optimal" model in the PME algorithm? Currently it is possible for a model with non-minimal SSD to be chosen within the fitting of a single tuning value.
   \item Why would we see the SSD increase substantially in late optimization steps?
-  \item Are there cases where the SSD and MSD differ substantially? Why would that be the case?
-  \item Are there any techniques that help with large amounts of noise in the data? Data reduction should help with outliers, but likely not consistently high noise levels. Early indications that possibly allowing for higher tuning parameters would help?
-  \item Why does PME algorithm struggle on Swiss Roll cross-section? It seems to work well up until spiral reaches second layer. The manifold should never intersect, but from the angle from the origin does overlap.
   \item Generally, what are the limitations on the estimated manifolds intersecting? How close can it come to intersecting without showing strange behavior?
   \item Is thin-plate spline computational strategy from Wahba the best approach, or could updated computational approach help (Wood, 2003)?
   \item How much error does the registration process introduce? Can the LPME algorithm successfully handle a certain number of bad registrations or extractions?
