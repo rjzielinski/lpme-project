@@ -83,7 +83,7 @@ source("code/functions/plot_pme.R")
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
 
-pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE, SSD_ratio_threshold = 10, print_plots = FALSE) {
+pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, SSD_ratio_threshold = 10, print_plots = FALSE, verbose = "MSD") {
 
   # "x.obs" is the data set of interest.
   #         There are n observations, and each observation is a D-dimensional point.
@@ -101,6 +101,19 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
   # Remark: The larger N0 is, the less time consuming the function is.
 
+  if (verbose == "none") {
+    print.MSDs <- FALSE
+    print.SSDs <- FALSE
+  } else if (verbose == "MSD") {
+    print.MSDs <- TRUE
+    print.SSDs <- FALSE
+  } else if (verbose == "SSD") {
+    print.MSDs <- FALSE
+    print.SSDs <- TRUE
+  } else if (verbose == "all") {
+    print.MSDs <- TRUE
+    print.SSDs <- TRUE
+  }
 
   dimension.size <- dim(x.obs)
   D <- dimension.size[2] # "D" is the dimension of the input space.
@@ -145,15 +158,18 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
   for (tuning.ind in 1:length(tuning.para.seq)) {
 
-    print(
-      paste(
-        "The tuning parameter is lambda[",
-        as.character(tuning.ind),
-        "] = ",
-        as.character(tuning.para.seq[tuning.ind]),
-        "."
+    if (print.SSDs) {
+      print(
+        paste(
+          "The tuning parameter is lambda[",
+          as.character(tuning.ind),
+          "] = ",
+          as.character(tuning.para.seq[tuning.ind]),
+          "."
+        )
       )
-    )
+    }
+
 
     w <- tuning.para.seq[tuning.ind]
     tnew <- t.initial
@@ -326,17 +342,20 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
       SSD.ratio <- abs(SSD.new - SSD.old) / SSD.old
       count <- count + 1
 
-      print(
-        paste0(
-          "SSD is ",
-          as.character(round(SSD.new, 4)),
-          " SSD.ratio is ",
-          as.character(round(SSD.ratio, 4)),
-          " and this is the ",
-          as.character(count),
-          "th step of iteration."
+      if (print.SSDs) {
+        print(
+          paste0(
+            "SSD is ",
+            as.character(round(SSD.new, 4)),
+            " SSD.ratio is ",
+            as.character(round(SSD.ratio, 4)),
+            " and this is the ",
+            as.character(count),
+            "th step of iteration."
+          )
         )
-      )
+      }
+
     }
 
     # For a fixed tuning parameter value, the corresponding MSD is computed by the following chunk.
@@ -374,15 +393,17 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     MSE <- mean(diff.data.fit ^ 2)
 
     MSE.seq[tuning.ind] <- MSE
-    print(
-      paste(
-        "When lambda = ",
-        as.character(w),
-        ", MSD = ",
-        as.character(MSE),
-        "."
+    if (print.MSDs) {
+      print(
+        paste(
+          "When lambda = ",
+          as.character(w),
+          ", MSD = ",
+          as.character(MSE),
+          "."
+        )
       )
-    )
+    }
     SOL[[tuning.ind]] <- sol
     TNEW[[tuning.ind]] <- tnew
 
