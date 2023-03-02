@@ -1,3 +1,4 @@
+library(pracma)
 library(lubridate)
 library(tidyverse)
 source("code/pme.R")
@@ -55,7 +56,26 @@ lhipp_surface <- lhipp_surface %>%
       partition_sum > 1 ~ 5
     ),
     time_from_bl = scan_date - time_bl
+    # r = sqrt(x^2 + y^2 + z^2),
+    # theta = atan(y / x),
+    # phi = acos(z / r)
+  ) %>%
+  mutate(
+    x = x / max(abs(x)),
+    y = y / max(abs(y)),
+    z = z / max(abs(z))
   )
+
+lhipp_surface_spherical <- lhipp_surface %>%
+  dplyr::select(x, y, z) %>%
+  as.matrix() %>%
+  cart2sph() %>%
+  as_tibble()
+
+lhipp_surface <- bind_cols(
+  lhipp_surface,
+  lhipp_surface_spherical
+)
 
 lhipp_test <- lhipp_surface %>%
   filter(patno == "002_S_0413")
@@ -71,6 +91,20 @@ lhipp_test_pt3 <- lhipp_test %>%
 
 lhipp_test_pt4 <- lhipp_test %>%
   filter(partition4 == TRUE)
+
+lhipp_test_mat <- lhipp_test %>%
+  dplyr::select(
+    time_from_bl,
+    x,
+    y,
+    z,
+    theta,
+    phi,
+    r
+  ) %>%
+  as.matrix()
+
+lhipp_test_bl <- lhipp_test_mat[lhipp_test_mat[, 1] == 0, -1]
 
 lhipp_pt1_mat <- lhipp_test_pt1 %>%
   dplyr::select(
@@ -114,5 +148,9 @@ lpme_test_pt1 <- lpme(lhipp_pt1_mat, 2)
 lpme_test_pt2 <- lpme(lhipp_pt2_mat, 2)
 lpme_test_pt3 <- lpme(lhipp_pt3_mat, 2)
 lpme_test_pt4 <- lpme(lhipp_pt4_mat, 2)
+
+test_pme <- pme(lhipp_test_bl, d = 2, print_plots = TRUE)
+test_lpme <- lpme(lhipp_test_mat, d = 2)
+
 
 ### Next step: glue estimated manifolds together to estimate full surface
