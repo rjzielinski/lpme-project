@@ -83,7 +83,7 @@ source("code/functions/plot_pme.R")
 ############ Section 3, Principal Manifold Estimation ######################
 ############################################################################
 
-pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE, print_plots = FALSE) {
+pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-15:5)), alpha=0.05, max.comp=100, epsilon=0.05, max.iter=100, print.MSDs=TRUE, SSD_ratio_threshold = 10, print_plots = FALSE) {
 
   # "x.obs" is the data set of interest.
   #         There are n observations, and each observation is a D-dimensional point.
@@ -254,7 +254,7 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
     while (
       (SSD.ratio > epsilon) &
-      (SSD.ratio <= 5) &
+      (SSD.ratio <= SSD_ratio_threshold) &
       (count <= (max.iter - 1))
     ) {
 
