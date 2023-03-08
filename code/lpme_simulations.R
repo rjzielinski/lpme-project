@@ -7,8 +7,6 @@ source("code/lpme.R")
 source("code/pme.R")
 source("code/functions/lpme_init.R")
 
-
-
 sim_data <- function(time_val, case, noise, shape_noise) {
   manifolds <- list(
     function(tau, amp_noise, period_noise) {
@@ -16,16 +14,103 @@ sim_data <- function(time_val, case, noise, shape_noise) {
     },
     function(tau, amp_noise, period_noise) {
       return(c(tau, amp_noise[1] * sin(period_noise[1] * tau)))
+    },
+    function(tau, amp_noise, period_noise) {
+      return(
+        c(
+          amp_noise[1] * cos(period_noise[1] * tau),
+          amp_noise[2] * sin(period_noise[2] * tau)
+        )
+      )
+    },
+    function(tau, amp_noise, period_noise) {
+      return(
+        c(
+          amp_noise[1] * cos(period_noise[1] * tau),
+          amp_noise[2] * sin(period_noise[2] * tau)
+        )
+      )
+    },
+    function(tau, amp_noise, period_noise) {
+      return(
+        c(
+          tau,
+          (tau * amp_noise[1] + period_noise[1]) ^ 2,
+          (tau * amp_noise[2] + period_noise[2]) ^ 3
+        )
+      )
+    },
+    function(tau, amp_noise, period_noise) {
+      return(
+        c(
+          tau,
+          amp_noise[1] * cos(period_noise[1] * tau),
+          amp_noise[2] * sin(period_noise[2] * tau)
+        )
+      )
+    },
+    function(tau, amp_noise, period_noise) {
+      return(
+        c(
+          period_noise[1] * tau[1],
+          period_noise[2] * tau[2],
+          amp_noise[1] * (amp_noise[2] * norm_euclidean(period_noise * tau) ^ 2)
+        )
+      )
+    },
+    function(tau, amp_noise, period_noise) {
+      return(
+        c(
+          (period_noise[1] * amp_noise[1] * tau[1]) * cos(amp_noise[1] * tau[1]),
+          (period_noise[2] * amp_noise[2] * tau[1]) * sin(amp_noise[2] * tau[1]),
+          tau[2]
+        )
+      )
+    },
+    function(tau, amp_noise, period_noise) {
+      return(
+        c(
+          amp_noise[1] * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
+          amp_noise[1] * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
+          amp_noise[1] * cos(period_noise[1] * tau[1])
+        )
+      )
+    },
+    function(tau, amp_noise, period_noise) {
+      r <- 1 + amp_noise[1] * (tau[1] + 1) * sqrt(tau[2] + 1)
+      return(
+        c(
+          r * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
+          r * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
+          r * cos(period_noise[1] * tau[1])
+        )
+      )
     }
   )
 
   D <- case_when(
     case == 1 ~ 2,
-    case == 2 ~ 2
+    case == 2 ~ 2,
+    case == 3 ~ 2,
+    case == 4 ~ 2,
+    case == 5 ~ 3,
+    case == 6 ~ 3,
+    case == 7 ~ 3,
+    case == 8 ~ 3,
+    case == 9 ~ 3,
+    case == 10 ~ 3
   )
   d <- case_when(
     case == 1 ~ 1,
-    case == 2 ~ 1
+    case == 2 ~ 1,
+    case == 3 ~ 1,
+    case == 4 ~ 1,
+    case == 5 ~ 1,
+    case == 6 ~ 1,
+    case == 7 ~ 2,
+    case == 8 ~ 2,
+    case == 9 ~ 2,
+    case == 10 ~ 2
   )
 
   manifold <- manifolds[[case]]
@@ -40,15 +125,40 @@ sim_data <- function(time_val, case, noise, shape_noise) {
     t[, 1] <- rnorm(I, mean = 0, sd = 1)
   } else if (case == 2) {
     t[, 1] <- runif(I, min = -3 * pi, max = 3 * pi)
+  } else if (case == 3) {
+    t[, 1] <- runif(I, min = 0, max = 1.5 * pi)
+  } else if (case == 4) {
+    t[, 1] <- runif(I, time_val * (pi / 4), (time_val + 6) * (pi / 4))
+  } else if (case == 5) {
+    t[, 1] <- runif(I, min = -1, max = 1)
+  } else if (case == 6) {
+    t[, 1] <- runif(I, min = 0, max = 3 * pi)
+  } else if (case == 7) {
+    t[, 1] <- runif(I, min = -1, max = 1)
+    t[, 2] <- runif(I, min = -1, max = 1)
+  } else if (case == 8) {
+    t[, 1] <- runif(I, min = 0, max = 10)
+    t[, 2] <- runif(I, min = -1, max = 1)
+  } else if (case == 9) {
+    t[, 1] <- runif(I, min = 0, max = pi)
+    t[, 2] <- runif(I, min = 0, max = 2 * pi)
+  } else if (case == 10) {
+    t[, 1] <- runif(I, min = 0, max = pi)
+    t[, 2] <- runif(I, min = 0, max = 2 * pi)
   }
 
-  amp_noise <- rnorm(D, mean = 1, sd = shape_noise)
-  period_noise <- rnorm(D, mean = 1, sd = shape_noise)
+  if (case %in% 1:10) {
+    amp_mean <- 1
+    per_mean <- 1
+  }
+
+  amp_noise <- rnorm(d, mean = amp_mean, sd = shape_noise)
+  period_noise <- rnorm(d, mean = per_mean, sd = shape_noise)
 
   X <- map(
-    t,
+    1:nrow(t),
     ~ manifold(
-      .x,
+      t[.x, ],
       amp_noise,
       period_noise
     )
@@ -57,446 +167,6 @@ sim_data <- function(time_val, case, noise, shape_noise) {
     matrix(ncol = D, byrow = TRUE)
 
   data.points <- X + noise_vals
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D2d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise, shape_noise) {
-  I <- 1000
-  t <- runif(I, min = -3 * pi, max = 3 * pi)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  amp_noise <- rnorm(1, mean = 1, sd = shape_noise)
-  per_noise <- rnorm(1, mean = 1, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 2)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, vertical_noise, horizontal_noise, amp_noise, per_noise) {
-    return(
-      c(
-        tau + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        amp_noise * sin(per_noise * tau) + (vertical_multiplier * sin(time_val)) + vertical_noise
-      )
-    )
-  }
-
-  X <- map(
-    t,
-    ~ manifold(
-      .x,
-      time_val,
-      vertical_multiplier,
-      horizontal_multiplier,
-      vertical_noise,
-      horizontal_noise,
-      amp_noise,
-      per_noise
-    )
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 2, byrow = TRUE)
-  data.points <- X + cbind(e1, e2)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D2d1_case3 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise, shape_noise) {
-  I <- 1000
-  t <- runif(I, min = 0, max = 1.5 * pi)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  amp_noise <- rnorm(2, mean = 0, sd = shape_noise)
-  per_noise <- rnorm(2, mean = 0, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 2)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, vertical_noise, horizontal_noise, amp_noise, per_noise) {
-    return(
-      c(
-        amp_noise[1] * cos(per_noise[1] * tau) + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        amp_noise[2] * sin(per_noise[2] * tau) + (vertical_multiplier * sin(time_val)) + vertical_noise
-      )
-    )
-  }
-
-  X <- map(
-    t,
-    ~ manifold(
-      .x,
-      time_val,
-      vertical_multiplier,
-      horizontal_multiplier,
-      vertical_noise,
-      horizontal_noise,
-      amp_noise,
-      per_noise
-    )
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 2, byrow = TRUE)
-  data.points <- X + cbind(e1, e2)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D2d1_case4 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise, shape_noise) {
-  I <- 1000
-  t <- runif(
-    I,
-    min = 0 + (time_val * (pi / 4)),
-    max = (1.5 * pi) + (time_val * (pi / 4))
-  )
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  amp_noise <- rnorm(2, mean = 1, sd = shape_noise)
-  per_noise <- rnorm(2, mean = 1, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 2)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, vertical_noise, horizontal_noise, amp_noise, per_noise) {
-    return(
-      c(
-        amp_noise[1] * cos(per_noise[1] * tau) + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        amp_noise[2] * sin(per_noise[2] * tau) + (vertical_multiplier * sin(time_val)) + vertical_noise
-      )
-    )
-  }
-
-  X <- map(
-    t,
-    ~ manifold(
-      .x,
-      time_val,
-      vertical_multiplier,
-      horizontal_multiplier,
-      vertical_noise,
-      horizontal_noise,
-      amp_noise,
-      per_noise
-    )
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 2, byrow = TRUE)
-  data.points <- X + cbind(e1, e2)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D3d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) {
-  I <- 1000
-  t <- runif(I, min = -1, max = 1)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  e3 <- rnorm(I, mean = 0, sd = sd.noise)
-  X <- matrix(NA, nrow = I, ncol = 3)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise) {
-    return(
-      c(
-        tau + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        (tau ^ 2) + (vertical_multiplier * sin(time_val)) + vertical_noise,
-        (tau ^ 3) + (depth_multiplier * sin(time_val)) + depth_noise
-      )
-    )
-  }
-
-  X <- map(
-    t,
-    ~ manifold(
-      .x,
-      time_val,
-      vertical_multiplier,
-      horizontal_multiplier,
-      depth_multiplier,
-      vertical_noise,
-      horizontal_noise,
-      depth_noise
-    )
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 3, byrow = TRUE)
-  data.points <- X + cbind(e1, e2, e3)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D3d1_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise) {
-  I <- 1000
-  t <- runif(I, min = 0, max = 3 * pi)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  e3 <- rnorm(I, mean = 0, sd = sd.noise)
-  X <- matrix(NA, nrow = I, ncol = 3)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise) {
-    return(
-      c(
-        tau + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        cos(tau) + (vertical_multiplier * sin(time_val)) + vertical_noise,
-        sin(tau) + (depth_multiplier * sin(time_val)) + depth_noise
-      )
-    )
-  }
-
-  X <- map(
-    t,
-    ~ manifold(
-      .x,
-      time_val,
-      vertical_multiplier,
-      horizontal_multiplier,
-      depth_multiplier,
-      vertical_noise,
-      horizontal_noise,
-      depth_noise
-    )
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 3, byrow = TRUE)
-  data.points <- X + cbind(e1, e2, e3)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D3d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise, shape_noise) {
-  I <- 1000
-  t1 <- runif(I, min = -1, max = 1)
-  t2 <- runif(I, min = -1, max = 1)
-  t <- cbind(t1, t2)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  e3 <- rnorm(I, mean = 0, sd = sd.noise)
-  mult_noise <- rnorm(2, mean = 1, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 3)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise, mult_noise) {
-    return(
-      c(
-        mult_noise[1] * tau[1] + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        mult_noise[2] * tau[2] + (vertical_multiplier * sin(time_val)) + vertical_noise,
-        (norm_euclidean(mult_noise * tau) ^ 2) + (depth_multiplier * sin(time_val)) + depth_noise
-      )
-    )
-  }
-
-  X <- apply(
-    t,
-    1,
-    manifold,
-    time_val = time_val,
-    vertical_multiplier = vertical_multiplier,
-    horizontal_multiplier = horizontal_multiplier,
-    depth_multiplier = depth_multiplier,
-    vertical_noise = vertical_noise,
-    horizontal_noise = horizontal_noise,
-    depth_noise = depth_noise,
-    mult_noise = mult_noise
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 3, byrow = TRUE)
-  data.points <- X + cbind(e1, e2, e3)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D3d2_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise, shape_noise, curvature) {
-  I <- 1000
-  t1 <- runif(I, min = 0, max = 10)
-  t2 <- runif(I, min = -1, max = 1)
-  t <- cbind(t1, t2)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  e3 <- rnorm(I, mean = 0, sd = sd.noise)
-  amp_noise <- rnorm(2, mean = 1, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 3)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise, amp_noise) {
-    return(
-      c(
-        (curvature * amp_noise[1] * tau[1]) * cos(amp_noise[1] * tau[1]) + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        (curvature * amp_noise[2] * tau[1]) * sin(amp_noise[2] * tau[1]) + (vertical_multiplier * sin(time_val)) + vertical_noise,
-        tau[2]
-      )
-    )
-  }
-
-  X <- apply(
-    t,
-    1,
-    manifold,
-    time_val = time_val,
-    vertical_multiplier = vertical_multiplier,
-    horizontal_multiplier = horizontal_multiplier,
-    depth_multiplier = depth_multiplier,
-    vertical_noise = vertical_noise,
-    horizontal_noise = horizontal_noise,
-    depth_noise = depth_noise,
-    amp_noise = amp_noise
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 3, byrow = TRUE)
-  data.points <- X + cbind(e1, e2, e3)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D4d2_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise, shape_noise, curvature) {
-  I <- 1000
-  t1 <- runif(I, min = 1, max = 10)
-  t2 <- runif(I, min = -1, max = 1)
-  t <- cbind(t1, t2)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  e3 <- rnorm(I, mean = 0, sd = sd.noise)
-  e4 <- rnorm(I, mean = 0, sd = 0.000001)
-  amp_noise <- rnorm(2, mean = 1, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 3)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise, amp_noise) {
-    return(
-      c(
-        (curvature * amp_noise[1] * tau[1]) * cos(amp_noise[1] * tau[1]) + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        (curvature * amp_noise[2] * tau[1]) * sin(amp_noise[2] * tau[1]) + (vertical_multiplier * sin(time_val)) + vertical_noise,
-        tau[2],
-        tau[1]
-      )
-    )
-  }
-
-  X <- apply(
-    t,
-    1,
-    manifold,
-    time_val = time_val,
-    vertical_multiplier = vertical_multiplier,
-    horizontal_multiplier = horizontal_multiplier,
-    depth_multiplier = depth_multiplier,
-    vertical_noise = vertical_noise,
-    horizontal_noise = horizontal_noise,
-    depth_noise = depth_noise,
-    amp_noise = amp_noise
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 4, byrow = TRUE)
-  data.points <- X + cbind(e1, e2, e3, e4)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-sim_D4d2_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise, shape_noise, curvature) {
-  I <- 1000
-  t1 <- runif(I, min = 1, max = 10)
-  t2 <- runif(I, min = -1, max = 1)
-  t <- cbind(t1, t2)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  e3 <- rnorm(I, mean = 0, sd = sd.noise)
-  e4 <- rnorm(I, mean = 0, sd = 0.000001)
-  amp_noise <- rnorm(2, mean = 1, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 3)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise, amp_noise) {
-    return(
-      c(
-        cos(amp_noise[1] * tau[1]) + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        sin(amp_noise[2] * tau[1]) + (vertical_multiplier * sin(time_val)) + vertical_noise,
-        tau[2],
-        tau[1]
-      )
-    )
-  }
-
-  X <- apply(
-    t,
-    1,
-    manifold,
-    time_val = time_val,
-    vertical_multiplier = vertical_multiplier,
-    horizontal_multiplier = horizontal_multiplier,
-    depth_multiplier = depth_multiplier,
-    vertical_noise = vertical_noise,
-    horizontal_noise = horizontal_noise,
-    depth_noise = depth_noise,
-    amp_noise = amp_noise
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 4, byrow = TRUE)
-  data.points <- X + cbind(e1, e2, e3, e4)
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-
-sim_D5d2_case2 <- function(time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, noise, time_noise, shape_noise) {
-  I <- 1000
-  t1 <- runif(I, min = 0, max = pi)
-  t2 <- runif(I, min = 0, max = 2 * pi)
-  # t1 <- seq(0, pi, length.out = 100)
-  # t2 <- seq(0, 2 * pi, length.out = 100)
-  t <- cbind(t1, t2)
-  # t <- expand.grid(t1, t2)
-  I <- nrow(t)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  depth_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  e3 <- rnorm(I, mean = 0, sd = sd.noise)
-  e4 <- rnorm(I, mean = 0, sd = 0.000001)
-  e5 <- rnorm(I, mean = 0, sd = 0.000001)
-  amp_noise <- rnorm(2, mean = 1, sd = shape_noise)
-  rho <- 1
-  X <- matrix(NA, nrow = I, ncol = 3)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, depth_multiplier, vertical_noise, horizontal_noise, depth_noise, amp_noise) {
-    return(
-      c(
-        (amp_noise[1] * rho) * sin(tau[1]) * cos(tau[2]),
-        (amp_noise[1] * rho) * sin(tau[1]) * sin(tau[2]),
-        (amp_noise[1] * rho) * cos(tau[1]),
-        tau[1],
-        tau[2]
-      )
-    )
-  }
-
-  X <- apply(
-    t,
-    1,
-    manifold,
-    time_val = time_val,
-    vertical_multiplier = vertical_multiplier,
-    horizontal_multiplier = horizontal_multiplier,
-    depth_multiplier = depth_multiplier,
-    vertical_noise = vertical_noise,
-    horizontal_noise = horizontal_noise,
-    depth_noise = depth_noise,
-    amp_noise = amp_noise
-  ) %>%
-    unlist() %>%
-    matrix(ncol = 5, byrow = TRUE)
-  data.points <- X + cbind(e1, e2, e3, e4, e5)
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
