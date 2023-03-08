@@ -7,42 +7,56 @@ source("code/lpme.R")
 source("code/pme.R")
 source("code/functions/lpme_init.R")
 
-sim_D2d1_case1 <- function(time_val, vertical_multiplier, horizontal_multiplier, noise, time_noise, shape_noise) {
+
+
+sim_data <- function(time_val, case, noise, shape_noise) {
+  manifolds <- list(
+    function(tau, amp_noise, period_noise) {
+      return(c(tau, amp_noise[1] * sin(period_noise[1] * tau + pi / 2)))
+    },
+    function(tau, amp_noise, period_noise) {
+      return(c(tau, amp_noise[1] * sin(period_noise[1] * tau)))
+    }
+  )
+
+  D <- case_when(
+    case == 1 ~ 2,
+    case == 2 ~ 2
+  )
+  d <- case_when(
+    case == 1 ~ 1,
+    case == 2 ~ 1
+  )
+
+  manifold <- manifolds[[case]]
+
   I <- 1000
-  t <- rnorm(I, mean = 0, sd = 1)
-  horizontal_noise <- rnorm(1, mean = 0, sd = time_noise)
-  vertical_noise <- rnorm(1, mean = 0, sd = time_noise)
-  sd.noise <- noise
-  e1 <- rnorm(I, mean = 0, sd = sd.noise)
-  e2 <- rnorm(I, mean = 0, sd = sd.noise)
-  amp_noise <- rnorm(1, mean = 1, sd = shape_noise)
-  per_noise <- rnorm(1, mean = 1, sd = shape_noise)
-  X <- matrix(NA, nrow = I, ncol = 2)
-  manifold <- function(tau, time_val, vertical_multiplier, horizontal_multiplier, vertical_noise, horizontal_noise, amp_noise, per_noise) {
-    return(
-      c(
-        tau + (horizontal_multiplier * sin(time_val)) + horizontal_noise,
-        amp_noise * sin(per_noise * tau + pi / 2) + (vertical_multiplier * sin(time_val)) + vertical_noise
-      )
-    )
+  t <- matrix(NA, nrow = I, ncol = d)
+  X <- matrix(NA, nrow = I, ncol = D)
+  noise_vals <- rnorm(I * D, mean = 0, sd = noise) %>%
+    matrix(nrow = I, ncol = D)
+
+  if (case == 1) {
+    t[, 1] <- rnorm(I, mean = 0, sd = 1)
+  } else if (case == 2) {
+    t[, 1] <- runif(I, min = -3 * pi, max = 3 * pi)
   }
+
+  amp_noise <- rnorm(D, mean = 1, sd = shape_noise)
+  period_noise <- rnorm(D, mean = 1, sd = shape_noise)
 
   X <- map(
     t,
     ~ manifold(
       .x,
-      time_val,
-      vertical_multiplier,
-      horizontal_multiplier,
-      vertical_noise,
-      horizontal_noise,
       amp_noise,
-      per_noise
+      period_noise
     )
   ) %>%
     unlist() %>%
-    matrix(ncol = 2, byrow = TRUE)
-  data.points <- X + cbind(e1, e2)
+    matrix(ncol = D, byrow = TRUE)
+
+  data.points <- X + noise_vals
   data.points <- cbind(time_val, data.points)
   return(data.points)
 }
