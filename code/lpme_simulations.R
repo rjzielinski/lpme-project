@@ -2,368 +2,98 @@ library(tidyverse)
 library(plotly)
 library(pracma)
 library(profvis)
+library(foreach)
+library(doParallel)
 
-source("code/lpme.R")
+source("code/functions/sim_data.R")
+source("code/functions/calc_pme_est.R")
+source("code/functions/calc_lpme_est.R")
 source("code/pme.R")
-source("code/functions/lpme_init.R")
+source("code/lpme.R")
 
-sim_data <- function(time_val, case, noise, shape_noise) {
-  manifolds <- list(
-    function(tau, amp_noise, period_noise) {
-      return(c(tau, amp_noise[1] * sin(period_noise[1] * tau + pi / 2)))
-    },
-    function(tau, amp_noise, period_noise) {
-      return(c(tau, amp_noise[1] * sin(period_noise[1] * tau)))
-    },
-    function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          amp_noise[1] * cos(period_noise[1] * tau),
-          amp_noise[2] * sin(period_noise[2] * tau)
-        )
-      )
-    },
-    function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          amp_noise[1] * cos(period_noise[1] * tau),
-          amp_noise[2] * sin(period_noise[2] * tau)
-        )
-      )
-    },
-    function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          tau,
-          (tau * amp_noise[1] + period_noise[1]) ^ 2,
-          (tau * amp_noise[2] + period_noise[2]) ^ 3
-        )
-      )
-    },
-    function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          tau,
-          amp_noise[1] * cos(period_noise[1] * tau),
-          amp_noise[2] * sin(period_noise[2] * tau)
-        )
-      )
-    },
-    function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          period_noise[1] * tau[1],
-          period_noise[2] * tau[2],
-          amp_noise[1] * (amp_noise[2] * norm_euclidean(period_noise * tau) ^ 2)
-        )
-      )
-    },
-    function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          (period_noise[1] * amp_noise[1] * tau[1]) * cos(amp_noise[1] * tau[1]),
-          (period_noise[2] * amp_noise[2] * tau[1]) * sin(amp_noise[2] * tau[1]),
-          tau[2]
-        )
-      )
-    },
-    function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          amp_noise[1] * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
-          amp_noise[1] * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
-          amp_noise[1] * cos(period_noise[1] * tau[1])
-        )
-      )
-    },
-    function(tau, amp_noise, period_noise) {
-      r <- 1 + amp_noise[1] * (tau[1] + 1) * sqrt(tau[2] + 1)
-      return(
-        c(
-          r * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
-          r * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
-          r * cos(period_noise[1] * tau[1])
-        )
-      )
-    }
-  )
 
-  D <- case_when(
-    case == 1 ~ 2,
-    case == 2 ~ 2,
-    case == 3 ~ 2,
-    case == 4 ~ 2,
-    case == 5 ~ 3,
-    case == 6 ~ 3,
-    case == 7 ~ 3,
-    case == 8 ~ 3,
-    case == 9 ~ 3,
-    case == 10 ~ 3
-  )
-  d <- case_when(
-    case == 1 ~ 1,
-    case == 2 ~ 1,
-    case == 3 ~ 1,
-    case == 4 ~ 1,
-    case == 5 ~ 1,
-    case == 6 ~ 1,
-    case == 7 ~ 2,
-    case == 8 ~ 2,
-    case == 9 ~ 2,
-    case == 10 ~ 2
-  )
-
-  manifold <- manifolds[[case]]
-
-  I <- 1000
-  t <- matrix(NA, nrow = I, ncol = d)
-  X <- matrix(NA, nrow = I, ncol = D)
-  noise_vals <- rnorm(I * D, mean = 0, sd = noise) %>%
-    matrix(nrow = I, ncol = D)
-
-  if (case == 1) {
-    t[, 1] <- rnorm(I, mean = 0, sd = 1)
-  } else if (case == 2) {
-    t[, 1] <- runif(I, min = -3 * pi, max = 3 * pi)
-  } else if (case == 3) {
-    t[, 1] <- runif(I, min = 0, max = 1.5 * pi)
-  } else if (case == 4) {
-    t[, 1] <- runif(I, time_val * (pi / 4), (time_val + 6) * (pi / 4))
-  } else if (case == 5) {
-    t[, 1] <- runif(I, min = -1, max = 1)
-  } else if (case == 6) {
-    t[, 1] <- runif(I, min = 0, max = 3 * pi)
-  } else if (case == 7) {
-    t[, 1] <- runif(I, min = -1, max = 1)
-    t[, 2] <- runif(I, min = -1, max = 1)
-  } else if (case == 8) {
-    t[, 1] <- runif(I, min = 0, max = 10)
-    t[, 2] <- runif(I, min = -1, max = 1)
-  } else if (case == 9) {
-    t[, 1] <- runif(I, min = 0, max = pi)
-    t[, 2] <- runif(I, min = 0, max = 2 * pi)
-  } else if (case == 10) {
-    t[, 1] <- runif(I, min = 0, max = pi)
-    t[, 2] <- runif(I, min = 0, max = 2 * pi)
-  }
-
-  if (case %in% 1:10) {
-    amp_mean <- 1
-    per_mean <- 1
-  }
-
-  amp_noise <- rnorm(d, mean = amp_mean, sd = shape_noise)
-  period_noise <- rnorm(d, mean = per_mean, sd = shape_noise)
-
-  X <- map(
-    1:nrow(t),
-    ~ manifold(
-      t[.x, ],
-      amp_noise,
-      period_noise
-    )
-  ) %>%
-    unlist() %>%
-    matrix(ncol = D, byrow = TRUE)
-
-  data.points <- X + noise_vals
-  data.points <- cbind(time_val, data.points)
-  return(data.points)
-}
-
-########## INITIALIZATION SIMULATIONS ##########
-
-time_noise_vals <- c(0.1, 0.25, 0.5, 1)
-t_vals <- c(5, 10, 25)
-functions <- list(
-  sim_D2d1_case1,
-  sim_D2d1_case2,
-  sim_D2d1_case3,
-  sim_D2d1_case4,
-  sim_D3d1_case1,
-  sim_D3d1_case2,
-  sim_D3d2_case1,
-  sim_D3d2_case2
-)
-
-dim_names <- c(
-  "D2d1",
-  "D2d1",
-  "D2d1",
-  "D2d1",
-  "D3d1",
-  "D3d1",
-  "D3d2",
-  "D3d2"
-)
-
-dim_vals <- c(1, 1, 1, 1, 1, 1, 2, 2)
-
-case_names <- c(
-  "case1",
-  "case2",
-  "case3",
-  "case4",
-  "case1",
-  "case2",
-  "case1",
-  "case2"
-)
-
-init_types <- c("first", "full", "separate")
-
-set.seed(500)
-for (noise_val in time_noise_vals) {
-  for (t_val in t_vals) {
-    for (fun_idx in 1:length(functions)) {
-      time_vals <- 0:t_val
-      df_list <- lapply(
-        time_vals,
-        functions[[fun_idx]],
-        vertical_multiplier = 0.1,
-        horizontal_multiplier = 0.1,
-        noise = 0.15,
-        time_noise = noise_val
-      )
-      data_points <- reduce(df_list, rbind)
-      for (init_type in init_types) {
-        sim_init_result <- lpme_init(
-          data_points,
-          dim_vals[fun_idx],
-          init = init_type
-        )
-
-        init_result_dir <- paste0(
-          "results/init_sim/",
-          dim_names[fun_idx],
-          "/noise_",
-          gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
-          "/t",
-          as.character(length(time_vals)),
-          "/",
-          case_names[fun_idx],
-          "_",
-          init_type
-        )
-
-        if (!dir.exists(init_result_dir)) {
-          dir.create(init_result_dir, recursive = TRUE)
-        }
-
-        saveRDS(
-          sim_init_result,
-          paste0(init_result_dir, ".RDS")
-        )
-
-        sim_lpme_result <- lpme(
-          data_points,
-          dim_vals[fun_idx],
-          init = init_type
-        )
-
-        lpme_result_dir <- paste0(
-          "results/lpme/",
-          dim_names[fun_idx],
-          "/noise_",
-          gsub(pattern = "\\.", replacement = "", x = as.character(noise_val)),
-          "/t",
-          as.character(length(time_vals)),
-          "/",
-          case_names[fun_idx],
-          "_",
-          init_type
-        )
-
-        if (!dir.exists(lpme_result_dir)) {
-          dir.create(lpme_result_dir, recursive = TRUE)
-        }
-
-        saveRDS(
-          sim_lpme_result,
-          paste0(lpme_result_dir, ".RDS")
-        )
-      }
-    }
-  }
-}
 
 ### Simulation Case 1
 
-time_vals <- seq(0, 10, 2)
+noise_vals <- seq(0, 2, 0.1)
+max_times <- c(1, 2, 5, 8, 10)
+intervals <- c(1 / 12, 0.25, 0.5, 1)
 
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D2d1_case1,
-  vertical_multiplier = 0,
-  horizontal_multiplier = 0,
-  noise = 0.15,
-  time_noise = 0.1,
-  shape_noise = 0.3
-)
+param_grid <- expand.grid(max_times, intervals, noise_vals)
 
-data_points <- reduce(df_list, rbind)
+# ncores <- parallel::detectCores() / 2
+# cl <- parallel::makeCluster(ncores, type = "FORK")
+# doParallel::registerDoParallel(cl = cl)
 
-sim_result <- lpme(data_points, 1)
 
-time_vals <- seq(0, 10, 0.1)
-r_vals <- seq(-10, 10, 0.1)
-grid_mat <- expand_grid(time_vals, r_vals)
+set.seed(1286)
+foreach (idx = 1:nrow(param_grid)) %do% {
+# for (time_idx in 1:length(max_times)) {
+  time_vals <- seq(0, param_grid[idx, 1], param_grid[idx, 2])
+  sim_df <- lapply(
+    time_vals,
+    sim_data,
+    case = 1,
+    noise = 0.15,
+    shape_noise = param_grid[idx, 3]
+  ) %>%
+    reduce(rbind)
 
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
+  # lpme_result <- lpme(sim_df, 1, print_plots = FALSE)
+  lpme_result <- lpme(sim_df, 1)
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+  pme_result <- list()
+  pme_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(temp_data, d = 1)
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+  }
+  pme_vals <- reduce(pme_vals, rbind)
 
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
+  tau <- sim_df[, 2]
+  true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
+  true_vals[, 1] <- sim_df[, 1]
+  true_vals[, 2] <- tau
+  true_vals[, 3] <- sin(tau + (pi / 2))
 
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
-r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
-if (sum(r_inrange) == 0) {
-  r_min <- -10
-  r_max <- 10
-}
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.1
-)
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
 
-grid_mat <- expand_grid(time_vals, r_vals)
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
 
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y")
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x,
-  y = ~y,
-  z = ~time,
-  type = "scatter3d",
-  mode = "markers",
-  marker = list(
-    size = 1
+  sim_case1 <- list(
+    times = time_vals,
+    noise = param_grid[idx, 3],
+    lpme_result = lpme_result,
+    pme_results = pme_results,
+    lpme_error = lpme_error,
+    pme_error = pme_error
   )
-) %>%
-  add_trace(
-    x = data_points[, 2],
-    y = data_points[, 3],
-    z = data_points[, 1]
+
+  saveRDS(
+    sim_case1,
+    paste0(
+      "simulations/case1/duration_",
+      str_pad(as.character(param_grid[idx, 1]), 2, side = "left", pad = "0"),
+      "_interval_",
+      as.character(100 * param_grid[idx, 2]),
+      "_noise_",
+      as.character(100 * param_grid[idx, 3]),
+      ".RDS"
+    )
   )
+}
+parallel::stopCluster(cl = cl)
 
 ### Simulation Case 2
 
@@ -1144,4 +874,3 @@ plot_ly(
       )
     )
   )
-
