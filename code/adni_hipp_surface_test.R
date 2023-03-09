@@ -21,13 +21,20 @@ lhipp_surface_centers <- lhipp_surface %>%
   summarize(
     mean_x = mean(x),
     mean_y = mean(y),
-    mean_z = mean(z)
+    mean_z = mean(z),
+    max_x = max(abs(x)),
+    max_y = max(abs(y)),
+    max_z = max(abs(z))
   )
 
 lhipp_bl <- lhipp_surface %>%
   group_by(patno) %>%
   arrange(scan_date) %>%
-  summarize(time_bl = first(scan_date))
+  summarize(
+    time_bl = first(scan_date),
+    max_time = max(scan_date)
+  ) %>%
+  mutate(duration = max_time - time_bl)
 
 overlap <- 0.05
 
@@ -61,9 +68,10 @@ lhipp_surface <- lhipp_surface %>%
     # phi = acos(z / r)
   ) %>%
   mutate(
-    x = x / max(abs(x)),
-    y = y / max(abs(y)),
-    z = z / max(abs(z))
+    x = x / max_x,
+    y = y / max_y,
+    z = z / max_z,
+    time_from_bl = time_from_bl / duration
   )
 
 lhipp_surface_spherical <- lhipp_surface %>%
@@ -150,7 +158,7 @@ lpme_test_pt3 <- lpme(lhipp_pt3_mat, 2)
 lpme_test_pt4 <- lpme(lhipp_pt4_mat, 2)
 
 test_pme <- pme(lhipp_test_bl, d = 2, print_plots = TRUE)
-test_lpme <- lpme(lhipp_test_mat, d = 2)
+test_lpme <- lpme(lhipp_test_mat, d = 2, tuning.para.seq = exp(seq(-20, 5, 0.25)))
 
 
 ### Next step: glue estimated manifolds together to estimate full surface
