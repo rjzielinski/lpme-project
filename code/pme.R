@@ -260,9 +260,6 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
 
     # This block gives the first step of iteration.
     ###############################################
-    if (print_plots == TRUE) {
-      plot_pme(x.obs, X, sol, tnew, I, d, lambda)
-    }
 
     # The iteration for PME is given by the following loop.
     count <- 1
@@ -334,11 +331,6 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
         unlist() %>%
         sum()
 
-
-      if (print_plots == TRUE) {
-        plot_pme(x.obs, X, sol, tnew, I, d, lambda)
-      }
-
       SSD.ratio <- abs(SSD.new - SSD.old) / SSD.old
       count <- count + 1
 
@@ -356,6 +348,10 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
         )
       }
 
+    }
+
+    if (print_plots == TRUE) {
+        plot_pme(x.obs, X, sol, tnew, I, d, lambda)
     }
 
     # For a fixed tuning parameter value, the corresponding MSD is computed by the following chunk.
