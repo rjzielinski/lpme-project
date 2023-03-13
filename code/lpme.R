@@ -1,4 +1,4 @@
-lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, print.MSDs = TRUE, print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.1, init = "full") {
+lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, verbose = "all", print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.1, init = "full") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -10,6 +10,20 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
   require(Rcpp)
   sourceCpp("code/functions/pme_functions.cpp")
   # source("Principal_Manifold_Estimation.R")
+
+  if (verbose == "none") {
+    print.MSDs <- FALSE
+    print.SSDs <- FALSE
+  } else if (verbose == "MSD") {
+    print.MSDs <- TRUE
+    print.SSDs <- FALSE
+  } else if (verbose == "SSD") {
+    print.MSDs <- FALSE
+    print.SSDs <- TRUE
+  } else if (verbose == "all") {
+    print.MSDs <- TRUE
+    print.SSDs <- TRUE
+  }
 
   time_points <- df[, 1] %>%
     unique()
@@ -93,12 +107,14 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
           init_sigma[idx],
           matrix(init_isomap$points[init_timevals == time_points[idx], ], nrow = length(init_theta_hat[init_timevals == time_points[idx]])),
           init_clusters[[idx]]
-        )
+        ),
+        verbose = verbose
       )
     } else {
       pme_results[[idx]] <- pme(
         x.obs = df_temp[, -1],
-        d = d
+        d = d,
+        verbose = verbose
       )
     }
     funcs[[idx]] <- pme_results[[idx]]$embedding.map
@@ -165,15 +181,18 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
   TNEW_new <- list()
 
   for (tuning.ind in 1:length(tuning.para.seq)) {
-    print(
-      paste0(
-        "The tuning parameter is gamma[",
-        as.character(tuning.ind),
-        "] = ",
-        as.character(tuning.para.seq[tuning.ind]),
-        "."
+    if (verbose == "all") {
+      print(
+        paste0(
+          "The tuning parameter is gamma[",
+          as.character(tuning.ind),
+          "] = ",
+          as.character(tuning.para.seq[tuning.ind]),
+          "."
+        )
       )
-    )
+    }
+
 
     w_new <- tuning.para.seq[tuning.ind]
     t_new <- t_initial
@@ -397,17 +416,19 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
       SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
       count <- count + 1
 
-      print(
-        paste0(
-          "SSD = ",
-          as.character(round(SSD_new, 4)),
-          ", SSD.ratio is ",
-          as.character(round(SSD_ratio, 4)),
-          ", and this is the ",
-          as.character(count),
-          "th step of iteration."
+      if (print.SSDs == TRUE) {
+        print(
+          paste0(
+            "SSD = ",
+            as.character(round(SSD_new, 4)),
+            ", SSD.ratio is ",
+            as.character(round(SSD_ratio, 4)),
+            ", and this is the ",
+            as.character(count),
+            "th step of iteration."
+          )
         )
-      )
+      }
     }
 
     data_initial <- matrix(0, nrow = 1, ncol = D_new + d_new)
@@ -460,15 +481,18 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
     )
     MSE_new <- mean(diff_data_fit ^ 2)
     MSE_seq_new[tuning.ind] <- MSE_new
-    print(
-      paste(
-        "When gamma = ",
-        as.character(w_new),
-        ", MSD = ",
-        as.character(MSE_new),
-        "."
+    if (print.MSDs == TRUE) {
+      print(
+        paste(
+          "When gamma = ",
+          as.character(w_new),
+          ", MSD = ",
+          as.character(MSE_new),
+          "."
+        )
       )
-    )
+    }
+
     SOL_new[[tuning.ind]] <- sol_new
     TNEW_new[[tuning.ind]] <- t_new
 
