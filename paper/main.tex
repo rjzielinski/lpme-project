@@ -111,28 +111,49 @@ The framework for principal manifolds originated with the concept of principal c
 Principal manifolds seek to extend this concept to higher dimensions. \cite{smolaRegularizedPrincipalManifolds2001} proposed a regularized principal manifold framework, where principal manifolds minimize \[%
   \argmin_{f \in \mathcal{F}}\left\{E\|X - f\left(\pi_f(X)\right)\|_{\mathbb{R}^D}^2 + \lambda\|Pf\|_{\mathcal{H}}^2\right\}
 \]%
-with $\mathcal{F}$ being a collection of functions and $P$ being an operator that maps $f$ into inner product space $\mathcal{H}$. \cite{mengPrincipalManifoldEstimation2021} build on this framework to provide a more complete definition of principal manifolds, and proposes an algorithm to estimate these principal manifolds.
+with $\mathcal{F}$ being a collection of functions and $P$ being an operator that maps $f$ into inner product space $\mathcal{H}$. If $P = \frac{d}{dr}$, this framework minimizes the mean squared distance (MSD), $\mathcal{D}_X(f) = E\|X - f(\pi_f(X))\|_{\mathbb{R}^{D}}^2$, while penalizing the non-smoothness of the curve $f$. \cite{mengPrincipalManifoldEstimation2021} build on this framework to provide a more complete definition of principal manifolds, and proposes an algorithm to estimate these principal manifolds.
 
-The notation below is used to build to a definition of principal manifolds [still need to formally write out]:
+To ensure that the upcoming definitions are well behaved, we introduce the following function spaces:
 \begin{itemize}
-  \item Observed data $\left\{x_i\right\}_{i=1}^I \subset \mathbb{R}^D$
-  \item Associated latent parameterizations $\left\{t_i\right\}_{i=1}^I \subset \mathbb{R}^d$
-  \item $C_{\infty}\left(\mathbb{R}^d \to \mathbb{R}^D\right) = \left\{f \in C(\mathbb{R}^d \to \mathbb{R}^D): \lim_{\|t\|_{\mathbb{R}^d} \to \infty} \|f(t)\|_{\mathbb{R}^D} = \infty\right\}$ 
-  \item $\nabla f$ denotes the gradient of $f$
-  \item $\nabla^{\bigotimes 2}f$ denotes the Hessian matrix of $f$
-  \item $\|\nabla^{\bigotimes 2}f\|_{\mathbb{R}^{d \times d}} = \left(\sum_{i, j = 1}^{d} |\frac{\partial^2f}{\partial t_i \partial t_j}(t)|^2\right)^{\frac{1}{2}}$
-  \item $\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l = 1}^{D}\|\nabla^{\bigotimes 2}f_l\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D}\int_{\mathbb{R}^d}\sum_{i,j = 1}^{d}|\frac{\partial^2f_l}{\partial t_i \partial t_j}(t)|^2dt$ represents the total squared curvature of manifold $M_f^{d}$
-  \item $\mathcal{K}_{\lambda, \mathbb{P}}(f, g) = \mathbb{E}\|X - f(\pi_{g}(X))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2$, with $\mathcal{K_{\lambda, \mathbb{P}}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f)$
-  \item A manifold $M_{f^*}^{d}$ determined by $f^*$ is a principal manifold for random $D$-vector $X$ with compact support $\text{supp}(\mathbb{P})$ with the tuning parameter $\lambda$ if \[%
-    f_{\lambda}^{*} = \arg \min_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f)
-  ,\]%
-    where \[%
-      \mathcal{F}(\mathbb{P}) = \left\{f \in C_{\infty} \cap \nabla^{-biot 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D}): \sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1\right\}
-    .\]%
-  \item $\pi_{f_\lambda^{*}}(X)$ gives a $d$-dimensional parameterization of $X$
+  \item $\mathcal{C}_{\infty}(\mathbb{R}^{d} \to \mathbb{R}^{D}) = \left\{f \in \mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D}): \lim_{\|r\|_{\mathbb{R}^{d}} \to \infty}\|f(r)\|_{\mathbb{R}^{D}} = \infty\right\}$
+  \item $\nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d}) = \left\{f \in \mathcal{D}'(\mathbb{R}^{d}): \|\nabla^{\bigotimes 2}f\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})\right\}$
+  \item $H^2(\mathbb{R}^{d}) = \left\{f \in L^2(\mathbb{R}^{d}): \|\nabla f\|_{\mathbb{R}^{d}}, \|\nabla^{\bigotimes 2}f\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})\right\}$
+  \item $\nabla^{-\bigotimes 2}L^2(\Omega) = \left\{f|_{\Omega}: f \in \nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d})\right\}$
+  \item $H^2(\Omega) = \left\{f|_{\Omega}: f \in H^2(\mathbb{R}^{d})\right\}$
 \end{itemize}
 
-Given this definition, we now summarize the estimation method provided. This algorithm has three main steps: data reduction, fitting, and tuning. In the reduction step, the HDMDE algorithm is used to summarize the data $\left\{x_i\right\}_{i=1}^{I}$ by points $\left\{\mu_j\right\}_{j=1}^{N}$ with $N \leq I$, and each $\mu_j$ associated with weight $\theta_j$. The fitting stage of the algorithm finds estimated functions 
+In these function spaces, we have the notation:
+\begin{itemize}
+  \item $\Omega$ is any open subset of $\mathbb{R}^{d}$ with a smooth boundary
+  \item $f|_{\Omega}$ denotes the restriction of $f$ to $\Omega$
+  \item $\nabla f$ denotes the gradient vector of $f$
+  \item $\nabla^{\bigotimes 2}f$ denotes the Hessian matrix of $f$
+  \item $\|\nabla^{\bigotimes 2}f\|_{\mathbb{R}^{d \times d}}$ is the function $r \to \|\nabla^{\bigotimes 2}f(r)\|_{\mathbb{R}^{d \times d}} = \left(\sum_{i, j = 1}^{d}\left|\frac{\partial^2f}{\partial t_i \partial t_j}(r)\right|^2\right)^{\frac{1}{2}}$
+  \item $\|\nabla f\|_{L^2(\mathbb{R}^{d})}^2 = \int_{\mathbb{R}^{d}}\sum_{i=1}^{d}\left|\frac{\partial f}{\partial r_i}(r)\right|^2dr $
+  \item $\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f}{\partial r_i \partial r_j}(r)\right|^2dr $
+\end{itemize}
+
+To completely define principal manifolds, \cite{mengPrincipalManifoldEstimation2021} let $\|Pf\|_{\mathcal{H}} = \|f''(r)\|_{\mathbb{R}^{D}}^2$, which provides a greater penalization of roughness than using the first derivative. To allow for manifolds with intrinsic dimension $d \geq 1$ and map $f(t) = \left(f_1(r), f_2(r), \dots, f_D(r)\right)^{T}$, they generalize this term as
+\[%
+  \|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D} \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f_l}{\partial r_i \partial r_j}(r)\right|^2dr
+,\]%
+referred to as the total squared curvature of a manifold. With this penalty term set, principal manifolds are then defined as follows:
+\begin{definition}
+  \label{def:principal_manifolds}
+  Let $X$ be a random $D$-vector associated with the probability measure or density function $\mathbb{P}$ such that $X$ has compact support $\text{supp}(\mathbb{P})$ and finite second moments. Let $f, g \in \mathcal{C}_{\infty}\cap \nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D})$ and $\lambda \in [0, \infty]$, and define the following functionals:
+  \[%
+    \mathcal{K}_{\lambda, \mathbb{P}}(f, g) = E\|X - f(\pi_g(X))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2, \quad \mathcal{K}_{\lambda, \mathbb{P}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f)
+  .\]%
+
+  Then a manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ is called a principal manifold for $X$ with the tuning parameter $\lambda$ if 
+  \[%
+    f_{\lambda}^{*} = \argmin_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f), \ \text{where} \ \mathcal{F}(\mathbb{P}) = \left\{f \in \mathcal{C}_{\infty} \cap \nabla^{-\bigotimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D}): \sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1\right\}
+  .\]%
+\end{definition}
+
+In this setting, we can see that $\pi_{f_{\lambda}^{*}}(X)$ maps the $D$-vector $X$ to a $d$-dimensional parameterization, while $f_{\lambda}^{*}$ embeds the $d$-dimensional parameterization in the original $D$-dimensional space.
+
+To estimate principal manifolds under this definition, \cite{mengPrincipalManifoldEstimation2021} propose the Principal Manifold Estimation (PME) algorithm. This algorithm has three main steps: data reduction, fitting, and tuning. In the reduction step, the HDMDE algorithm uses $k$-means clustering to summarize the data $\left\{x_i\right\}_{i=1}^{I}$ by cluster centers $\left\{\mu_j\right\}_{j=1}^{N}$ with $N \leq I$, and each $\mu_j$ associated with weight $\theta_j$. The number of clusters is chosen using an iterative hypothesis testing approach. For each given value of $\lambda$, the fitting stage of the algorithm uses this reduced dataset to find estimated function 
 \[%
   \hat{f}_\lambda = \arg\min_f \mathcal{K}_{\lambda, \hat{Q}_N}(f)
 ,\]%
@@ -140,16 +161,17 @@ where
 \[%
   \mathcal{K}_{\lambda, \hat{Q}_N}(f) = \sum_{j = 1}^{N}\theta_j \|\mu_j - f(\pi_f(\mu_j))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\bigotimes 2}f\|_{L^2(\mathbb{R}^{d})}^2
 \]% 
-approximates $\mathcal{K}_{\lambda, \mathbb{P}}(f)$. The tuning stage chooses $\lambda^{*} = \arg\min_{\lambda > 0}(\mathcal{D}(\hat{f}_\lambda))$, where 
+approximates $\mathcal{K}_{\lambda, \mathbb{P}}(f)$. The tuning stage chooses the optimal value of $\lambda$, $\lambda^{*} = \arg\min_{\lambda > 0}(\mathcal{D}(\hat{f}_\lambda))$, where 
 \[%
   \mathcal{D}(\hat{f}_\lambda) = \frac{1}{I}\sum_{i=1}^{I}\|x_i - \hat{f}_\lambda(\pi_{\hat{f}_\lambda}(x_i))\|_{\mathbb{R}^{D}}^2
-.\]%
+\]%
+is an empirical estimate of the MSD using the full dataset.
 
-Meng and Eloyan (2021) show that the optimal function will be of spline form. Specific details of the HDMDE algorithm (reduction step) and the PME algorithm (fitting and tuning steps) are given in Meng and Eloyan (2021).
+\cite{mengPrincipalManifoldEstimation2021} show that the optimal function will be of spline form, meaning that when $d = 1$, the function will be a cubic smoothing spline, while the function is a thin plate spline when $d = 2$. Specific details of the HDMDE algorithm (reduction step) and the PME algorithm (fitting and tuning steps) are given in \cite{mengPrincipalManifoldEstimation2021}.
 
 \section{Longitudinal Principal Manifold Estimation Algorithm}
 
-We now introduce the proposed longitudinal principal manifold estimation (LPME) algorithm, following a similar setting as Meng and Eloyan (2021). Let 
+We now introduce the proposed longitudinal principal manifold estimation (LPME) algorithm, following a similar setting as \cite{mengPrincipalManifoldEstimation2021}. Let 
 
 Outline:
 \begin{enumerate}
