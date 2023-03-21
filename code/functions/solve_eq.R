@@ -23,5 +23,6 @@ solve_eq <- function(E, W, t_val, X, w, d, D) {
     matrix(0, nrow = d + 1, ncol = D)
   )
   sol <- ginv(M) %*% b # Solve the linear equations
+  # sol <- solve(M, tol = 1e-100) %*% b
   return(sol)
 }
