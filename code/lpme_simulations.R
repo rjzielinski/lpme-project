@@ -51,6 +51,25 @@ sim_error_case1 <- function(max_time, interval, noise, run = 1, print_plots = FA
   true_vals[, 2] <- tau
   true_vals[, 3] <- sin(tau + (pi / 2))
 
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 1.5)
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 1]
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 1]
+    )
+
   pme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
@@ -82,9 +101,9 @@ sim_error_case1 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -164,9 +183,9 @@ sim_error_case2 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -246,9 +265,9 @@ sim_error_case3 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -328,9 +347,9 @@ sim_error_case4 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -411,9 +430,9 @@ sim_error_case5 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -494,9 +513,9 @@ sim_error_case6 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 2, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 2, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -579,9 +598,9 @@ sim_error_case7 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -664,9 +683,9 @@ sim_error_case8 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -750,9 +769,9 @@ sim_error_case9 <- function(max_time, interval, noise, run = 1, print_plots = FA
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -836,9 +855,9 @@ sim_error_case10 <- function(max_time, interval, noise, run = 1, print_plots = F
     "duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
-    as.character(100 * interval),
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
     "_noise_",
-    as.character(100 * noise),
+    str_pad(as.character(100 * noise), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -926,584 +945,80 @@ errors_case4 <- future_map(
   .options = furrr_options(seed = TRUE)
 )
 
-### D3, d1 Simulation Case 1
-
-time_vals <- seq(0, 10, 2)
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D3d1_case1,
-  vertical_multiplier = 1,
-  horizontal_multiplier = 1,
-  depth_multiplier = 1,
-  noise = 0.15,
-  time_noise = 1
+errors_case5 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case5(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 1)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 0.1)
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
-r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
-if (sum(r_inrange) == 0) {
-  r_min <- -10
-  r_max <- 10
-}
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.1
+errors_case6 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case6(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y")
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x,
-  y = ~y,
-  z = ~time,
-  type = "scatter3d",
-  mode = "markers"
+errors_case7 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case7(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
-### D3, d1 Simulation Case 2
-
-time_vals <- seq(0, 10, 2)
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D3d1_case2,
-  vertical_multiplier = 0,
-  horizontal_multiplier = 0,
-  depth_multiplier = 0,
-  noise = 0.15,
-  time_noise = 1
+errors_case8 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case8(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 1)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 0.1)
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(data_points) - 1)
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
-r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
-if (sum(r_inrange) == 0) {
-  r_min <- -10
-  r_max <- 10
-}
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.1
+errors_case9 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case9(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(data_points) - 1)
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y", "z")
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x,
-  y = ~y,
-  z = ~z,
-  frame = ~time,
-  opacity = 0.5,
-  type = "scatter3d",
-  mode = "markers"
+errors_case10 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case10(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
-
-### D3, d2 Simulation Case 1
-
-time_vals <- seq(0, 10, 2)
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D3d2_case1,
-  vertical_multiplier = 0,
-  horizontal_multiplier = 0,
-  depth_multiplier = 0,
-  noise = 0.15,
-  time_noise = 0.25,
-  shape_noise = 0.2
-)
-
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 2)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 1)
-
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2:3][r_inrange,]))
-r_max <- max(unlist(grid_mat[, 2:3][r_inrange,]))
-if (sum(r_inrange) == 0) {
-  r_min <- -10
-  r_max <- 10
-}
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.2
-)
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-  progress(i, nrow(sim_pred))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r1", "r2", "x1", "x2", "x3")
-
-range_x1 <- max(sim_pred_full_df$x1) - min(sim_pred_full_df$x1)
-range_x2 <- max(sim_pred_full_df$x2) - min(sim_pred_full_df$x2)
-range_x3 <- max(sim_pred_full_df$x3) - min(sim_pred_full_df$x3)
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x1,
-  y = ~x2,
-  z = ~x3,
-  frame = ~time,
-  opacity = 0.5,
-  type = "scatter3d",
-  mode = "markers"
-) %>%
-  layout(
-    scene = list(
-      xaxis = list(
-        range = c(
-          min(sim_pred_full_df$x1) - (0.1 * range_x1),
-          max(sim_pred_full_df$x1) + (0.1 * range_x1)
-        )
-      ),
-      yaxis = list(
-        range = c(
-          min(sim_pred_full_df$x2) - (0.1 * range_x2),
-          max(sim_pred_full_df$x2) + (0.1 * range_x2)
-        )
-      ),
-      zaxis = list(
-        range = c(
-          min(sim_pred_full_df$x3) - (0.1 * range_x3),
-          max(sim_pred_full_df$x3) + (0.1 * range_x3)
-        )
-      )
-    )
-  )
-
-### D3, d2 Simulation Case 2
-
-time_vals <- 0:5
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D3d2_case2,
-  vertical_multiplier = 0.1,
-  horizontal_multiplier = 0.1,
-  depth_multiplier = 0.1,
-  noise = 0.15,
-  time_noise = 0.1,
-  shape_noise = 0.0005,
-  curvature = 0.5
-)
-
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 2)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 1)
-
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2:3][r_inrange,]))
-r_max <- max(unlist(grid_mat[, 2:3][r_inrange,]))
-if (sum(r_inrange) == 0) {
-  r_min <- -10
-  r_max <- 10
-}
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.2
-)
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-  progress(i, nrow(sim_pred))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r1", "r2", "x1", "x2", "x3")
-
-range_x1 <- max(sim_pred_full_df$x1) - min(sim_pred_full_df$x1)
-range_x2 <- max(sim_pred_full_df$x2) - min(sim_pred_full_df$x2)
-range_x3 <- max(sim_pred_full_df$x3) - min(sim_pred_full_df$x3)
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x1,
-  y = ~x2,
-  z = ~x3,
-  frame = ~time,
-  opacity = 0.5,
-  type = "scatter3d",
-  mode = "markers"
-) %>%
-  layout(
-    scene = list(
-      xaxis = list(
-        range = c(
-          min(sim_pred_full_df$x1) - (0.1 * range_x1),
-          max(sim_pred_full_df$x1) + (0.1 * range_x1)
-        )
-      ),
-      yaxis = list(
-        range = c(
-          min(sim_pred_full_df$x2) - (0.1 * range_x2),
-          max(sim_pred_full_df$x2) + (0.1 * range_x2)
-        )
-      ),
-      zaxis = list(
-        range = c(
-          min(sim_pred_full_df$x3) - (0.1 * range_x3),
-          max(sim_pred_full_df$x3) + (0.1 * range_x3)
-        )
-      )
-    )
-  )
-
-## D4, d2, Case 1
-
-time_vals <- 0:5
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D5d2_case2,
-  vertical_multiplier = 0.1,
-  horizontal_multiplier = 0.1,
-  depth_multiplier = 0.1,
-  noise = 0.15,
-  time_noise = 0.1,
-  shape_noise = 0.0001
-  # curvature = 1
-)
-
-data_points <- reduce(df_list, rbind)[, -(5:6)]
-data_points_sph <- cart2sph(data_points[, 2:4])
-data_points <- cbind(data_points, data_points_sph)
-
-test_df <- data_points[data_points[, 1] == 0, -1]
-pme_result <- pme(test_df, 2, print_plots = TRUE)
-
-sim_result <- lpme(data_points, 2)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 1)
-
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2:3][r_inrange,]))
-r_max <- max(unlist(grid_mat[, 2:3][r_inrange,]))
-if (sum(r_inrange) == 0) {
-  r_min <- -10
-  r_max <- 10
-}
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.2
-)
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-  progress(i, nrow(sim_pred))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r1", "r2", "x1", "x2", "x3")
-
-range_x1 <- max(sim_pred_full_df$x1) - min(sim_pred_full_df$x1)
-range_x2 <- max(sim_pred_full_df$x2) - min(sim_pred_full_df$x2)
-range_x3 <- max(sim_pred_full_df$x3) - min(sim_pred_full_df$x3)
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x1,
-  y = ~x2,
-  z = ~x3,
-  frame = ~time,
-  opacity = 0.5,
-  type = "scatter3d",
-  mode = "markers"
-) %>%
-  layout(
-    scene = list(
-      xaxis = list(
-        range = c(
-          min(sim_pred_full_df$x1) - (0.1 * range_x1),
-          max(sim_pred_full_df$x1) + (0.1 * range_x1)
-        )
-      ),
-      yaxis = list(
-        range = c(
-          min(sim_pred_full_df$x2) - (0.1 * range_x2),
-          max(sim_pred_full_df$x2) + (0.1 * range_x2)
-        )
-      ),
-      zaxis = list(
-        range = c(
-          min(sim_pred_full_df$x3) - (0.1 * range_x3),
-          max(sim_pred_full_df$x3) + (0.1 * range_x3)
-        )
-      )
-    )
-  )
-
-## D4, d2, Case 2
-
-time_vals <- 0:5
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D4d2_case2,
-  vertical_multiplier = 0.1,
-  horizontal_multiplier = 0.1,
-  depth_multiplier = 0.1,
-  noise = 0.15,
-  time_noise = 0.1,
-  shape_noise = 0.0001,
-  curvature = 1
-)
-
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 2)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 1)
-
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2:3][r_inrange,]))
-r_max <- max(unlist(grid_mat[, 2:3][r_inrange,]))
-if (sum(r_inrange) == 0) {
-  r_min <- -10
-  r_max <- 10
-}
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.2
-)
-r_list <- lapply(numeric(2), function(x) r_vals)
-r_mat <- as.matrix(expand.grid(r_list))
-
-grid_mat <- expand_grid(time_vals, r_mat) %>%
-  as.matrix()
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-  progress(i, nrow(sim_pred))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r1", "r2", "x1", "x2", "x3")
-
-range_x1 <- max(sim_pred_full_df$x1) - min(sim_pred_full_df$x1)
-range_x2 <- max(sim_pred_full_df$x2) - min(sim_pred_full_df$x2)
-range_x3 <- max(sim_pred_full_df$x3) - min(sim_pred_full_df$x3)
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x1,
-  y = ~x2,
-  z = ~x3,
-  frame = ~time,
-  opacity = 0.5,
-  type = "scatter3d",
-  mode = "markers"
-) %>%
-  layout(
-    scene = list(
-      xaxis = list(
-        range = c(
-          min(sim_pred_full_df$x1) - (0.1 * range_x1),
-          max(sim_pred_full_df$x1) + (0.1 * range_x1)
-        )
-      ),
-      yaxis = list(
-        range = c(
-          min(sim_pred_full_df$x2) - (0.1 * range_x2),
-          max(sim_pred_full_df$x2) + (0.1 * range_x2)
-        )
-      ),
-      zaxis = list(
-        range = c(
-          min(sim_pred_full_df$x3) - (0.1 * range_x3),
-          max(sim_pred_full_df$x3) + (0.1 * range_x3)
-        )
-      )
-    )
-  )
