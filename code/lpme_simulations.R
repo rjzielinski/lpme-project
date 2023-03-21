@@ -209,11 +209,11 @@ sim_error_case3 <- function(max_time, interval, noise, run = 1, print_plots = FA
   }
   pme_vals <- reduce(pme_vals, rbind)
 
-  tau <- sim_df[, 2]
+  tau <- acos(sim_df[, 2])
   true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
   true_vals[, 1] <- sim_df[, 1]
-  true_vals[, 2] <- acos(tau)
-  true_vals[, 3] <- asin(tau)
+  true_vals[, 2] <- cos(tau)
+  true_vals[, 3] <- sin(tau)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -291,11 +291,11 @@ sim_error_case4 <- function(max_time, interval, noise, run = 1, print_plots = FA
   }
   pme_vals <- reduce(pme_vals, rbind)
 
-  tau <- sim_df[, 2]
+  tau <- acos(sim_df[, 2])
   true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
   true_vals[, 1] <- sim_df[, 1]
-  true_vals[, 2] <- acos(tau)
-  true_vals[, 3] <- asin(tau)
+  true_vals[, 2] <- cos(tau)
+  true_vals[, 3] <- sin(tau)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -342,6 +342,514 @@ sim_error_case4 <- function(max_time, interval, noise, run = 1, print_plots = FA
   return(sim_case4)
 }
 
+### Simulation Case 5
+
+sim_error_case5 <- function(max_time, interval, noise, run = 1, print_plots = FALSE) {
+  require(tidyverse)
+  source("code/functions/sim_data.R")
+  source("code/pme.R")
+  source("code/lpme.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  time_vals <- seq(0, max_time, interval)
+  sim_df <- lapply(
+    time_vals,
+    sim_data,
+    case = 5,
+    noise = 0.15,
+    shape_noise = noise
+  ) %>%
+    reduce(rbind)
+
+  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+  lpme_vals[, 1] <- sim_df[, 1]
+  pme_result <- list()
+  pme_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+
+  tau <- sim_df[, 2]
+  true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
+  true_vals[, 1] <- sim_df[, 1]
+  true_vals[, 2] <- tau
+  true_vals[, 3] <- tau ^ 2
+  true_vals[, 4] <- tau ^ 3
+
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  sim_case5 <- list(
+    df = sim_df,
+    times = time_vals,
+    noise = noise,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error
+  )
+  sim_dir <- "simulations/case5/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir)
+  }
+  filename <- paste0(
+    "duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    as.character(100 * interval),
+    "_noise_",
+    as.character(100 * noise),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case5,
+    paste0(sim_dir, filename)
+  )
+  return(sim_case5)
+}
+
+### Simulation Case 6
+
+sim_error_case6 <- function(max_time, interval, noise, run = 1, print_plots = FALSE) {
+  require(tidyverse)
+  source("code/functions/sim_data.R")
+  source("code/pme.R")
+  source("code/lpme.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  time_vals <- seq(0, max_time, interval)
+  sim_df <- lapply(
+    time_vals,
+    sim_data,
+    case = 6,
+    noise = 0.15,
+    shape_noise = noise
+  ) %>%
+    reduce(rbind)
+
+  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+  lpme_vals[, 1] <- sim_df[, 1]
+  pme_result <- list()
+  pme_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+
+  tau <- sim_df[, 2]
+  true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
+  true_vals[, 1] <- sim_df[, 1]
+  true_vals[, 2] <- tau
+  true_vals[, 3] <- cos(tau)
+  true_vals[, 4] <- sin(tau)
+
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  sim_case6 <- list(
+    df = sim_df,
+    times = time_vals,
+    noise = noise,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error
+  )
+  sim_dir <- "simulations/case6/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir)
+  }
+  filename <- paste0(
+    "duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    as.character(100 * interval),
+    "_noise_",
+    as.character(100 * noise),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case6,
+    paste0(sim_dir, filename)
+  )
+  return(sim_case6)
+}
+
+### Simulation Case 7
+
+sim_error_case7 <- function(max_time, interval, noise, run = 1, print_plots = FALSE) {
+  require(tidyverse)
+  source("code/functions/sim_data.R")
+  source("code/pme.R")
+  source("code/lpme.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  time_vals <- seq(0, max_time, interval)
+  sim_df <- lapply(
+    time_vals,
+    sim_data,
+    case = 7,
+    noise = 0.15,
+    shape_noise = noise
+  ) %>%
+    reduce(rbind)
+
+  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+  lpme_vals[, 1] <- sim_df[, 1]
+  pme_result <- list()
+  pme_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+
+  tau <- matrix(ncol = 2)
+  tau[, 1] <- sim_df[, 2]
+  tau[, 2] <- sim_df[, 3]
+  true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
+  true_vals[, 1] <- sim_df[, 1]
+  true_vals[, 2] <- tau[, 1]
+  true_vals[, 3] <- tau[, 2]
+  true_vals[, 4] <- norm_euclidean(tau)^2
+
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  sim_case7 <- list(
+    df = sim_df,
+    times = time_vals,
+    noise = noise,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error
+  )
+  sim_dir <- "simulations/case7/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir)
+  }
+  filename <- paste0(
+    "duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    as.character(100 * interval),
+    "_noise_",
+    as.character(100 * noise),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case7,
+    paste0(sim_dir, filename)
+  )
+  return(sim_case7)
+}
+
+### Simulation Case 8
+
+sim_error_case8 <- function(max_time, interval, noise, run = 1, print_plots = FALSE) {
+  require(tidyverse)
+  source("code/functions/sim_data.R")
+  source("code/pme.R")
+  source("code/lpme.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  time_vals <- seq(0, max_time, interval)
+  sim_df <- lapply(
+    time_vals,
+    sim_data,
+    case = 8,
+    noise = 0.15,
+    shape_noise = noise
+  ) %>%
+    reduce(rbind)
+
+  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+  lpme_vals[, 1] <- sim_df[, 1]
+  pme_result <- list()
+  pme_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+
+  tau <- matrix(ncol = 2)
+  tau[, 1] <- sqrt(sim_df[, 2] ^ 2 + sim_df[, 3] ^ 2)
+  tau[, 2] <- sim_df[, 4]
+  true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
+  true_vals[, 1] <- sim_df[, 1]
+  true_vals[, 2] <- tau[, 1] * cos(tau[, 1])
+  true_vals[, 3] <- tau[, 1] * sin(tau[, 1])
+  true_vals[, 4] <- tau[, 2]
+
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  sim_case8 <- list(
+    df = sim_df,
+    times = time_vals,
+    noise = noise,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error
+  )
+  sim_dir <- "simulations/case8/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir)
+  }
+  filename <- paste0(
+    "duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    as.character(100 * interval),
+    "_noise_",
+    as.character(100 * noise),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case8,
+    paste0(sim_dir, filename)
+  )
+  return(sim_case8)
+}
+
+### Simulation Case 9
+
+sim_error_case9 <- function(max_time, interval, noise, run = 1, print_plots = FALSE) {
+  require(tidyverse)
+  source("code/functions/sim_data.R")
+  source("code/pme.R")
+  source("code/lpme.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  time_vals <- seq(0, max_time, interval)
+  sim_df <- lapply(
+    time_vals,
+    sim_data,
+    case = 9,
+    noise = 0.15,
+    shape_noise = noise
+  ) %>%
+    reduce(rbind)
+
+  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+  lpme_vals[, 1] <- sim_df[, 1]
+  pme_result <- list()
+  pme_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+
+  tau <- matrix(ncol = 3)
+  tau[, 1] <- sqrt(sim_df[, 2] ^ 2 + sim_df[, 3] ^ 2 + sim_df[, 4])
+  tau[, 2] <- atan(sim_df[, 3] / sim_df[, 2])
+  tau[, 3] <- acos(sim_df[, 4] / tau[, 1])
+  true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
+  true_vals[, 1] <- sim_df[, 1]
+  true_vals[, 2] <- tau[, 1] * cos(tau[, 2]) * sin(tau[, 3])
+  true_vals[, 3] <- tau[, 1] * sin(tau[, 2]) * sin(tau[, 3])
+  true_vals[, 4] <- tau[, 1] * cos(tau[, 3])
+
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  sim_case9 <- list(
+    df = sim_df,
+    times = time_vals,
+    noise = noise,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error
+  )
+  sim_dir <- "simulations/case9/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir)
+  }
+  filename <- paste0(
+    "duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    as.character(100 * interval),
+    "_noise_",
+    as.character(100 * noise),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case9,
+    paste0(sim_dir, filename)
+  )
+  return(sim_case9)
+}
+
+### Simulation Case 10
+
+sim_error_case10 <- function(max_time, interval, noise, run = 1, print_plots = FALSE) {
+  require(tidyverse)
+  source("code/functions/sim_data.R")
+  source("code/pme.R")
+  source("code/lpme.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  time_vals <- seq(0, max_time, interval)
+  sim_df <- lapply(
+    time_vals,
+    sim_data,
+    case = 10,
+    noise = 0.15,
+    shape_noise = noise
+  ) %>%
+    reduce(rbind)
+
+  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+  lpme_vals[, 1] <- sim_df[, 1]
+  pme_result <- list()
+  pme_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+
+  tau <- matrix(ncol = 3)
+  tau[, 1] <- sqrt(sim_df[, 2] ^ 2 + sim_df[, 3] ^ 2 + sim_df[, 4])
+  tau[, 2] <- atan(sim_df[, 3] / sim_df[, 2])
+  tau[, 3] <- acos(sim_df[, 4] / tau[, 1])
+  true_vals <- matrix(nrow = nrow(sim_df), ncol = ncol(sim_df))
+  true_vals[, 1] <- sim_df[, 1]
+  true_vals[, 2] <- tau[, 1] * cos(tau[, 2]) * sin(tau[, 3])
+  true_vals[, 3] <- tau[, 1] * sin(tau[, 2]) * sin(tau[, 3])
+  true_vals[, 4] <- tau[, 1] * cos(tau[, 3])
+
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+  ) %>%
+    unlist() %>%
+    mean()
+
+  sim_case10 <- list(
+    df = sim_df,
+    times = time_vals,
+    noise = noise,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error
+  )
+  sim_dir <- "simulations/case10/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir)
+  }
+  filename <- paste0(
+    "duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    as.character(100 * interval),
+    "_noise_",
+    as.character(100 * noise),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case10,
+    paste0(sim_dir, filename)
+  )
+  return(sim_case10)
+}
+
 noise_vals <- seq(0, 2, 0.25)
 max_times <- c(1, 2, 5, 8, 10)
 intervals <- c(0.1, 0.25, 0.5, 1)
@@ -379,202 +887,43 @@ errors_case1 <- future_map(
   .options = furrr_options(seed = TRUE)
 )
 
-### Simulation Case 2
-
-time_vals <- seq(0, 10, 2)
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D2d1_case2,
-  vertical_multiplier = 1,
-  horizontal_multiplier = 1,
-  noise = 0.15,
-  time_noise = 1,
-  shape_noise = 0.3
+errors_case2 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case2(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 1)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 0.1)
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
-r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.1
+errors_case3 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case3(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y")
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x,
-  y = ~y,
-  z = ~time,
-  type = "scatter3d",
-  mode = "markers"
-)
-
-### Simulation Case 3
-
-time_vals <- seq(0, 10, 2)
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D2d1_case3,
-  vertical_multiplier = 1,
-  horizontal_multiplier = 1,
-  noise = 0.15,
-  time_noise = 0.5,
-  shape_noise = 0.3
-)
-
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 1)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 0.1)
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
-r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.1
-)
-
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y")
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x,
-  y = ~y,
-  z = ~time,
-  type = "scatter3d",
-  mode = "markers"
-)
-
-## Simulation Case 4
-
-time_vals <- seq(0, 1, 0.5)
-
-set.seed(100)
-df_list <- lapply(
-  time_vals,
-  sim_D2d1_case4,
-  vertical_multiplier = 1,
-  horizontal_multiplier = 1,
-  noise = 0.15,
-  time_noise = 0.5,
-  shape_noise = 0.3
-)
-
-data_points <- reduce(df_list, rbind)
-
-sim_result <- lpme(data_points, 1)
-
-time_vals <- seq(0, 5, 0.1)
-r_vals <- seq(-10, 10, 0.1)
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-idx_inrange <- matrix(nrow = dim(sim_pred)[1], ncol = dim(sim_pred)[2])
-for (dim_idx in 1:dim(sim_pred)[2]) {
-  idx_range <- max(data_points[, dim_idx + 1]) - min(data_points[, dim_idx + 1])
-  idx_min <- min(data_points[, dim_idx + 1]) - (0.2 * idx_range)
-  idx_max <- max(data_points[, dim_idx + 1]) + (0.2 * idx_range)
-  idx_inrange[, dim_idx] <- (sim_pred[, dim_idx] > idx_min) &
-    (sim_pred[, dim_idx] < idx_max)
-}
-
-r_inrange <- rowSums(idx_inrange) == dim(sim_pred)[2]
-r_min <- min(unlist(grid_mat[, 2][r_inrange, 1]))
-r_max <- max(unlist(grid_mat[, 2][r_inrange, 1]))
-r_vals <- seq(
-  r_min,
-  r_max,
-  0.1
-)
-
-grid_mat <- expand_grid(time_vals, r_vals)
-
-sim_pred <- matrix(nrow = nrow(grid_mat), ncol = ncol(grid_mat))
-for (i in 1:nrow(sim_pred)) {
-  sim_pred[i, ] <- sim_result$embedding_map(unlist(as.vector(grid_mat[i, ])))
-}
-
-sim_pred_full <- cbind(grid_mat, sim_pred)
-sim_pred_full_df <- data.frame(sim_pred_full)
-names(sim_pred_full_df) <- c("time", "r", "x", "y")
-
-plot_ly(
-  sim_pred_full_df,
-  x = ~x,
-  y = ~y,
-  z = ~time,
-  type = "scatter3d",
-  mode = "markers"
+errors_case4 <- future_map(
+  1:nrow(param_grid),
+  ~ sim_error_case4(
+    param_grid[.x, 2],
+    param_grid[.x, 3],
+    param_grid[.x, 1],
+    param_grid[.x, 4],
+    print_plots = FALSE
+  ),
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE)
 )
 
 ### D3, d1 Simulation Case 1
