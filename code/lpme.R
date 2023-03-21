@@ -1,4 +1,4 @@
-lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, verbose = "all", print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.1, init = "full") {
+lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, verbose = "all", print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.05, init = "full") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -108,13 +108,13 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
           matrix(init_isomap$points[init_timevals == time_points[idx], ], nrow = length(init_theta_hat[init_timevals == time_points[idx]])),
           init_clusters[[idx]]
         ),
-        verbose = verbose
+        verbose = "none"
       )
     } else {
       pme_results[[idx]] <- pme(
         x.obs = df_temp[, -1],
         d = d,
-        verbose = verbose
+        verbose = "none"
       )
     }
     funcs[[idx]] <- pme_results[[idx]]$embedding.map
@@ -142,6 +142,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
     ) %>%
       t()
     x_test[[idx]] <- cbind(time_points[idx], x_temp)
+    # x_test[[idx]] <- x_temp
 
     r[[idx]] <- cbind(time_points[idx], r_mat)
   }
@@ -281,6 +282,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
     # )
 
     t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
+    # t_new[, 1] <- t_initial[, 1]
 
   # SSD.prepare <- function(x.prin, f) {
   #   return(
@@ -337,7 +339,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
       #   T_new
       # )
       # M2_new <- cbind(
-      #   2 * t(T_new) %*% W_new %*% E_new,
+    #   2 * t(T_new) %*% W_new %*% E_new,
       #   2 * t(T_new) %*% W_new %*% T_new,
       #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
       # )
@@ -389,6 +391,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
       #   nrow = I_new
       # )
       t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
+      # t_new[, 1] <- t_old[, 1]
 
       X_projection_index <- cbind(X_new, t_new)
       SSD.prepare.again <- function(x.init) {
@@ -436,6 +439,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
       index.temp <- which(clusters_full == i)
       length.temp <- length(index.temp)
       X.i <- matrix(df[index.temp, ], nrow = length.temp)
+      # X.i <- matrix(df[index.temp, -1], nrow = length.temp)
       t.temp <- matrix(rep(t_new[i, 1], length.temp))
       for (j in 1:d_new) {
         t.temp <- cbind(t.temp, rep(t_new[i, j], length.temp))
