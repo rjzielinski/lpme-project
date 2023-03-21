@@ -30,9 +30,12 @@ plot_lpme <- function(x.obs, f, tnew, d_new, D_new, time_points) {
   f_pred_full <- cbind(pred_grid, f_pred)
 
   if (D_new == 3) {
+  # if (D_new == 2) {
     plt <- plot_ly(
       x = f_pred_full[, d_new + 2],
       y = f_pred_full[, d_new + 3],
+      # x = f_pred_full[, d_new + 1],
+      # y = f_pred_full[, d_new + 2],
       z = f_pred_full[, 1],
       type = "scatter3d",
       mode = "markers",
@@ -47,12 +50,18 @@ plot_lpme <- function(x.obs, f, tnew, d_new, D_new, time_points) {
         opacity = 0.15
       )
     print(plt)
-  } else if (D_new >= 4) {
+  } else {
+    # if (D_new >= 3) {
+    if (D_new >= 4) {
     plt <- plot_ly(
       x = f_pred_full[, d_new + 2],
+      # x = f_pred_full[, d_new + 1],
       y = f_pred_full[, d_new + 3],
+      # y = f_pred_full[, d_new + 2],
       z = f_pred_full[, d_new + 4],
-      frame = f_pred_full[, d_new + 1],
+      # z = f_pred_full[, d_new + 3],
+      # frame = f_pred_full[, d_new + 1],
+      frame = f_pred_full[, d_new],
       type = "scatter3d",
       mode = "markers",
       opacity = 0.5
@@ -87,5 +96,6 @@ plot_lpme <- function(x.obs, f, tnew, d_new, D_new, time_points) {
         )
       )
     print(plt)
+    }
   }
 }
