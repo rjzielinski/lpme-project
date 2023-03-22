@@ -1,10 +1,12 @@
-lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, verbose = "all", print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.05, init = "full") {
+lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, verbose = "all", print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.05, init = "full") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
 
   source("code/pme.R")
   source("code/functions/plot_lpme.R")
+  source("code/functions/solve_eq_inter_t.R")
+  source("code/functions/projection_lpme.R")
   require(plotly)
   require(svMisc)
   require(Rcpp)
@@ -166,7 +168,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
   gamma <- 4 - d_new
 
   sig_new <- 0.001
-  theta_hat_new <- weight_seq(x_test, x_test, sig_new)
+  # theta_hat_new <- weight_seq(x_test, x_test, sig_new)
+  theta_hat_new <- init_theta_hat / sum(init_theta_hat)
   centers_new <- x_test
   sigma_new <- 0.001
   W_new <- diag(theta_hat_new)
@@ -237,6 +240,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
     # )
     # sol_new <- ginv(M_new) %*% b_new
 
+    # sol_new <- solve_eq_inter_t(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
     sol_new <- solve_eq(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
 
     # eta.func <- function(t) {
@@ -256,32 +260,32 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
     # }
 
     f_new <- function(t) {
-      return(
-        as.vector(
-          t(sol_new[1:I_new, ]) %*%
-            etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1),]) %*%
-            matrix(c(1, t), ncol = 1)
+      return_vec <- as.vector(
+        t(sol_new[1:I_new, ]) %*%
+          etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1),]) %*%
+          matrix(c(1, t), ncol = 1)
         )
-      )
+      return_vec[1] <- t[1]
+      return(return_vec)
     }
 
     f0_new <- f_new
 
     X_initial_guess <- cbind(X_new, t_new)
     projection.index.f0 <- function(x.init) {
-      projection(
+      projection_lpme(
         x.init[1:D_new],
         f0_new,
         x.init[(D_new + 1):(D_new + d_new)]
       )
     }
 
-    # t_new <- matrix(
-    #   t(apply(X_initial_guess, 1, projection.index.f0)),
-    #   nrow = I_new
-    # )
+    t_new <- matrix(
+      t(apply(X_initial_guess, 1, projection.index.f0)),
+      nrow = I_new
+    )
 
-    t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
+    # t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
     # t_new[, 1] <- t_initial[, 1]
 
   # SSD.prepare <- function(x.prin, f) {
@@ -361,6 +365,7 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
       # )
       # sol_new <- ginv(M_new) %*% b_new
 
+      # sol_new <- solve_eq_inter_t(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
       sol_new <- solve_eq(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
 
       # eta.func <- function(t) {
@@ -371,26 +376,26 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
       # }
 
       f_new <- function(t) {
-        return(
-          as.vector(
-            t(sol_new[1:I_new, ]) %*%
-              etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*%
-              matrix(c(1, t), ncol = 1)
+        return_vec <- as.vector(
+          t(sol_new[1:I_new, ]) %*%
+            etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*%
+            matrix(c(1, t), ncol = 1)
           )
-        )
+        return_vec[1] <- t[1]
+        return(return_vec)
       }
 
       t_old <- t_new
 
       X_initial_guess <- cbind(X_new, t_new)
       projection.index.f0 <- function(x.init) {
-        projection(x.init[1:D_new], f0, x.init[(D_new + 1):(D_new + d_new)])
+        projection_lpme(x.init[1:D_new], f0, x.init[(D_new + 1):(D_new + d_new)])
       }
-      # t_new <- matrix(
-      #   t(apply(X_initial_guess, 1, projection.index.f0)),
-      #   nrow = I_new
-      # )
-      t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
+      t_new <- matrix(
+        t(apply(X_initial_guess, 1, projection.index.f0)),
+        nrow = I_new
+      )
+      # t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
       # t_new[, 1] <- t_old[, 1]
 
       X_projection_index <- cbind(X_new, t_new)
@@ -526,13 +531,13 @@ lpme <- function(df, d, tuning.para.seq = exp(-25:5), alpha = 0.05, max.comp = 5
   #   )
   # }
   f.optimal <- function(t) {
-    return(
-      as.vector(
+    return_vec <- as.vector(
         t(sol_opt[1:I_new, ]) %*%
           etaFunc(t, t_new_opt, gamma) + t(sol_opt[(I_new + 1):(I_new + d_new + 1), ]) %*%
           matrix(c(1, t), ncol = 1)
       )
-    )
+    return_vec[1] <- t[1]
+    return(return_vec)
   }
 
   if (print.MSDs == TRUE) {
