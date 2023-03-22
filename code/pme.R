@@ -484,7 +484,8 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
     SOL = SOL,
     TNEW = TNEW,
     T.parameter = sol.opt,
-    Coef = tnew.opt
+    Coef = tnew.opt,
+    tuning = tuning.para.seq[optimal.ind]
   )
   return(resp)
 
