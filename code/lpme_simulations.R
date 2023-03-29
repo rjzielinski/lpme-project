@@ -35,7 +35,7 @@ sim_error_case1 <- function(max_time, interval, noise, run = 1, print_plots = FA
 
   lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+  # lpme_vals[, 1] <- sim_df[, 1]
   pme_result <- list()
   pme_vals <- list()
   for (t in 1:length(time_vals)) {
@@ -57,7 +57,7 @@ sim_error_case1 <- function(max_time, interval, noise, run = 1, print_plots = FA
     z = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 1.5)
+    marker = list(size = 3)
   ) %>%
     add_markers(
       x = pme_vals[, 2],
@@ -91,7 +91,8 @@ sim_error_case1 <- function(max_time, interval, noise, run = 1, print_plots = FA
     lpme_result = lpme_result,
     pme_results = pme_result,
     lpme_error = lpme_error,
-    pme_error = pme_error
+    pme_error = pme_error,
+    plot = p
   )
   sim_dir <- "simulations/case1/"
   if (!dir.exists(sim_dir)) {
@@ -874,7 +875,7 @@ max_times <- c(1, 2, 5, 8, 10)
 intervals <- c(0.1, 0.25, 0.5, 1)
 replicates <- 1:4
 
-param_grid <- expand.grid(noise_vals, max_times, intervals, replicates)
+param_grid <- expand.grid(noise_vals, intervals, max_times, replicates)
 
 plan(multisession, workers = availableCores() / 2)
 # plan(sequential)
@@ -884,8 +885,8 @@ pb <- progress_bar$new(total = nrow(param_grid))
 #   1:nrow(param_grid),
 #   ~ {
 #     sim_error_case1(
-#       param_grid[.x, 2],
 #       param_grid[.x, 3],
+#       param_grid[.x, 2],
 #       param_grid[.x, 1],
 #       param_grid[.x, 4],
 #       print_plots = TRUE
@@ -896,8 +897,8 @@ pb <- progress_bar$new(total = nrow(param_grid))
 errors_case1 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case1(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -909,8 +910,8 @@ errors_case1 <- future_map(
 errors_case2 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case2(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -922,8 +923,8 @@ errors_case2 <- future_map(
 errors_case3 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case3(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -935,8 +936,8 @@ errors_case3 <- future_map(
 errors_case4 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case4(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -948,8 +949,8 @@ errors_case4 <- future_map(
 errors_case5 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case5(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -961,8 +962,8 @@ errors_case5 <- future_map(
 errors_case6 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case6(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -974,8 +975,8 @@ errors_case6 <- future_map(
 errors_case7 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case7(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -987,8 +988,8 @@ errors_case7 <- future_map(
 errors_case8 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case8(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -1000,8 +1001,8 @@ errors_case8 <- future_map(
 errors_case9 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case9(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
@@ -1013,8 +1014,8 @@ errors_case9 <- future_map(
 errors_case10 <- future_map(
   1:nrow(param_grid),
   ~ sim_error_case10(
-    param_grid[.x, 2],
     param_grid[.x, 3],
+    param_grid[.x, 2],
     param_grid[.x, 1],
     param_grid[.x, 4],
     print_plots = FALSE
