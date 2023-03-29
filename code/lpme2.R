@@ -5,7 +5,6 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 5
 
   source("code/pme.R")
   source("code/functions/plot_lpme.R")
-  source("code/functions/solve_eq_inter_t.R")
   source("code/functions/projection_lpme.R")
   source("code/functions/solve_eq2.R")
   require(plotly)
@@ -230,70 +229,14 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 5
     T_new <- cbind(rep(1, I_new), t_new)
     T_new2 <- cbind(rep(1, nrow(r_full2)), r_full2)
 
-    # E_new <- matrix(NA, ncol = I_new, nrow = I_new)
-    # for (j in 1:I_new) {
-    #   E_prepare <- function(t) {
-    #     eta_kernel(t - t_new[j, ], gamma)
-    #   }
-    #   E_new[, j] <- apply(t_new, 1, E_prepare)
-    # }
-
     E_new <- calcE(t_new, gamma)
     E_new2 <- calcE(r_full2, gamma2)
 
-    # M1_new <- cbind(
-    #   2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
-    #   2 * E_new %*% W_new %*% T_new,
-    #   T_new
-    # )
-    # M2_new <- cbind(
-    #   2 * t(T_new) %*% W_new %*% E_new,
-    #   2 * t(T_new) %*% W_new %*% T_new,
-    #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-    # )
-    # M3_new <- cbind(
-    #   t(T_new),
-    #   matrix(0, ncol = d_new + 1, nrow = d_new + 1),
-    #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-    # )
-    # M_new <- rbind(
-    #   M1_new,
-    #   M2_new,
-    #   M3_new
-    # )
-    #
-    # b_new <- rbind(
-    #   2 * E_new %*% W_new %*% X_new,
-    #   2 * t(T_new) %*% W_new %*% X_new,
-    #   matrix(0, nrow = d_new + 1, ncol = D_new)
-    # )
-    # sol_new <- ginv(M_new) %*% b_new
-
-    # sol_new <- solve_eq_inter_t(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
     # sol_new <- solve_eq(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
-    # sol_coef <- solve_eq(E_new, W_new, T_new, coef_full, w_new, d_new, D_coef)
-    # sol_coef2 <- solve_eq(E_new2, W_new2, T_new2, coef_full2, w_new, d_new2, D_coef2)
     sol_coef <- solve_eq2(E_new, T_new, coef_full, I_new, w_new, d_new, D_coef)
-    # sol_coef2 <- solve_eq2(E_new2, T_new2, coef_full2, nrow(r_full2), w_new, d_new2, D_coef2)
     T_new_idx <- lapply(T_new[, 2], function(x) which(time_points == x)) %>%
       reduce(c)
     sol_coef2 <- solve_eq2(E_new, T_new, coef_full2[T_new_idx, ], I_new, w_new, d_new, D_coef2)
-
-    # eta.func <- function(t) {
-    #   eta.func.prepare <- function(tau) {
-    #     return(eta_kernel(t - tau, gamma))
-    #   }
-    #   return(
-    #     matrix(
-    #       apply(
-    #         t_new,
-    #         1,
-    #         eta.func.prepare
-    #       ),
-    #       ncol = 1
-    #     )
-    #   )
-    # }
 
     f_coef <- function(t) {
       return_vec <- as.vector(
@@ -303,14 +246,6 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 5
       return(return_vec)
     }
 
-    # f_coef2 <- function(t) {
-    #   return_vec <- as.vector(
-    #     t(sol_coef2[1:nrow(r_full2), ]) %*% etaFunc(t, r_full2, gamma2) +
-    #       t(sol_coef2[(nrow(r_full2) + 1):(nrow(r_full2) + d_new2 + 1), ]) %*% matrix(c(1, t), ncol = 1)
-    #   )
-    #   return_mat <- matrix(return_vec, ncol = D_coef, byrow = TRUE)
-    #   return(return_mat)
-    # }
     f_coef2 <- function(t) {
       return_vec <- as.vector(
         t(sol_coef2[1:I_new, ]) %*% etaFunc(t, t_new, gamma) +
@@ -334,23 +269,6 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 5
       # return_vec[1] <- t[1]
       return(return_vec)
     }
-    # f_new <- function(t) {
-    #   return_vec <- as.vector(
-    #     t(coef_full) %*% etaFunc(t, t_new, gamma) +
-    #       t(matrix(coef_full2[T_new_idx, ], ncol = D_coef, byrow = TRUE)) %*% matrix(c(1, t), ncol = 1)
-    #   )
-    #   return_vec
-    # }
-
-    # f_new <- function(t) {
-    #   return_vec <- as.vector(
-    #     t(sol_new[1:I_new, ]) %*%
-    #       etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1),]) %*%
-    #       matrix(c(1, t), ncol = 1)
-    #     )
-    #   # return_vec[1] <- t[1]
-    #   return(return_vec)
-    # }
 
     f0_new <- f_new
 
@@ -411,74 +329,63 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 5
       f0 <- f_new
 
       T_new <- cbind(rep(1, I_new), t_new)
-      # E_new <- matrix(NA, ncol = I_new, nrow = I_new)
-      # for (j in 1:I_new) {
-      #   E.prepare <- function(t) {
-      #     eta_kernel(t - t_new[j, ], gamma)
-      #   }
-      #   E_new[, j] <- apply(t_new, 1, E.prepare)
-      # }
 
       E_new <- calcE(t_new, gamma)
 
-      # M1_new <- cbind(
-      #   2 * E_new %*% W_new %*% E_new + 2 * w_new * E_new,
-      #   2 * E_new %*% W_new %*% T_new,
-      #   T_new
-      # )
-      # M2_new <- cbind(
-    #   2 * t(T_new) %*% W_new %*% E_new,
-      #   2 * t(T_new) %*% W_new %*% T_new,
-      #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-      # )
-      # M3_new <- cbind(
-      #   t(T_new),
-      #   matrix(0, ncol = d_new + 1, nrow = d_new + 1),
-      #   matrix(0, ncol = d_new + 1, nrow = d_new + 1)
-      # )
-      # M_new <- rbind(
-      #   M1_new,
-      #   M2_new,
-      #   M3_new
-      # )
-      #
-      # b_new <- rbind(
-      #   2 * E_new %*% W_new %*% X_new,
-      #   2 * t(T_new) %*% W_new %*% X_new,
-      #   matrix(0, nrow = d_new + 1, ncol = D_new)
-      # )
-      # sol_new <- ginv(M_new) %*% b_new
 
-      # sol_new <- solve_eq_inter_t(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
-      sol_new <- solve_eq(E_new, W_new, T_new, X_new, w_new, d_new, D_new)
+      sol_new <- solve_eq2(E_new, T_new, coef_full, I_new, w_new, d_new, D_new)
+      T_new_idx <- lapply(T_new[, 2], function(x) which(time_points == x)) %>%
+        reduce(c)
+      sol_coef2 <- solve_eq2(E_new, T_new, coef_full2[T_new_idx, ], I_new, w_new, d_new, D_coef2)
 
-      # eta.func <- function(t) {
-      #   eta.func.prepare <- function(tau) {
-      #     return(eta_kernel(t - tau, gamma))
-      #   }
-      #   return(matrix(apply(t_new, 1, eta.func.prepare), ncol = 1))
-      # }
-
-      f_new <- function(t) {
+      f_coef <- function(t) {
         return_vec <- as.vector(
-          t(sol_new[1:I_new, ]) %*%
-            etaFunc(t, t_new, gamma) + t(sol_new[(I_new + 1):(I_new + d_new + 1), ]) %*%
-            matrix(c(1, t), ncol = 1)
-          )
-        return_vec[1] <- t[1]
+          t(sol_coef[1:I_new, ]) %*% etaFunc(t, t_new, gamma) +
+            t(sol_coef[(I_new + 1):(I_new + d_new + 1), ]) %*% matrix(c(1, t), ncol = 1)
+        )
         return(return_vec)
       }
 
-      t_old <- t_new
+      f_coef2 <- function(t) {
+        return_vec <- as.vector(
+          t(sol_coef2[1:I_new, ]) %*% etaFunc(t, t_new, gamma) +
+            t(sol_coef2[(I_new + 1):(I_new + d_new + 1), ]) %*% matrix(c(1, t), ncol = 1)
+        )
+        return(return_vec)
+      }
+
+      sol_new <- apply(t_new, 1, f_coef) %>%
+        t()
+      sol_new2 <- apply(t_new, 1, f_coef2) %>%
+        t()
+
+      f_new <- function(t) {
+        return_vec <- as.vector(
+          t(sol_new) %*% etaFunc(t, t_new, gamma) +
+            # etaFunc(t, t_new, gamma) + t(sol_new2[(I_new + 1):(I_new + d_new + 1),]) %*%
+            # t(f_coef2(t[1])) %*% matrix(c(1, t[1]), ncol = 1)
+            t(matrix(f_coef2(t), nrow = d_new + 1, byrow = TRUE)) %*% matrix(c(1, t), ncol = 1)
+          )
+        # return_vec[1] <- t[1]
+        return(return_vec)
+      }
+
+      f0_new <- f_new
 
       X_initial_guess <- cbind(X_new, t_new)
       projection.index.f0 <- function(x.init) {
-        projection_lpme(x.init[1:D_new], f0, x.init[(D_new + 1):(D_new + d_new)])
+        projection_lpme(
+          x.init[1:D_new],
+          f0_new,
+          x.init[(D_new + 1):(D_new + d_new)]
+        )
       }
+
       t_new <- matrix(
         t(apply(X_initial_guess, 1, projection.index.f0)),
         nrow = I_new
       )
+
       # t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
       # t_new[, 1] <- t_old[, 1]
 
@@ -499,7 +406,8 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 5
         1:I_new,
         ~ dist_euclideanC(
           X_new[.x, ],
-          fNew(t_new[.x, ], sol_new, t_new, I_new, d_new, gamma)
+          # fNew(t_new[.x, ], sol_new, t_new, I_new, d_new, gamma)
+          f_new(t_new[.x, ])
         ) ^ 2
       ) %>%
         unlist() %>%
