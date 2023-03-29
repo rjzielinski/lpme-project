@@ -1,8 +1,48 @@
+library(cowplot)
+library(gridGraphics)
 library(pracma)
 library(lubridate)
+library(scatterplot3d)
 library(tidyverse)
 source("code/pme.R")
 source("code/lpme.R")
+source("code/functions/calc_pme_est.R")
+source("code/functions/calc_lpme_est.R")
+
+create_scatter_mat <- function(mat, nrow = 1) {
+  time_points <- unique(mat[, 1])
+  xmin <- min(mat[, 2])
+  xmax <- max(mat[, 2])
+  ymin <- min(mat[, 3])
+  ymax <- max(mat[, 3])
+  zmin <- min(mat[, 4])
+  zmax <- max(mat[, 4])
+
+  # graphics::layout(matrix(c(1:length(time_points)), 1))
+
+  plots <- list()
+  for (time_idx in 1:length(time_points)) {
+    time <- time_points[time_idx]
+    scatterplot3d(
+      x = mat[mat[, 1] == time, 2],
+      y = mat[mat[, 1] == time, 3],
+      z = mat[mat[, 1] == time, 4],
+      main = paste0("Time = ", as.character(round(time, 3))),
+      highlight.3d = TRUE,
+      pch = 20,
+      xlim = c(xmin, xmax),
+      ylim = c(ymin, ymax),
+      zlim = c(zmin, zmax),
+      xlab = "x",
+      ylab = "y",
+      zlab = "z",
+      box = FALSE
+    )
+    plots[[time_idx]] <- recordPlot()
+  }
+  scatter_grid <- plot_grid(plotlist = plots, nrow = nrow)
+  return(scatter_grid)
+}
 
 lhipp_surface <- read_csv("data/adni_fsl_lhipp_surface_red.csv")
 
@@ -88,6 +128,27 @@ lhipp_surface <- bind_cols(
 lhipp_test <- lhipp_surface %>%
   filter(patno == "002_S_0413")
 
+lhipp_test2 <- lhipp_surface %>%
+  filter(patno == "002_S_0619")
+
+lhipp_test3 <- lhipp_surface %>%
+  filter(patno == "002_S_0685")
+
+lhipp_test4 <- lhipp_surface %>%
+  filter(patno == "002_S_0782")
+
+# lhipp_plot1 <- plot_ly(
+#   filter(lhipp_test4, time_from_bl == 0),
+#   x = ~x,
+#   y = ~y,
+#   z = ~z,
+#   type = "scatter3d",
+#   mode = "markers",
+#   marker = list(size = 3)
+# )
+
+
+
 lhipp_test_pt1 <- lhipp_test %>%
   filter(partition1 == TRUE)
 
@@ -100,7 +161,7 @@ lhipp_test_pt3 <- lhipp_test %>%
 lhipp_test_pt4 <- lhipp_test %>%
   filter(partition4 == TRUE)
 
-lhipp_test_mat <- lhipp_test %>%
+lhipp_test_mat <- lhipp_test4 %>%
   dplyr::select(
     time_from_bl,
     x,
@@ -150,15 +211,29 @@ lhipp_pt4_mat <- lhipp_test_pt4 %>%
   ) %>%
   as.matrix()
 
-test_pme_pt1 <- pme(lhipp_pt1_mat[lhipp_pt1_mat[, 1] == 0, -1], 2)
+# test_pme_pt1 <- pme(lhipp_pt1_mat[lhipp_pt1_mat[, 1] == 0, -1], 2)
 
-lpme_test_pt1 <- lpme(lhipp_pt1_mat, 2)
-lpme_test_pt2 <- lpme(lhipp_pt2_mat, 2)
-lpme_test_pt3 <- lpme(lhipp_pt3_mat, 2)
-lpme_test_pt4 <- lpme(lhipp_pt4_mat, 2)
+# lpme_test_pt1 <- lpme(lhipp_pt1_mat, 2)
+# lpme_test_pt2 <- lpme(lhipp_pt2_mat, 2)
+# lpme_test_pt3 <- lpme(lhipp_pt3_mat, 2)
+# lpme_test_pt4 <- lpme(lhipp_pt4_mat, 2)
 
-test_pme <- pme(lhipp_test_bl, d = 2, print_plots = TRUE)
-test_lpme <- lpme(lhipp_test_mat, d = 2, tuning.para.seq = exp(seq(-20, 5, 0.25)))
+# test_pme <- pme(lhipp_test_bl, d = 2, print_plots = TRUE)
 
+time_vals <- unique(lhipp_test_mat[, 1])
+# test_lpme <- lpme(lhipp_test_mat, d = 2, tuning.para.seq = exp(seq(-20, 5, 0.25)))
+test_lpme <- lpme(lhipp_test_mat, d = 2)
+lpme_vals <- calc_lpme_est(test_lpme, lhipp_test_mat)
+# lpme_vals[, 1] <- sim_df[, 1]
+pme_result <- list()
+pme_vals <- list()
+for (t in 1:length(time_vals)) {
+  temp_data <- lhipp_test_mat[lhipp_test_mat[, 1] == time_vals[t], -1]
+  pme_result[[t]] <- pme(temp_data, d = 2, verbose = "MSD")
+  pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+}
+pme_vals <- reduce(pme_vals, rbind)
 
 ### Next step: glue estimated manifolds together to estimate full surface
+
+
