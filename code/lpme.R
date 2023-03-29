@@ -5,7 +5,6 @@ lpme <- function(df, d, tuning.para.seq = exp(-15:5), alpha = 0.05, max.comp = 5
 
   source("code/pme.R")
   source("code/functions/plot_lpme.R")
-  source("code/functions/solve_eq_inter_t.R")
   source("code/functions/projection_lpme.R")
   require(plotly)
   require(svMisc)
