@@ -16,9 +16,9 @@ plot_lpme <- function(x.obs, f, tnew, d_new, D_new, time_points) {
   # }
   # r_mat <- as.matrix(expand.grid(r_list))
   # pred_grid <- r_mat
-  new_pred <- matrix(ncol = ncol(tnew))
+  new_pred <- matrix(ncol = ncol(tnew) + 1)
   for (time in time_vals) {
-    new_pred <- rbind(new_pred, cbind(time, tnew[, -1]))
+    new_pred <- rbind(new_pred, cbind(time, tnew))
   }
   pred_grid <- new_pred[-1, ]
   f_pred <- map(
@@ -29,18 +29,18 @@ plot_lpme <- function(x.obs, f, tnew, d_new, D_new, time_points) {
 
   f_pred_full <- cbind(pred_grid, f_pred)
 
-  if (D_new == 3) {
-  # if (D_new == 2) {
+  # if (D_new == 3) {
+  if (D_new == 2) {
     plt <- plot_ly(
-      x = f_pred_full[, d_new + 2],
-      y = f_pred_full[, d_new + 3],
+      x = f_pred_full[, d_new + 3],
+      y = f_pred_full[, d_new + 4],
       # x = f_pred_full[, d_new + 1],
       # y = f_pred_full[, d_new + 2],
       z = f_pred_full[, 1],
       type = "scatter3d",
       mode = "markers",
       marker = list(
-        size = 1
+        size = 3
       )
     ) %>%
       add_markers(
@@ -51,27 +51,28 @@ plot_lpme <- function(x.obs, f, tnew, d_new, D_new, time_points) {
       )
     print(plt)
   } else {
-    # if (D_new >= 3) {
-    if (D_new >= 4) {
+    if (D_new >= 3) {
+    # if (D_new >= 4) {
     plt <- plot_ly(
-      x = f_pred_full[, d_new + 2],
+      x = f_pred_full[, d_new + 3],
       # x = f_pred_full[, d_new + 1],
-      y = f_pred_full[, d_new + 3],
+      y = f_pred_full[, d_new + 4],
       # y = f_pred_full[, d_new + 2],
-      z = f_pred_full[, d_new + 4],
+      z = f_pred_full[, d_new + 5],
       # z = f_pred_full[, d_new + 3],
-      # frame = f_pred_full[, d_new + 1],
-      frame = f_pred_full[, d_new],
+      frame = f_pred_full[, d_new + 2],
+      # frame = f_pred_full[, d_new],
       type = "scatter3d",
       mode = "markers",
-      opacity = 0.5
+      opacity = 1,
+      marker = list(size = 3)
     ) %>%
       add_markers(
         x = x.obs[, 2],
         y = x.obs[, 3],
         z = x.obs[, 4],
         frame = x.obs[, 1],
-        opacity = 0.15
+        opacity = 0.2
       ) %>%
       layout(
         scene = list(
