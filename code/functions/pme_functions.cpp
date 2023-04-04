@@ -40,16 +40,18 @@ double dist_euclideanF(arma::vec x, arma::vec y, Function f) {
 
 // [[Rcpp::export]]
 double eta_kernelC(arma::vec t, int lambda) {
+
+  double lambda_num = lambda / 1.0;
   double norm_val = norm_euclideanC(t);
   double y;
   if (lambda % 2 == 0) {
     if (norm_val == 0) {
       y = 0;
     } else {
-      y = pow(norm_val, lambda) * log(norm_val);
+      y = pow(norm_val, lambda_num) * log(norm_val);
     }
   } else {
-    y = pow(norm_val, lambda);
+    y = pow(norm_val, lambda_num);
   }
   return y;
 }
