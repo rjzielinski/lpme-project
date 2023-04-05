@@ -20,7 +20,7 @@ sim_error_case1 <- function(max_time, interval, noise, run = 1, print_plots = FA
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
-  source("code/lpme.R")
+  # source("code/lpme.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
@@ -884,24 +884,28 @@ pb <- progress_bar$new(total = nrow(param_grid))
 # errors_case1 <- map(
 #   1:nrow(param_grid),
 #   ~ {
-#     sim_error_case1(
-#       param_grid[.x, 3],
-#       param_grid[.x, 2],
-#       param_grid[.x, 1],
-#       param_grid[.x, 4],
-#       print_plots = TRUE
+#     try(
+#       sim_error_case1(
+#         param_grid[.x, 3],
+#         param_grid[.x, 2],
+#         param_grid[.x, 1],
+#         param_grid[.x, 4],
+#         print_plots = TRUE
+#       )
 #     )
 #     pb$tick()
 #   }
 # )
 errors_case1 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case1(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case1(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -909,12 +913,14 @@ errors_case1 <- future_map(
 
 errors_case2 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case2(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case2(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -922,12 +928,14 @@ errors_case2 <- future_map(
 
 errors_case3 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case3(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case3(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -935,12 +943,14 @@ errors_case3 <- future_map(
 
 errors_case4 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case4(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case4(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -948,12 +958,14 @@ errors_case4 <- future_map(
 
 errors_case5 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case5(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case5(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -961,12 +973,14 @@ errors_case5 <- future_map(
 
 errors_case6 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case6(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case6(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -974,12 +988,14 @@ errors_case6 <- future_map(
 
 errors_case7 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case7(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case7(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -987,12 +1003,14 @@ errors_case7 <- future_map(
 
 errors_case8 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case8(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case8(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -1000,12 +1018,14 @@ errors_case8 <- future_map(
 
 errors_case9 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case9(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case9(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
@@ -1013,12 +1033,14 @@ errors_case9 <- future_map(
 
 errors_case10 <- future_map(
   1:nrow(param_grid),
-  ~ sim_error_case10(
-    param_grid[.x, 3],
-    param_grid[.x, 2],
-    param_grid[.x, 1],
-    param_grid[.x, 4],
-    print_plots = FALSE
+  ~ try(
+    sim_error_case10(
+      param_grid[.x, 3],
+      param_grid[.x, 2],
+      param_grid[.x, 1],
+      param_grid[.x, 4],
+      print_plots = FALSE
+    )
   ),
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
