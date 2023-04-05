@@ -10,6 +10,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
   require(plotly)
   require(svMisc)
   require(Rcpp)
+  require(nloptr)
   sourceCpp("code/functions/pme_functions.cpp")
   # source("Principal_Manifold_Estimation.R")
 
@@ -232,6 +233,8 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
   MSE_seq_new <- vector()
   SOL_coef <- list()
   TNEW_new <- list()
+  coefs <- list()
+  x_funs <- list()
   functions <- list()
   func_coef <- list()
 
@@ -295,19 +298,16 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
       nrow = I_new
     )
 
+    x_fun <- map(
+      1:I_new,
+      ~ f_new(full_t[.x, ])
+    ) %>%
+      reduce(rbind)
+
     # t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
     # t_new[, 1] <- t_initial[, 1]
 
-    SSD.prepare <- function(x.prin, f) {
-      return(
-        dist_euclidean(
-          x.prin[1:D_new2],
-          f(x.prin[(D_new2 + 1):(D_new2 + d_new)])
-        ) ^ 2
-      )
-    }
-
-    X_projection_index <- cbind(X_new, t_new2)
+    X_projection_index <- cbind(x_fun, full_t)
     # SSD.prepare.again <- function(x.init) {
     #   return(SSD.prepare(x.init, f_new))
     # }
@@ -338,77 +338,58 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     #   SSD_old <- SSD_new
     #   f0 <- f_new
     #
-      # r_bounds <- colMinsMaxs(t_new2[, -1])
-      # r_list <- list()
-      # for (idx in 1:dim(r_bounds)[2]) {
-      #   r_list[[idx]] <- seq(
-      #     r_bounds[1, idx],
-      #     r_bounds[2, idx],
-      #     length.out = n_knots
-      #   )
-      # }
-      # # r_list[[1]] <- time_points
-      # r_mat <- as.matrix(expand.grid(r_list))
-      # r_full <- expand_grid(time_points, r_mat) %>%
-      #   as.matrix()
-      #
-      # spline_coefs <- list()
-      #
-      # x_vals <- map(
-      #   1:I_new,
-      #   ~ f_new(r_full[.x, ])
-      # ) %>%
-      #   reduce(rbind)
-      #
-      # for (time_idx in 1:length(time_points)) {
-      #
-      #   R <- cbind(rep(1, n_knots), r_mat)
-      #   E <- calcE(r_mat, gamma)
-      #
-      #   spline_coefs[[time_idx]] <- solve_eq2(
-      #     E,
-      #     R,
-      #     x_vals[x_vals[, 1] == time_points[time_idx], -1],
-      #     n_knots,
-      #     lambda[time_idx],
-      #     d_new,
-      #     D_new
-      #   ) %>%
-      #     t() %>%
-      #     matrix(nrow = 1)
-      # }
-      #
-      # coef_full <- reduce(spline_coefs, rbind)
-      # x_test <- x_vals
-      # X_new <- x_test
-      # # I_new <- length(theta_hat_new)
-      # I_new <- n
-      #
-      # E_new2 <- calcE(r_full2, gamma2)
-      #
-      # sol_coef <- solve_eq2(E_new2, T_new2, coef_full, nrow(coef_full), w_new, d_new2, D_coef)
-      #
-      # f_coef <- function(t) {
-      #   return_vec <- as.vector(
-      #     # t(sol_coef[1:nrow(coef_full), ]) %*% etaFunc(t, t_new, gamma) +
-      #     t(sol_coef[1:nrow(coef_full), ]) %*% etaFunc(t, r_full2, gamma2) +
-      #       t(sol_coef[(nrow(coef_full) + 1):(nrow(coef_full) + d_new2 + 1), ]) %*% matrix(c(1, t), ncol = 1)
-      #   )
-      #   return(return_vec)
-      # }
-      #
-      # f_new <- function(t) {
-      #   coefs <- f_coef(t[1])
-      #   coef_mat <- matrix(coefs, n_knots + d_new + 1, byrow = TRUE)
-      #   return_vec <- t(coef_mat[1:n_knots, ]) %*% etaFunc(t[-1], t_new, gamma) +
-      #     t(coef_mat[(n_knots + 1):(n_knots + d_new + 1), ]) %*% matrix(c(1, t[-1]), ncol = 1)
-      #   return(c(t[1], return_vec))
-      # }
+    #   spline_coefs <- list()
+    #
+    #   x_vals <- map(
+    #     1:I_new,
+    #     ~ f_new(full_t[.x, ])
+    #   ) %>%
+    #     reduce(rbind)
+    #
+    #   for (time_idx in 1:length(time_points)) {
+    #
+    #     R <- cbind(rep(1, n_knots), r_mat)
+    #     E <- calcE(r_mat, gamma)
+    #
+    #     spline_coefs[[time_idx]] <- solve_eq2(
+    #       E,
+    #       R,
+    #       x_vals[x_vals[, 1] == time_points[time_idx], -1],
+    #       n_knots,
+    #       lambda[time_idx],
+    #       d_new,
+    #       D_new
+    #     ) %>%
+    #       t() %>%
+    #       matrix(nrow = 1)
+    #   }
+    #
+    #   coef_full <- reduce(spline_coefs, rbind)
+    #   x_test <- x_vals
+    #   X_new <- x_test
+    #   # I_new <- length(theta_hat_new)
+    #   E_new2 <- calcE(r_full2, gamma2)
+    #
+    #   sol_coef <- solve_eq2(E_new2, T_new2, coef_full, nrow(coef_full), w_new, d_new2, D_coef)
+    #
+    #   f_coef <- function(t) {
+    #     return_vec <- as.vector(
+    #       # t(sol_coef[1:nrow(coef_full), ]) %*% etaFunc(t, t_new, gamma) +
+    #       t(sol_coef[1:nrow(coef_full), ]) %*% etaFunc(t, r_full2, gamma2) +
+    #         t(sol_coef[(nrow(coef_full) + 1):(nrow(coef_full) + d_new2 + 1), ]) %*% matrix(c(1, t), ncol = 1)
+    #     )
+    #     return(return_vec)
+    #   }
+    #
+    #   f_new <- function(t) {
+    #     coefs <- f_coef(t[1])
+    #     coef_mat <- matrix(coefs, n_knots + d_new + 1, byrow = TRUE)
+    #     return_vec <- t(coef_mat[1:n_knots, ]) %*% etaFunc(t[-1], t_new, gamma) +
+    #       t(coef_mat[(n_knots + 1):(n_knots + d_new + 1), ]) %*% matrix(c(1, t[-1]), ncol = 1)
+    #     return(c(t[1], return_vec))
+    #   }
     #
     #   f0_new <- f_new
-    #
-    #   full_t <- expand_grid(time_points, t_new) %>%
-    #     as.matrix(ncol = d + 1)
     #
     #   X_initial_guess <- cbind(X_new, full_t)
     #   projection.index.f0 <- function(x.init) {
@@ -426,26 +407,6 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     #     nrow = I_new
     #   )
     #
-    #   # t_new <- calc_tnew(X_new, t_new, sol_new, I_new, d_new, gamma)
-    #   # t_new[, 1] <- t_initial[, 1]
-    #
-    #   SSD.prepare <- function(x.prin, f) {
-    #     return(
-    #       dist_euclidean(
-    #         x.prin[1:D_new2],
-    #         f(x.prin[(D_new2 + 1):(D_new2 + d_new)])
-    #       ) ^ 2
-    #     )
-    #   }
-    #
-    #   X_projection_index <- cbind(X_new, t_new2)
-    #   # SSD.prepare.again <- function(x.init) {
-    #   #   return(SSD.prepare(x.init, f_new))
-    #   # }
-    #   # SSD_new <- apply(X_projection_index, 1, SSD.prepare.again) %>%
-    #   #   as.vector() %>%
-    #   #   sum()
-    #
     #   SSD_new <- map(
     #     1:I_new,
     #     ~ dist_euclideanC(
@@ -458,7 +419,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     #     sum()
     #
     #   if (print_plots == TRUE) {
-    #     plot_lpme(df, f_new, t_new, d_new, D_new, time_points)
+    #     plot_lpme(df, f_new, r_mat, d_new, D_new, time_points)
     #   }
     #
     #   SSD_ratio <- abs(SSD_new - SSD_old) / SSD_old
@@ -633,6 +594,8 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
 
     SOL_coef[[tuning.ind]] <- sol_coef
     TNEW_new[[tuning.ind]] <- t_new2
+    coefs[[tuning.ind]] <- r_mat
+    x_funs[[tuning.ind]] <- x_fun
     functions[[tuning.ind]] <- f_new
     func_coef[[tuning.ind]] <- f_coef
 
@@ -650,6 +613,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
   optimal_ind <- min(which(MSE_seq_new == min(MSE_seq_new)))
   sol_opt <- SOL_coef[[optimal_ind]]
   t_new_opt <- TNEW_new[[optimal_ind]]
+  coefs_opt <- coefs[[optimal_ind]]
   # eta.func <- function(t) {
   #   eta.func.prepare <- function(tau) {
   #     return(eta_kernel(t - tau, gamma))
@@ -715,6 +679,8 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     # coe_poly = sol_opt2,
     SOL = SOL_coef,
     TNEW = TNEW_new,
+    coefs = coefs,
+    x_vals = x_funs,
     T_parameter = sol_opt,
     Coef = t_new_opt,
     f_out = functions,
