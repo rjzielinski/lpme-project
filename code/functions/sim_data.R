@@ -1,4 +1,4 @@
-sim_data <- function(time_val, case, noise, shape_noise) {
+sim_data <- function(time_val, case, noise, amp_noise, period_noise, N = 1000) {
   manifolds <- list(
     function(tau, amp_noise, period_noise) {
       return(c(tau, amp_noise[1] * sin(period_noise[1] * tau + pi / 2)))
@@ -45,7 +45,7 @@ sim_data <- function(time_val, case, noise, shape_noise) {
         c(
           period_noise[1] * tau[1],
           period_noise[2] * tau[2],
-          amp_noise[1] * (amp_noise[2] * norm_euclidean(period_noise * tau) ^ 2)
+          amp_noise[1] * (amp_noise[2] * norm_euclidean(period_noise[1:d] * tau) ^ 2)
         )
       )
     },
@@ -106,7 +106,7 @@ sim_data <- function(time_val, case, noise, shape_noise) {
 
   manifold <- manifolds[[case]]
 
-  I <- 1000
+  I <- N
   t <- matrix(NA, nrow = I, ncol = d)
   X <- matrix(NA, nrow = I, ncol = D)
   noise_vals <- rnorm(I * D, mean = 0, sd = noise) %>%
@@ -146,8 +146,8 @@ sim_data <- function(time_val, case, noise, shape_noise) {
   #   per_mean <- 1
   # }
 
-  amp_noise <- rnorm(d, mean = amp_mean, sd = shape_noise)
-  period_noise <- rnorm(d, mean = per_mean, sd = shape_noise)
+  amp_noise <- rnorm(D, mean = amp_mean, sd = amp_noise)
+  period_noise <- rnorm(D, mean = per_mean, sd = period_noise)
 
   X <- map(
     1:nrow(t),
