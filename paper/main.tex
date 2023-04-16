@@ -171,29 +171,23 @@ is an empirical estimate of the MSD using the full dataset.
 
 \section{Longitudinal Principal Manifold Estimation Algorithm}
 
-We now introduce the proposed longitudinal principal manifold estimation (LPME) algorithm, following a similar setting as \cite{mengPrincipalManifoldEstimation2021}. Let 
+We now introduce the proposed longitudinal principal manifold estimation (LPME) algorithm, following a similar setting as \cite{mengPrincipalManifoldEstimation2021}. Let $\left\{x_i\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_t$ $D$-dimensional observations for each individual, where $I_t$ denotes the number of observations available at each time point, with $T$ total time points. As in the setting described above, these observations lie along a $d$-dimensional manifold and are corrupted by $D$-dimensional noise. However, in this updated case, the function determining the manifold may change over time. Note that we assume changes over time to be smooth. Therefore, we seek a function $f^{*}$ that minimizes $\mathcal{D}_X(f^{*})$ while penalizing both the roughness of the function over the time-independent shape and the changes in the function over time, expressed as 
+\[%
+  \mathcal{K}_{\lambda, \gamma, \mathbb{P}}(f, g) = E\|X - f(\pi_g(X))\|_{\mathbb{R}^{D}}^2 + \sum_{t=1}^{T} \lambda_t \|\nabla^{\otimes 2}f_t\|_{L^2(\mathbb{R}^{d})}^2 + \gamma\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^d)}^2
+.\]%
 
-Outline:
-\begin{enumerate}
-    \item Show updated loss function for LPME algorithm
-    \item LPME algorithm
-\end{enumerate}
+To solve this problem, we propose an extension of the method developed in \cite{mengPrincipalManifoldEstimation2021}. The output of the PME algorithm run used for the data at an individual time point is a spline function mapping from a low-dimensional paramterization to a high-dimensional space. In the LPME algorithm, we use the coefficients for spline functions fit at each time point as the outcomes in a thin plate spline, thus smoothing over the coefficients with respect to time. This yields a multistage model that, for a provided time point and set of parameters, obtains a set of spline coefficients associated with the time value, then returns the high-dimensional output of the spline function associated with the parameter set. Details of this approach are described below.
+
+\textit{Initialization}: 
+
+\textit{Fitting}:
+
+\textit{Tuning}:
 
 \RestyleAlgo{ruled}
 \LinesNumbered
 
 \SetKwComment{Comment}{/* }{ */}
-
-	\begin{equation}\label{PMSEF}
-	\mathcal{K}_{\lambda,\mathbb{P}}(f,g)=\mathbb{E}\left\Vert X_t - f\left(\pi_g(X_t)\right)\right\Vert^2_{\mathbb{R}^D} + \lambda \sum_{t = 1}^T \left\Vert\nabla^{\otimes 2} f(t)\right\Vert_{L^2(\mathbb{R}^d)}^2 + \gamma \sum_{X} \left\Vert\nabla^{\otimes 2} f(X_t)\right\Vert_{L^2(\mathbb{R})}^2, 
-	\end{equation}
-	\begin{equation}%\nonumber
-	\mathcal{K}_{\lambda,\mathbb{P}}(f)=\mathcal{K}_{\lambda,\mathbb{P}}(f,f),
-	\end{equation}
-	where $\Vert\nabla^{\otimes 2}f \Vert_{L^2(\mathbb{R}^d)}^2 = \sum_{l=1}^D\int_{\mathbb{R}^d} \sum_{i,j=1}^d\vert\frac{\partial^2 f_l}{\partial t_i \partial t_j}(t)\vert^2dt$. A manifold $M_{f^*}^d$ determined by $f^*$ is called a principal manifold for $X$ (or $\mathbb{P}$) with the tuning parameter $\lambda$ if 
-	\begin{align}\label{def: PM}
-	f^*=\argmin_{f\in\mathscr{F}(\mathbb{P})}\mathcal{K}_{\lambda,\mathbb{P}}(f),\ \ \mbox{ where }\mathscr{F}(\mathbb{P}):=\left\{f\in C_\infty\cap \nabla^{-\otimes 2}L^2( R^d \rightarrow R^D):\sup_{x\in supp(\mathbb{P})}\left\Vert\pi_f(x)\right\Vert_{R^d} = 1 \right\}.
-	\end{align}
 
 \RestyleAlgo{ruled}
 \LinesNumbered
@@ -211,7 +205,6 @@ Parameterization: Apply ISOMAP to parameterize $\left\{\mu_{j, N_t, t}\right\}_{
 \For{t = 1, 2, \dots, T} {
   Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^{N_t}$ and obtain $f_t^*$ and $\lambda_t^*$\;
   $\left\{r_{j, t}\right\} \gets \pi_{f_t^*}(\mu_{j, N_t, t})$ for $j = 1, \dots, N_t$ and $x_{j, t} \gets f_t^*(r_{j, t})$ for $j = 1, \dots, N_t$\;
-  Add column vector $\mathbf{t}$ as first column of $\mathbf{r}$\;
 }
 
 Let $N = \sum_{t=1}^{T}N_t$, $\mathbf{x}$ be a $N \times D$ matrix of stacked values of $\left\{x_{j, t}\right\}_{t = 1}^T$, and $\mathbf{r}$ be a $N \times d + 1$ matrix of stacked values of $\left\{r_{j, t}\right\}_{t = 1}^T$ \;
@@ -256,9 +249,7 @@ Contributions:
 
 Limitations:
 \begin{enumerate}
-  \item Self-consistency condition means that the model cannot fit to self-intersecting manifolds. This is why partitioning is necessary.
-  \item Partitioning approach is somewhat ad hoc and may not work in every situation. In testing it struggled when the structure shape changed drastically, or when orientation was not equivalent. There is not a clear approach to automatic partitioning.
-  \item The process of joining the partitions may introduce error.
+  \item Algorithm assumes stability in shape over time.
   \item Algorithm initialization is sensitive to magnitude of change between time points.
   \item Computation time.
 \end{enumerate}
