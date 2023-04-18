@@ -442,12 +442,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     # }
 
     nearest_x <- calc_nearest_x(df, x_test)
-
-    init_param <- map(
-      1:nrow(df),
-      ~ t_new2[t_new2[, 1] == df[.x, 1], ][nearest_x[.x], ]
-    ) %>%
-      reduce(rbind)
+    init_param <- calc_init_param(df, t_new2, nearest_x)
 
     data_initial <- cbind(df, init_param)
 
