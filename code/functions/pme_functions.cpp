@@ -159,3 +159,19 @@ arma::mat calc_tnew(arma::mat x, arma::mat tnew_init, arma::mat sol, int I, int 
   }
   return tnew_next;
 }
+
+// [[Rcpp::export]]
+arma::vec calc_nearest_x(arma::mat df, arma::mat x) {
+  arma::vec nearest(df.n_rows);
+  for (int i = 0; i < df.n_rows; i++) {
+    arma::mat temp_x = x.rows(find(x.col(0) == df(i, 0)));
+    arma::vec distances(temp_x.n_rows);
+    for (int j = 0; j < temp_x.n_rows; j++) {
+      //distances(j) = dist_euclideanC(df.row(i), temp_x.row(j));
+      distances(j) = dist_euclideanC(df.row(i).t(), temp_x.row(j).t());
+    }
+    nearest(i) = distances.index_min() + 1;
+  }
+  return nearest;
+}
+
