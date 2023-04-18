@@ -147,18 +147,19 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
 
   r_full <- reduce(r, rbind)
 
-  n_knots <- max(num_clusters)
+  length_r <- ceiling(max(num_clusters) ^ (1 / d))
   r_bounds <- colMinsMaxs(r_full)
   r_list <- list()
   for (idx in 1:dim(r_bounds)[2]) {
     r_list[[idx]] <- seq(
       r_bounds[1, idx],
       r_bounds[2, idx],
-      length.out = n_knots
+      length.out = length_r
     )
   }
   # r_list[[1]] <- time_points
   r_mat <- as.matrix(expand.grid(r_list))
+  n_knots <- nrow(r_mat)
   r_full <- r_mat
   r_full2 <- reduce(r2, rbind)
   r_df <- data.frame(r_full)
@@ -440,11 +441,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     #   }
     # }
 
-    nearest_x <- map(
-      1:nrow(df),
-      ~ which.min(apply(x_test[x_test[, 1] == df[.x, 1], ], 1, dist_euclideanC, y = df[.x, ]))
-    ) %>%
-      reduce(c)
+    nearest_x <- calc_nearest_x(df, x_test)
 
     init_param <- map(
       1:nrow(df),
@@ -462,7 +459,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
         r_list[[idx]] <- seq(
           r_bounds[1, idx],
           r_bounds[2, idx],
-          length.out = n_knots
+          length.out = n_knots ^ (1 / d)
         )
       }
       # r_list[[1]] <- time_points
@@ -535,16 +532,32 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
       temp_data_initial <- data_initial[data_initial[, 1] == time_points[time_idx], ]
       proj_para_cv <- map(
         1:nrow(temp_data_initial),
-        ~ projection_lpme(
-          temp_data_initial[.x, 1:D_new2],
-          f_new_cv,
-          temp_data_initial[.x, (D_new2 + 1):(D_new2 + d_new + 1)]
-        ) %>%
-          t()
-      ) %>%
-        reduce(rbind)
+        ~ try({
+          projection_lpme(
+            temp_data_initial[.x, 1:D_new2],
+            f_new_cv,
+            temp_data_initial[.x, (D_new2 + 1):(D_new2 + d_new + 1)]
+          ) %>%
+            t()
+        })
+      )
+
+      errors <- vector()
+      for (i in 1:length(proj_para_cv)) {
+        errors[i] <- sum(class(proj_para_cv[[i]]) == "try-error") > 0
+      }
+
+      if (sum(errors) > 0) {
+        proj_para_cv <- reduce(proj_para_cv, rbind)[-which(errors), ]
+      } else {
+        proj_para_cv <- reduce(proj_para_cv, rbind)
+      }
 
       proj_points_cv <- t(apply(proj_para_cv, 1, f_new_cv))
+
+      if (sum(errors) > 0) {
+        temp_data_initial <- temp_data_initial[-which(errors), ]
+      }
 
       proj_error_cv <- map(
         1:nrow(temp_data_initial),
@@ -688,3 +701,4 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
   )
   return(resp)
 }
+
