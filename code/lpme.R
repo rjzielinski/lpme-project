@@ -1,4 +1,4 @@
-lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, verbose = "all", print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.05, init = "full") {
+lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:10)), alpha = 0.05, max.comp = 500, epsilon = 0.05, max.iter = 100, verbose = "all", print_plots = TRUE, SSD_ratio_threshold = 100, increase_threshold = 1.05, init = "full") {
   # df is an N x (D + 1) matrix, with the first column corresponding
   # to the time point at which each observation was collected
   # this matrix should include the observations from all time points
@@ -80,6 +80,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
   }
 
   num_clusters <- rep(0, length(time_points))
+  errors <- vector()
 
   for (idx in 1:length(time_points)) {
     df_temp <- df[df[, 1] == time_points[idx], ]
@@ -143,6 +144,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     # r[[idx]] <- cbind(time_points[idx], r_mat)[, -2]
     r[[idx]] <- r_mat
     r2[[idx]] <- time_points[idx]
+    errors[idx] <- pme_results[[idx]]$MSD[opt_run]
   }
 
   r_full <- reduce(r, rbind)
@@ -239,6 +241,9 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
   functions <- list()
   func_coef <- list()
 
+  inv_errors <- 1 / errors
+  weights <- inv_errors / sum(inv_errors)
+
   for (tuning.ind in 1:length(tuning.para.seq)) {
     if (verbose == "all") {
       print(
@@ -254,6 +259,7 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
 
 
     w_new <- tuning.para.seq[tuning.ind]
+    W <- diag(weights)
     t_new <- t_initial
     T_new <- cbind(rep(1, n_knots), t_new)
     T_new2 <- cbind(rep(1, nrow(r_full2)), r_full2)
@@ -261,7 +267,8 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
     E_new <- calcE(t_new, gamma)
     E_new2 <- calcE(r_full2, gamma2)
 
-    sol_coef <- solve_eq2(E_new2, T_new2, coef_full, nrow(coef_full), w_new, d_new2, D_coef)
+    # sol_coef <- solve_eq2(E_new2, T_new2, coef_full, nrow(coef_full), w_new, d_new2, D_coef)
+    sol_coef <- solve_eq(E_new2, W, T_new2, coef_full, w_new, d_new2, D_coef)
 
     f_coef <- function(t) {
       return_vec <- as.vector(
