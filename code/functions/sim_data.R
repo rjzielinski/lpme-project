@@ -128,7 +128,7 @@ sim_data <- function(time_val, case, noise, amp_noise, period_noise, N = 1000) {
     t[, 1] <- runif(I, min = -1, max = 1)
     t[, 2] <- runif(I, min = -1, max = 1)
   } else if (case == 8) {
-    t[, 1] <- runif(I, min = 0, max = 10)
+    t[, 1] <- runif(I, min = (1.1 * pi), max = (2.9 * pi))
     t[, 2] <- runif(I, min = -1, max = 1)
   } else if (case == 9) {
     t[, 1] <- runif(I, min = 0, max = pi)
@@ -149,6 +149,9 @@ sim_data <- function(time_val, case, noise, amp_noise, period_noise, N = 1000) {
   amp_noise <- rnorm(D, mean = amp_mean, sd = amp_noise)
   period_noise <- rnorm(D, mean = per_mean, sd = period_noise)
 
+  amp_noise2 <- rnorm(D, mean = amp_mean, sd = 0)
+  period_noise2 <- rnorm(D, mean = per_mean, sd = 0)
+
   X <- map(
     1:nrow(t),
     ~ manifold(
@@ -160,7 +163,19 @@ sim_data <- function(time_val, case, noise, amp_noise, period_noise, N = 1000) {
     unlist() %>%
     matrix(ncol = D, byrow = TRUE)
 
+  X2 <- map(
+    1:nrow(t),
+    ~ manifold(
+      t[.x, ],
+      amp_noise2,
+      period_noise2
+    )
+  ) %>%
+    unlist() %>%
+    matrix(ncol = D, byrow = TRUE)
+
   data.points <- X + noise_vals
   data.points <- cbind(time_val, data.points)
-  return(data.points)
+  X2 <- cbind(time_val, X2)
+  return(list(data.points, X2))
 }
