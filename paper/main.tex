@@ -64,6 +64,7 @@ style=authoryear
 
 \doublespacing
 
+\section*{Abstract}
 
 \section{Introduction}
 
@@ -178,13 +179,39 @@ We now introduce the proposed longitudinal principal manifold estimation (LPME) 
 
 To solve this problem, we propose an extension of the method developed in \cite{mengPrincipalManifoldEstimation2021}. The output of the PME algorithm run used for the data at an individual time point is a spline function mapping from a low-dimensional paramterization to a high-dimensional space. In the LPME algorithm, we use the coefficients of PME functions fit at each time point as the outcomes in a thin plate spline, thus smoothing over the coefficients with respect to time. This yields a multistage model that, for a provided time point and set of parameters, obtains a set of spline coefficients associated with the time value, then returns the high-dimensional output of the spline function associated with the parameter set. Details of this approach are described below.
 
-\textit{Initialization}: We begin by considering $D$-dimensional observations $\left\{y_{it}\right\}_{i=1, t=1}^{I_t, T}$. Like PME, the LPME algorithm begins with a data reduction step, using the HDMDE method detailed in \cite{mengPrincipalManifoldEstimation2021} to estimate a reduced set of cluster centers from $\left\{y_{it}\right\}_{i=1, t=1}^{I_t, T}$. HDMDE is run separately for each individual time point to ensure the time dimension is preserved, while the number of clusters being estimated is allowed to vary for each time point to accommodate potential changes in the shape of the underlying structure. The centers estimated in this step are then used to reach an initial low-dimensional parameterization.
+\subsection*{Initialization}
+We begin by considering $D$-dimensional observations $\left\{y_{it}\right\}_{i=1, t=1}^{I_t, T}$. Like PME, the LPME algorithm begins with a data reduction step, using the HDMDE method detailed in \cite{mengPrincipalManifoldEstimation2021} to estimate a reduced set of cluster centers from $\left\{y_{it}\right\}_{i=1, t=1}^{I_t, T}$. HDMDE is run separately for each individual time point to ensure the time dimension is preserved, while the number of clusters being estimated is allowed to vary for each time point to accommodate potential changes in the shape of the underlying structure. The centers estimated in this step are then used to reach an initial low-dimensional parameterization.
 
 The PME algorithm uses ISOMAP (\cite{tenenbaumGlobalGeometricFramework2000}) to develop an initial parameterization, which the algorithm proceeds to iteratively improve. However, using this process several times over similarly shaped structures is likely to result in inconsistent parameterization directions (i.e. low values in the parameter space may be associated with low values in the embedding space for one run, while low values in the parameter space may be associated with high values in the embedding space in another). Reaching a successful fit in the LPME algorithm requires consistent parameterizations across time points, so a different approach to generating an initial parameterization is needed. Instead of using ISOMAP on the data for each time point separately, the LMPE approach removes the time dimension from the cluster centers of all time steps, then uses one ISOMAP run to reach a parameterization for the centers across all time points simultaneously. Assuming relative stability in the structure shape over time, this process ensures that the initial parameterization remains consistent over time.
 
-\textit{Fitting}:
+\subsection*{Fitting}
+Once the initial parameterization for each cluster center is obtained, the model fitting process begins by using this parameterization as the initialization for runs of the PME algorithm at each time point. Specifically, for each time point, the cluster centers associated with the given time value, their weights, and the corresponding parameterizations for these points are used to initialize a PME run. This results in an estimated principal manifold for each time point. The remainder of the fitting stage involves estimating a thin plate spline function mapping from the time dimension to the coefficient space that smooths over the coefficients for these principal manifolds, given a tuning parameter $\gamma$.
 
-\textit{Tuning}:
+At each time point, the estimated principal manifold has the functional form of a smoothing spline or thin plate spline, depending on the intrinsic dimension $d$. As detailed by \cite{greenSilverman1994}, smoothing splines, and thin plate splines as their higher dimensional analogues, may be considered to have knots at the points being used to fit them. This means that, in order for the coefficients of the manifolds estimated at each time point to be comparable, the parameter values used as inputs when the functions were fit must be identical. Hence, to obtain coefficients that can be compared across time points, a grid of values ranging from the minimum to the maximum of the parameters in each of the $d$ dimensions is input into the estimated embedding functions for each time point $f_t^*$. This yields a set of outcomes corresponding to same parameter values at each time point. Following the discussion in Chapter 7 of \cite{greenSilverman1994}, comparable spline coefficients $\delta$ and $\mathbf{a}$ can then be calculated by minimizing
+\[%
+  S(g) = (\mathbf{X} - E\delta - T^{T}\mathbf{a})^{T}(\mathbf{Y} - E\delta - T^{T}\mathbf{a}) + \gamma\delta^{T}E\delta
+,\]%
+where matrix $E$ is defined by $E_{ij} = \eta_{d}(\|\mathbf{r}_i - \mathbf{r}_j\|)$ and matrix $T$ has $T_{ij} = \phi_i(\mathbf{r}_j)$. This minimization is conducted by solving
+\[%
+  \left[
+    \begin{array}{cc}
+      E + \gamma I & T^{T} \\
+      T^{T} & 0
+    \end{array}
+  \right]\left(
+    \begin{array}{c}
+      \mathbf{\delta} \\
+      \mathbf{a}
+    \end{array}
+  \right) = \left(
+    \begin{array}{c}
+      \mathbf{Y} \\
+      0
+    \end{array}
+  \right)
+.\]%
+
+\subsection*{Tuning}
 
 \RestyleAlgo{ruled}
 \LinesNumbered
