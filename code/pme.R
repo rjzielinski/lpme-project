@@ -381,11 +381,12 @@ pme <- function(x.obs, d, initialization = NULL, N0=20*D, tuning.para.seq=exp((-
       ncol = d
     )
     proj.points <- t(apply(proj.para, 1, fnew))
-    diff.data.fit <- apply(
-      data.initial[, 1:D] - proj.points,
-      1,
-      norm_euclidean
-    )
+    diff.data.fit <- dist_euclideanC_vec(data.initial[, 1:D], proj.points)
+    # diff.data.fit <- apply(
+    #   data.initial[, 1:D] - proj.points,
+    #   1,
+    #   norm_euclidean
+    # )
     MSE <- mean(diff.data.fit ^ 2)
 
     MSE.seq[tuning.ind] <- MSE
