@@ -554,11 +554,11 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:5)), alpha = 0.05, max.co
         temp_data_initial <- temp_data_initial[-which(errors), ]
       }
 
-      proj_error_cv <- map(
-        1:nrow(temp_data_initial),
-        ~ dist_euclideanC(temp_data_initial[.x, 1:D_new2], proj_points_cv[.x, ])
+      proj_error_cv <- dist_euclideanC_vec(
+        temp_data_initial[, 1:D_new2],
+        proj_points_cv
       ) %>%
-        reduce(c)
+        as.vector()
       cv_mse[time_idx] <- mean(proj_error_cv ^ 2)
     }
 
