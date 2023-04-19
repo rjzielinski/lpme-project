@@ -39,6 +39,15 @@ double dist_euclideanF(arma::vec x, arma::vec y, Function f) {
 }
 
 // [[Rcpp::export]]
+arma::vec dist_euclideanC_vec(arma::mat x, arma::mat y) {
+  arma::vec distances(x.n_rows);
+  for (int i = 0; i < x.n_rows; i++) {
+    distances(i) = dist_euclideanC(x.row(i).t(), y.row(i).t());
+  }
+  return distances;
+}
+
+// [[Rcpp::export]]
 double eta_kernelC(arma::vec t, int lambda) {
 
   double lambda_num = lambda / 1.0;
