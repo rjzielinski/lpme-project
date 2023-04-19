@@ -419,14 +419,14 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -533,14 +533,14 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -649,14 +649,14 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -767,14 +767,14 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -872,7 +872,7 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run =
   pol <- sim_df[, -c(1, 4)] %>%
     cart2pol()
   sim_df <- cbind(sim_df, pol)
-
+  sim_df <- sim_df[, -5]
 
   lpme_result <- lpme(sim_df, 2, print_plots = print_plots, verbose = "MSD")
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
@@ -888,14 +888,14 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -991,8 +991,8 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, n, run =
   true_vals <- true_vals[-1, ]
 
   sph <- sim_df[, -1] %>%
-    cart2pol()
-  sim_df <- cbind(sim_df, pol)
+    cart2sph()
+  sim_df <- cbind(sim_df, sph)
 
 
   lpme_result <- lpme(sim_df, 2, print_plots = print_plots, verbose = "MSD")
@@ -1009,14 +1009,14 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1111,6 +1111,10 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, n, run 
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sph <- sim_df[, -1] %>%
+    cart2sph()
+  sim_df <- cbind(sim_df, sph)
+
 
   lpme_result <- lpme(sim_df, 2, print_plots = print_plots, verbose = "MSD")
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
@@ -1126,14 +1130,14 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, n, run 
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])
+    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1203,7 +1207,7 @@ amp_noise_vals <- seq(0, 2, 0.25)
 shape_noise_vals <- seq(0, 2, 0.25)
 max_times <- c(1, 2, 5, 8, 10)
 intervals <- c(0.1, 0.25, 0.5, 1)
-n_vals <- 10^(2:4)
+n_vals <- 10^(3:4)
 replicates <- 1:4
 
 param_grid <- expand.grid(
@@ -1215,191 +1219,219 @@ param_grid <- expand.grid(
   replicates
 )
 
-plan(multisession, workers = availableCores() / 2)
+# plan(multisession, workers = availableCores() / 2)
+plan(multicore, workers = availableCores() - 2)
 # plan(sequential)
-set.seed(1286)
+set.seed(26818)
 pb <- progress_bar$new(total = nrow(param_grid))
-# errors_case1 <- map(
+# errors <- map(
 #   1:nrow(param_grid),
 #   ~ {
 #     try(
 #       sim_error_case1(
-#         param_grid[.x, 3],
-#         param_grid[.x, 2],
-#         param_grid[.x, 1],
+#         param_grid[.x, 5],
 #         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
 #         print_plots = TRUE
 #       )
 #     )
-#     pb$tick()
+#     try(
+#       sim_error_case2(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
+#     try(
+#       sim_error_case3(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
+#     try(
+#       sim_error_case5(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
+#     try(
+#       sim_error_case6(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
+#     try(
+#       sim_error_case7(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
+#     try(
+#       sim_error_case8(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
+#     try(
+#       sim_error_case9(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
+#     try(
+#       sim_error_case10(
+#         param_grid[.x, 5],
+#         param_grid[.x, 4],
+#         param_grid[.x, 1],
+#         param_grid[.x, 2],
+#         param_grid[.x, 3],
+#         param_grid[.x, 6],
+#         print_plots = TRUE
+#       )
+#     )
 #   }
 # )
-errors_case1 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case1(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
-    )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
 
-errors_case2 <- future_map(
+errors <- future_map(
   1:nrow(param_grid),
-  ~ try(
-    sim_error_case2(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+  ~ {
+    try(
+      sim_error_case1(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
-
-errors_case3 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case3(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+    try(
+      sim_error_case2(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
-
-# errors_case4 <- future_map(
-#   1:nrow(param_grid),
-#   ~ try(
-#     sim_error_case4(
-#       param_grid[.x, 5],
-#       param_grid[.x, 4],
-#       param_grid[.x, 1],
-#       param_grid[.x, 2],
-#       param_grid[.x, 3],
-#       param_grid[.x, 6],
-#       print_plots = FALSE
-#     )
-#   ),
-#   .progress = TRUE,
-#   .options = furrr_options(seed = TRUE)
-# )
-
-errors_case5 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case5(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+    try(
+      sim_error_case3(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
-
-errors_case6 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case6(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+    try(
+      sim_error_case5(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
-
-errors_case7 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case7(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+    try(
+      sim_error_case6(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
-
-errors_case8 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case8(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+    try(
+      sim_error_case7(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
-
-errors_case9 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case9(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+    try(
+      sim_error_case8(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
-)
-
-errors_case10 <- future_map(
-  1:nrow(param_grid),
-  ~ try(
-    sim_error_case10(
-      param_grid[.x, 5],
-      param_grid[.x, 4],
-      param_grid[.x, 1],
-      param_grid[.x, 2],
-      param_grid[.x, 3],
-      param_grid[.x, 6],
-      print_plots = FALSE
+    try(
+      sim_error_case9(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
     )
-  ),
+    try(
+      sim_error_case10(
+        param_grid[.x, 5],
+        param_grid[.x, 4],
+        param_grid[.x, 1],
+        param_grid[.x, 2],
+        param_grid[.x, 3],
+        param_grid[.x, 6],
+        print_plots = FALSE
+      )
+    )
+    },
   .progress = TRUE,
   .options = furrr_options(seed = TRUE)
 )
