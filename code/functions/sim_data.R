@@ -128,7 +128,7 @@ sim_data <- function(time_val, case, noise, amp_noise, period_noise, N = 1000) {
     t[, 1] <- runif(I, min = -1, max = 1)
     t[, 2] <- runif(I, min = -1, max = 1)
   } else if (case == 8) {
-    t[, 1] <- runif(I, min = (1.1 * pi), max = (2.9 * pi))
+    t[, 1] <- runif(I, min = (0.2 * pi), max = (2.9 * pi))
     t[, 2] <- runif(I, min = -1, max = 1)
   } else if (case == 9) {
     t[, 1] <- runif(I, min = 0, max = pi)
