@@ -855,8 +855,8 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_data,
     case = 8,
     noise = 0.15,
-    amp_noise = amp_noise,
-    period_noise = shape_noise,
+    amp_noise = amp_noise / 25,
+    period_noise = shape_noise / 25,
     N = n
   )
 
