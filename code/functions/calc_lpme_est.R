@@ -1,7 +1,13 @@
 calc_lpme_est <- function(result, df) {
-  opt_idx <- which.min(result$MSD)
-  x_vals <- result$x_vals[[opt_idx]]
-  tnew_init <- result$TNEW[[opt_idx]]
+  opt_idx <- which.min(result$msd)
+  r_full <- expand_grid(result$times, result$r_init) %>%
+    as.matrix()
+  x_vals <- map(
+    1:nrow(r_full),
+    ~ embed(result, r_full[.x, ])
+  ) %>%
+    reduce(rbind)
+  tnew_init <- result$r_fit
 
   nearest_x <- map(
     1:nrow(df),
@@ -17,12 +23,12 @@ calc_lpme_est <- function(result, df) {
 
   tnew <- map(
     1:nrow(df),
-    ~ projection_lpme(df[.x, ], result$embedding_map, init_param[.x, ])
+    ~ projection_lpme(df[.x, ], function(x) embed(result, x), init_param[.x, ])
   ) %>%
     reduce(rbind)
   results <- map(
     1:nrow(df),
-    ~ result$embedding_map(tnew[.x, ])
+    ~ embed(result, tnew[.x, ])
   ) %>%
     reduce(rbind)
   return(results)
