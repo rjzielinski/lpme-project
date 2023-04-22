@@ -721,21 +721,6 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:10)), alpha = 0.05, max.c
     )
   }
 
-  new_lpme <- function(
-    msd,
-    sol_coef,
-    times,
-    r_init,
-    r_fit,
-    d,
-    D,
-    n_knots,
-    lambda,
-    gamma,
-    sol_coef_list,
-    r_fit_list
-)
-
   lpme_out <- new_lpme(
     msd = MSE_seq_new,
     sol_coef = sol_opt,
@@ -753,8 +738,6 @@ lpme <- function(df, d, tuning.para.seq = c(0, exp(-15:10)), alpha = 0.05, max.c
 
   return(lpme_out)
 }
-
-
 
 embed <- function(object, x) {
   n_times <- length(object$times)
