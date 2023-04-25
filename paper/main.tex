@@ -281,40 +281,28 @@ Note that alternative cross validation methods, such as $k$-fold cross validatio
   Apply ISOMAP to parameterize $\left\{\mu_{j, t}\right\}_{j = 1, t = 1}^{N_t, T}$ by the $d$-dimensional parameters $\left\{r_{j, t}\right\}_{j = 1, t = 1}^{N_t, T}$. Formally set $\pi_{f_t(0)}(\mu_{j, t}) \gets r_{j, t}$ for $j = 1, 2, \dots, N_t$, $t = 1, 2, \dots, T$\;
 
 \For{t = 1, 2, \dots, T} {
-  Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^{N_t}$ and obtain $f_t$ and $\lambda_t^*$\;
+  Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^{N_t}$ and obtain $f_t$, $\lambda_t^*$, and $\tau_t$\;
   $\left\{r_{j, t}\right\} \gets \pi_{f_t}(\mu_{j, t})$ for $j = 1, \dots, N_t$ and $X_{j, t} \gets f_t(r_{j, t})$ for $j = 1, \dots, N_t$\;
 }
 
-  Let $N = \max(N_t)$, $\left\{r_i^*\right\}_{i=1}^{N}$ be a grid spanning the range of estimated values of $\left\{r_{i, j}\right\}_{i=1, t=1}^{N_t, T}$, and $X_{i, t} = f_t(r_{i}^*)$ for $i = 1, \dots, N$ and $t = 1, \dots, T$\;
+  Let $N = \max(N_t)$, $\left\{r_i^*\right\}_{i=1}^{N}$ be a grid spanning the range of estimated values of $\left\{r_{i, j}\right\}_{i=1, t=1}^{N_t, T}$\; 
 
-Set $\pi_{g(0)}(x_i) \gets r_i$ for $i = 1, 2, \dots, N$\;
-
-\For{l = 1, 2, \dots, L}{
-  $\gamma \gets \gamma_l$\;
-  Obtain $g_{(1)}$ by solving $\left(\begin{array}{ccc}
-      2\mathbf{E}\mathbf{W}\mathbf{E} + 2\gamma\mathbf{E} & 2\mathbf{E}\mathbf{W}\mathbf{T} & \mathbf{T} \\
-      2\mathbf{T}^{T}\mathbf{W}\mathbf{E} & 2\mathbf{T}^{T}\mathbf{W}\mathbf{T} & \mathbf{0} \\
-      \mathbf{T}^{T} & \mathbf{0} & \mathbf{0}
-    \end{array}\right)\left(\begin{array}{c}
-    s_l \\
-    \alpha_l \\
-    m_l
-    \end{array}\right) = \left(\begin{array}{c}
-    2\mathbf{E}\mathbf{W}\mu_l \\
-    2\mathbf{T}^{T}\mathbf{W}\mu_l \\
-    \mathbf{0}
-  \end{array}\right)$\;
-  $\mathcal{\epsilon} \gets 2 \times \epsilon^*$, $n \gets 1$, $\mathcal{D}_{\hat{Q}_N}(f_{(n + 1)}) \gets \frac{1}{N}\sum_{j = 1}^{N}\|x_{j} - f_{(1)}(\pi_{f_{(1)}}(x_j))\|_{\mathbb{R}^{D}}^2$ \;
-  \While{$\epsilon > \epsilon^*$ and $n \leq itr$} {
-    Compute $f_{(n + 1)})$ from $f_{(n)}$ by solving (15) \;
-    $\mathcal{D}_{\hat{Q}_N}(f_{(n + 1)}) \gets \frac{1}{N}\sum_{j=1}^{N}\|x_j - f_{(n + 1)}(\pi_{f_{(n + 1)}}(x_j))\|_{\mathbb{R}^D}^2$ \;
-    $\epsilon \gets |\mathcal{D}_{\hat{Q}_N}(f_{(n + 1)}) - \mathcal{D}_{\hat{Q}_N}(f_{(n)})| / \mathcal{D}_{\hat{Q}_N}(f_{(n)})$ and $n \gets n + 1$\;
-  }
-  $\hat{f}_l \gets f_{(n)}$\;
+\For{t = 1, 2, \dots, T} {
+  Set $X_{i, t} = f_t(r_{i}^*)$ for $i = 1, \dots, N$\;
+  Compute $f_t^*(r)$ by solving \eqref{eq:13}\;
+  Set $w_t = \frac{\frac{1}{\tau_t}}{\sum_{i=1}^{T}\frac{1}{\tau_i}}$\;
 }
-$l^* \gets \argmin_l\left\{\frac{1}{T}\sum_{t = 1}^{T}\frac{1}{I_t}\sum_{i = 1}^{I_t}\|y_{i, t} - \hat{f}_l(\pi_{f_l}(y_{i, t}))\|_{\mathbb{R}^D}^2: \ l = 1, 2, \dots, L \right\}$ \;
-$\kappa \gets \max\left\{\|\pi_{\hat{f}_{g^*}}(y_i, t)\|_{\mathbb{R}^{d}}: \ i = 1, 2, \dots, I_t; j = 1, 2, \dots, T \right\}$ \;
-$f^*(r) = \hat{f}_{l^*}(r)$, where the analytic formula of $f^*$ is from (14), and $\gamma^* \gets \gamma_l^*$.
+
+  Define $\mathbf{\omega}$ by setting $\mathbf{\omega}_t = \left[\mathbf{s}_t, \mathbf{\alpha}_t\right]$\;
+  \For{l = 1, 2, \dots, L} {
+    Compute $g_{\gamma_l}(t)$ by solving \eqref{eq:16}\;
+    \For{t = 1, 2, \dots, T} {
+      Compute $g_{\gamma_l}^{(t)}$ by solving \eqref{eq:16}\;
+    }
+    Estimate $MSD(\gamma_l)$ using \eqref{eq:18}\;
+  }
+  $\gamma^* = \arg\min_{\gamma}MSD(\gamma)$\;
+  $f^*(t, \mathbf{r}) = f_{\gamma^*}(t, \mathbf{r})$, where the form of $f^*(t, \mathbf{r})$ is given in \eqref{eq:17}
 \end{algorithm}
 
 \section{Simulations}
