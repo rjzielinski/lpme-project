@@ -5,7 +5,7 @@ library(lubridate)
 library(scatterplot3d)
 library(tidyverse)
 source("code/pme.R")
-source("code/lpme.R")
+source("code/lpme_s3.R")
 source("code/functions/calc_pme_est.R")
 source("code/functions/calc_lpme_est.R")
 
@@ -161,7 +161,7 @@ lhipp_test_pt3 <- lhipp_test %>%
 lhipp_test_pt4 <- lhipp_test %>%
   filter(partition4 == TRUE)
 
-lhipp_test_mat <- lhipp_test4 %>%
+lhipp_test_mat <- lhipp_test3 %>%
   dplyr::select(
     time_from_bl,
     x,
@@ -233,6 +233,14 @@ for (t in 1:length(time_vals)) {
   pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
 }
 pme_vals <- reduce(pme_vals, rbind)
+
+lpme_list <- list(
+  lpme_result = test_lpme,
+  df = lhipp_test_mat,
+  lpme_vals = lpme_vals,
+  pme_vals = pme_vals
+)
+saveRDS(lpme_list, "lhipp_test_results.RDS")
 
 ### Next step: glue estimated manifolds together to estimate full surface
 
