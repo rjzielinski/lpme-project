@@ -1458,5 +1458,5 @@ errors <- future_map(
       }
     },
   .progress = TRUE,
-  .options = furrr_options(seed = TRUE)
+  .options = furrr_options(seed = TRUE, scheduling = Inf)
 )
