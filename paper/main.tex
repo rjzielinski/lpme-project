@@ -100,18 +100,22 @@ The framework for principal manifolds originated with the concept of principal c
     \item $f$ does not self intersect, meaning $r_1 \neq r_2$ implies that $f(r_1) \neq f(r_2)$
     \item $\int_{\left\{r: f(r) \in B\right\}}dt < \infty$ for any finite ball $B$ in $\mathbb{R}^{D}$
   \end{enumerate}
-  Then the projection index with respect to $f$ is defined as \[%
-    \pi_f(x) = \sup\left\{r \in I: \|x - f(r)\|_{\mathbb{R}^{D}} = \inf_{r' \in I}\|x - f(r')\|_{\mathbb{R}^{D}} \right\}, \ \text{for all} \ x \in \mathbb{R}^{D}
-  .\]%
+  Then the projection index with respect to $f$ is defined as 
+  \begin{equation}
+    \pi_f(x) = \sup\left\{r \in I: \|x - f(r)\|_{\mathbb{R}^{D}} = \inf_{r' \in I}\|x - f(r')\|_{\mathbb{R}^{D}} \right\}, \ \text{for all} \ x \in \mathbb{R}^{D}. \label{eq:1}
+  \end{equation}
+  
 
-  (Part II) Suppose $X$ is a continuous random $D$-vector with finite second moments. Principal curves of $X$ are all maps $f: I \to \mathbb{R}^{D}$ satisfying the conditions above and the Self-consistency defined as \[%
-    E(X | \pi_f(X) = t) = f(r)
-  .\]%
+  (Part II) Suppose $X$ is a continuous random $D$-vector with finite second moments. Principal curves of $X$ are all maps $f: I \to \mathbb{R}^{D}$ satisfying the conditions above and the Self-consistency defined as 
+    \begin{equation}
+      E(X | \pi_f(X) = t) = f(r). \label{eq:2}
+    \end{equation}
 \end{definition}
 
-Principal manifolds seek to extend this concept to higher dimensions. \cite{smolaRegularizedPrincipalManifolds2001} proposed a regularized principal manifold framework, where principal manifolds minimize \[%
-  \argmin_{f \in \mathcal{F}}\left\{E\|X - f\left(\pi_f(X)\right)\|_{\mathbb{R}^D}^2 + \lambda\|Pf\|_{\mathcal{H}}^2\right\}
-\]%
+Principal manifolds seek to extend this concept to higher dimensions. \cite{smolaRegularizedPrincipalManifolds2001} proposed a regularized principal manifold framework, where principal manifolds minimize 
+\begin{equation}
+  \argmin_{f \in \mathcal{F}}\left\{E\|X - f\left(\pi_f(X)\right)\|_{\mathbb{R}^D}^2 + \lambda\|Pf\|_{\mathcal{H}}^2\right\} \label{eq:3}
+\end{equation}
 with $\mathcal{F}$ being a collection of functions and $P$ being an operator that maps $f$ into inner product space $\mathcal{H}$. If $P = \frac{d}{dr}$, this framework minimizes the mean squared distance (MSD), $\mathcal{D}_X(f) = E\|X - f(\pi_f(X))\|_{\mathbb{R}^{D}}^2$, while penalizing the non-smoothness of the curve $f$. \cite{mengPrincipalManifoldEstimation2021} build on this framework to provide a more complete definition of principal manifolds, and proposes an algorithm to estimate these principal manifolds.
 
 To ensure that the upcoming definitions are well behaved, we introduce the following function spaces:
@@ -135,37 +139,38 @@ In these function spaces, we have the notation:
 \end{itemize}
 
 To completely define principal manifolds, \cite{mengPrincipalManifoldEstimation2021} let $\|Pf\|_{\mathcal{H}} = \|f''(r)\|_{\mathbb{R}^{D}}^2$, which provides a greater penalization of roughness than using the first derivative. To allow for manifolds with intrinsic dimension $d \geq 1$ and map $f(t) = \left(f_1(r), f_2(r), \dots, f_D(r)\right)^{T}$, they generalize this term as
-\[%
-  \|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D} \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f_l}{\partial r_i \partial r_j}(r)\right|^2dr
-,\]%
+\begin{equation}
+  \|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D} \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f_l}{\partial r_i \partial r_j}(r)\right|^2dr, \label{eq:4}
+\end{equation}
 referred to as the total squared curvature of a manifold. With this penalty term set, principal manifolds are then defined as follows:
 \begin{definition}
   \label{def:principal_manifolds}
   Let $X$ be a random $D$-vector associated with the probability measure or density function $\mathbb{P}$ such that $X$ has compact support $\text{supp}(\mathbb{P})$ and finite second moments. Let $f, g \in \mathcal{C}_{\infty}\cap \nabla^{-\otimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D})$ and $\lambda \in [0, \infty]$, and define the following functionals:
-  \[%
-    \mathcal{K}_{\lambda, \mathbb{P}}(f, g) = E\|X - f(\pi_g(X))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2, \quad \mathcal{K}_{\lambda, \mathbb{P}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f)
-  .\]%
+  \begin{align}
+    \mathcal{K}_{\lambda, \mathbb{P}}(f, g) &= E\|X - f(\pi_g(X))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 \label{eq:5} \\
+    \mathcal{K}_{\lambda, \mathbb{P}}(f) &= \mathcal{K}_{\lambda, \mathbb{P}}(f, f) \label{eq:6}
+  \end{align}
 
   Then a manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ is called a principal manifold for $X$ with the tuning parameter $\lambda$ if 
-  \[%
-    f_{\lambda}^{*} = \argmin_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f), \ \text{where} \ \mathcal{F}(\mathbb{P}) = \left\{f \in \mathcal{C}_{\infty} \cap \nabla^{-\otimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D}): \sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1\right\}
-  .\]%
+  \begin{equation}
+    f_{\lambda}^{*} = \argmin_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f), \ \text{where} \ \mathcal{F}(\mathbb{P}) = \left\{f \in \mathcal{C}_{\infty} \cap \nabla^{-\otimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D}): \sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1\right\}. \label{eq:7}
+  \end{equation}
 \end{definition}
 
 In this setting, we can see that $\pi_{f_{\lambda}^{*}}(X)$ maps the $D$-vector $X$ to a $d$-dimensional parameterization, while $f_{\lambda}^{*}$ embeds the $d$-dimensional parameterization in the original $D$-dimensional space.
 
 To estimate principal manifolds under this definition, \cite{mengPrincipalManifoldEstimation2021} propose the Principal Manifold Estimation (PME) algorithm. This algorithm has three main steps: data reduction, fitting, and tuning. In the reduction step, the HDMDE algorithm uses $k$-means clustering to summarize the data $\left\{x_i\right\}_{i=1}^{I}$ by cluster centers $\left\{\mu_j\right\}_{j=1}^{N}$ with $N \leq I$, and each $\mu_j$ associated with weight $\theta_j$. The number of clusters is chosen using an iterative hypothesis testing approach. For each given value of $\lambda$, the fitting stage of the algorithm uses this reduced dataset to find estimated function 
-\[%
-  \hat{f}_\lambda = \arg\min_f \mathcal{K}_{\lambda, \hat{Q}_N}(f)
-,\]%
+\begin{equation}
+  \hat{f}_\lambda = \arg\min_f \mathcal{K}_{\lambda, \hat{Q}_N}(f), \label{eq:8}
+\end{equation}
 where 
-\[%
-  \mathcal{K}_{\lambda, \hat{Q}_N}(f) = \sum_{j = 1}^{N}\theta_j \|\mu_j - f(\pi_f(\mu_j))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2
-\]% 
+\begin{equation}
+  \mathcal{K}_{\lambda, \hat{Q}_N}(f) = \sum_{j = 1}^{N}\theta_j \|\mu_j - f(\pi_f(\mu_j))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 \label{eq:9}
+\end{equation}
 approximates $\mathcal{K}_{\lambda, \mathbb{P}}(f)$. The tuning stage chooses the optimal value of $\lambda$, $\lambda^{*} = \arg\min_{\lambda > 0}(\mathcal{D}(\hat{f}_\lambda))$, where 
-\[%
-  \mathcal{D}(\hat{f}_\lambda) = \frac{1}{I}\sum_{i=1}^{I}\|x_i - \hat{f}_\lambda(\pi_{\hat{f}_\lambda}(x_i))\|_{\mathbb{R}^{D}}^2
-\]%
+\begin{equation}
+  \mathcal{D}(\hat{f}_\lambda) = \frac{1}{I}\sum_{i=1}^{I}\|x_i - \hat{f}_\lambda(\pi_{\hat{f}_\lambda}(x_i))\|_{\mathbb{R}^{D}}^2 \label{eq:10}
+\end{equation}
 is an empirical estimate of the MSD using the full dataset.
 
 \cite{mengPrincipalManifoldEstimation2021} show that the optimal function will be of spline form, meaning that when $d = 1$, the function will be a cubic smoothing spline, while the function is a thin plate spline when $d = 2$. Specific details of the HDMDE algorithm (reduction step) and the PME algorithm (fitting and tuning steps) are given in \cite{mengPrincipalManifoldEstimation2021}.
@@ -173,9 +178,9 @@ is an empirical estimate of the MSD using the full dataset.
 \section{Longitudinal Principal Manifold Estimation Algorithm}
 
 We now introduce the proposed longitudinal principal manifold estimation (LPME) algorithm, following a similar setting as \cite{mengPrincipalManifoldEstimation2021}. Let $\left\{x_i\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_t$ $D$-dimensional observations for each individual, where $I_t$ denotes the number of observations available at each time point, with $T$ total time points. As in the setting described above, these observations lie along a $d$-dimensional manifold and are corrupted by $D$-dimensional noise. However, in this updated case, the function determining the manifold may change over time. Note that we assume changes over time to be smooth. Therefore, we seek a function $f^{*}$ that minimizes $\mathcal{D}_X(f^{*})$ while penalizing both the roughness of the function over the time-independent shape and the changes in the function over time, expressed as 
-\[%
-  \mathcal{K}_{\lambda, \gamma, \mathbb{P}}(f, g) = E\|X - f(\pi_g(X))\|_{\mathbb{R}^{D}}^2 + \sum_{t=1}^{T} \lambda_t \|\nabla^{\otimes 2}f_t\|_{L^2(\mathbb{R}^{d})}^2 + \gamma\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^d)}^2
-.\]%
+\begin{equation}
+  \mathcal{K}_{\lambda, \gamma, \mathbb{P}}(f, g) = E\|X - f(\pi_g(X))\|_{\mathbb{R}^{D}}^2 + \sum_{t=1}^{T} \lambda_t \|\nabla^{\otimes 2}f_t\|_{L^2(\mathbb{R}^{d})}^2 + \gamma\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^d)}^2 \label{eq:11}
+\end{equation}
 
 To solve this problem, we propose an extension of the method developed in \cite{mengPrincipalManifoldEstimation2021}. The output of the PME algorithm run used for the data at an individual time point is a spline function mapping from a low-dimensional paramterization to a high-dimensional space. In the LPME algorithm, we use the coefficients of PME functions fit at each time point as the outcomes in a thin plate spline, thus smoothing over the coefficients with respect to time. This yields a multistage model that, for a provided time point and set of parameters, obtains a set of spline coefficients associated with the time value, then returns the high-dimensional output of the spline function associated with the parameter set. Details of this approach are described below.
 
@@ -188,11 +193,11 @@ The PME algorithm uses ISOMAP (\cite{tenenbaumGlobalGeometricFramework2000}) to 
 Once the initial parameterization for each cluster center is obtained, the model fitting process begins by using this parameterization as the initialization for runs of the PME algorithm at each time point. Specifically, for each time point, the cluster centers associated with the given time value, their weights, and the corresponding parameterizations for these points are used to initialize a PME run. This results in an estimated principal manifold for each time point, $f_t$, and an optimal tuning parameter $\lambda_t^*$. The remainder of the fitting stage involves estimating a thin plate spline function mapping from the time dimension to the coefficient space that smooths over the coefficients for these principal manifolds, given a tuning parameter $\gamma$.
 
 At each time point, the estimated principal manifold has the functional form of a smoothing spline or thin plate spline, depending on the intrinsic dimension $d$. As detailed by \cite{greenSilverman1994}, smoothing splines, and thin plate splines as their higher dimensional analogues, may be considered to have knots at the points being used to fit them. This means that, in order for the coefficients of the manifolds estimated at each time point to be comparable, the parameter values used as inputs when the functions were fit must be identical. Hence, to obtain coefficients that can be compared across time points, a grid of values $\left\{\mathbf{r}_i\right\}_{i=1}^{N}$ ranging from the minimum to the maximum of the parameters in each of the $d$ dimensions is input into the estimated embedding functions for each time point $f_t$. This yields a set of outcomes, $\left\{X_{i,t}\right\}_{i=1, t = 1}^{N, T}$, corresponding to same parameter values at each time point. Following the discussion in Chapter 7 of \cite{greenSilverman1994}, for each time point $t$, comparable spline coefficients $\mathbf{s}_t^*$ and $\mathbf{\alpha}_t^*$ can then be calculated by minimizing
-\[%
-  \mathcal{L}(f_t) = (\mathbf{X_t} - E\mathbf{s}_t - R^{T}\mathbf{\alpha}_t)^{T}(\mathbf{X} - E\mathbf{s}_t - R^{T}\mathbf{\alpha}_t) + \gamma\mathbf{s}_t^{T}E\mathbf{s}_t
-,\]%
+\begin{equation}
+  \mathcal{L}(f_t) = (\mathbf{X_t} - E\mathbf{s}_t - R^{T}\mathbf{\alpha}_t)^{T}(\mathbf{X} - E\mathbf{s}_t - R^{T}\mathbf{\alpha}_t) + \gamma\mathbf{s}_t^{T}E\mathbf{s}_t, \label{eq:12}
+\end{equation}
 where matrix $E$ is defined by $E_{ij} = \eta_{d}(\|\mathbf{r}_i - \mathbf{r}_j\|)$ and matrix $R$ has $R_{ij} = \phi_i(\mathbf{r}_j)$, where $\phi_i(\cdot)$ is a linear basis function. This minimization is conducted by solving
-\[%
+\begin{equation}
   \left(
     \begin{array}{cc}
       E + \lambda_t^* I & R^{T} \\
@@ -208,19 +213,19 @@ where matrix $E$ is defined by $E_{ij} = \eta_{d}(\|\mathbf{r}_i - \mathbf{r}_j\
       \mathbf{X}_t \\
       0
     \end{array}
-  \right)
-,\]%
+  \right), \label{eq:13}
+\end{equation}
 yielding function
-\[%
-  f_t^*(r) = \sum_{j=1}^{N}s_{jt}^* \eta_{4-d}\left(\|r - r_j^*\|\right) + \sum_{k=1}^{d + 1}\alpha_{kt}^*\phi(r)_k
-.\]%
+\begin{equation}
+  f_t^*(r) = \sum_{j=1}^{N}s_{jt}^* \eta_{4-d}\left(\|r - r_j^*\|\right) + \sum_{k=1}^{d + 1}\alpha_{kt}^*\phi(r)_k. \label{eq:14}
+\end{equation}
 
 We denote the manifold coefficients at each time point $t$ as $\omega_i = [\mathbf{s}_t, \mathbf{\alpha}_t]$. To limit the ability of a poorly-fitting PME estimate to greatly influence the results of the LPME model, we fit a weighted spline model to smooth over the manifold coefficients, where with $\tau_t$ denoting the estimated mean squared distance of the PME model fit at time $t$, the weights for each time are equal to $w_t = \frac{\frac{1}{\tau_t}}{\sum_{i=1}^{T}\frac{1}{\tau_i}}$. With a given tuning value $\gamma$, we then follow the estimation approach described in \cite{mengPrincipalManifoldEstimation2021} to estimate spline function
-\[%
-  g_{\gamma}(t) = \sum_{i=1}^{T}\delta_i \eta_{4-d}\left(\|t - t_i\|\right) + \sum_{j=1}^{2}\nu_j\phi(t)_j
-,\]%
+\begin{equation}
+  g_{\gamma}(t) = \sum_{i=1}^{T}\delta_i \eta_{4-d}\left(\|t - t_i\|\right) + \sum_{j=1}^{2}\nu_j\phi(t)_j, \label{eq:15}
+\end{equation}
 where, with matrix $\mathbf{A}$ defined as $\mathbf{A}_{ij} = \eta_d\left(\|t_i - t_j\|\right)$, matrix $\mathbf{T}$ defined as $\mathbf{T}_{ij} = \phi_i(t_j)$, and $\mathbf{W} = diag(w_1, \dots, w_T)$,  $\mathbf{\delta}$ and $\mathbf{\nu}$ are the solutions to 
-\[%
+\begin{equation}
   \left(
   \begin{array}{ccc}
     2\mathbf{A}\mathbf{W}\mathbf{A} + 2\gamma\mathbf{A} & 2\mathbf{A}\mathbf{W}\mathbf{T} & \mathbf{T} \\
@@ -239,20 +244,20 @@ where, with matrix $\mathbf{A}$ defined as $\mathbf{A}_{ij} = \eta_d\left(\|t_i 
     2\mathbf{T}^{T}\mathbf{W}\mathbf{\omega} \\
     \mathbf{0}
   \end{array}
-  \right)
-.\]%
+  \right). \label{eq:16}
+\end{equation}
 
 With $\gamma$ given, we denote the manifold coefficients at time $t$ estimated by function $g(\cdot)$ as $w_{\gamma}(t) = \left[\mathbf{s}_{\gamma}(t), \mathbf{\alpha}_{\gamma}(t)\right]$. Hence, given $\gamma$, the estimated embedding function given time $t$ and $d$-dimensional parameterization $\mathbf{r}$ may be written as
-\[%
-  f_{\gamma}(t, \mathbf{r}) = \sum_{j=1}^{N}\mathbf{s}_{\gamma}(t)_j \eta_{4-d}\left(\|\mathbf{r} - \mathbf{r}_j^*\|\right) + \sum_{k=1}^{d+1}\mathbf{\alpha}_{\gamma}(t)_k \phi_k(\mathbf{r})
-.\]%
+\begin{equation}
+  f_{\gamma}(t, \mathbf{r}) = \sum_{j=1}^{N}\mathbf{s}_{\gamma}(t)_j \eta_{4-d}\left(\|\mathbf{r} - \mathbf{r}_j^*\|\right) + \sum_{k=1}^{d+1}\mathbf{\alpha}_{\gamma}(t)_k \phi_k(\mathbf{r}). \label{eq:17}
+\end{equation}
 
 \subsection*{Tuning}
 
 Once longitudinal estimates $f_{\gamma}(t, \mathbf{r})$ have been estimated for all provided tuning values, the optimal tuning parameter $\gamma^*$ is identified using leave-one-out cross validation. In this process, the coefficient smoothing function is computed while excluding all data and coefficients with time $t$ from consideration, for $t = 1, \dots, T$. We denote this function $g_{\gamma}^{(t)}$. We can then assess the performance of the LPME model using tuning value $\gamma$ by averaging over estimates of MSD calculated using the original observations associated with the left-out time $t$ as follows:
-\[%
-  MSD(\gamma) = \frac{1}{T} \sum_{t=1}^{T}\frac{1}{I_t}\sum_{i=1}^{I_t}\|Y_{i, t} - f_{\gamma}^{(t)}(t, \pi_{f_{\gamma}^{(t)}}(Y_{i, t}))\|^2
-.\]%
+\begin{equation}
+  MSD(\gamma) = \frac{1}{T} \sum_{t=1}^{T}\frac{1}{I_t}\sum_{i=1}^{I_t}\|Y_{i, t} - f_{\gamma}^{(t)}(t, \pi_{f_{\gamma}^{(t)}}(Y_{i, t}))\|^2. \label{eq:18}
+\end{equation}
 The optimal tuning value $\gamma^*$ is then found to be the value of $\gamma$ that minimizes $MSD(\gamma)$.
 
 Note that alternative cross validation methods, such as $k$-fold cross validation, could easily be used in place of leave-one-out cross validation to better meet computational demands.
@@ -281,7 +286,6 @@ Note that alternative cross validation methods, such as $k$-fold cross validatio
 }
 
   Let $N = \max(N_t)$, $\left\{r_i^*\right\}_{i=1}^{N}$ be a grid spanning the range of estimated values of $\left\{r_{i, j}\right\}_{i=1, t=1}^{N_t, T}$, and $X_{i, t} = f_t(r_{i}^*)$ for $i = 1, \dots, N$ and $t = 1, \dots, T$\;
-Let $N = \sum_{t=1}^{T}N_t$, $\mathbf{x}$ be a $N \times D$ matrix of stacked values of $\left\{x_{j, t}\right\}_{t = 1}^T$, and $\mathbf{r}$ be a $N \times d + 1$ matrix of stacked values of $\left\{r_{j, t}\right\}_{t = 1}^T$ \;
 
 Set $\pi_{g(0)}(x_i) \gets r_i$ for $i = 1, 2, \dots, N$\;
 
