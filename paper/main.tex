@@ -215,7 +215,7 @@ yielding function
   f_t^*(r) = \sum_{j=1}^{N}s_{jt}^* \eta_{4-d}\left(\|r - r_j^*\|\right) + \sum_{k=1}^{d + 1}\alpha_{kt}^*\phi(r)_k
 .\]%
 
-We denote the PME coefficients at each time point $t$ as $\omega_i = [\mathbf{s}_t, \mathbf{\alpha}_t]$. To limit the ability of a poorly-fitting PME estimate to greatly influence the results of the LPME model, we fit a weighted spline model to smooth over the PME coefficients, where with $\tau_t$ denoting the estimated mean squared distance of the PME model fit at time $t$, the weights for each time are equal to $w_t = \frac{\frac{1}{\tau_t}}{\sum_{i=1}^{T}\frac{1}{\tau_i}}$. With a given tuning value $\gamma$, we then follow the estimation approach described in \cite{mengPrincipalManifoldEstimation2021} to estimate spline function
+We denote the manifold coefficients at each time point $t$ as $\omega_i = [\mathbf{s}_t, \mathbf{\alpha}_t]$. To limit the ability of a poorly-fitting PME estimate to greatly influence the results of the LPME model, we fit a weighted spline model to smooth over the manifold coefficients, where with $\tau_t$ denoting the estimated mean squared distance of the PME model fit at time $t$, the weights for each time are equal to $w_t = \frac{\frac{1}{\tau_t}}{\sum_{i=1}^{T}\frac{1}{\tau_i}}$. With a given tuning value $\gamma$, we then follow the estimation approach described in \cite{mengPrincipalManifoldEstimation2021} to estimate spline function
 \[%
   g_{\gamma}(t) = \sum_{i=1}^{T}\delta_i \eta_{4-d}\left(\|t - t_i\|\right) + \sum_{j=1}^{2}\nu_j\phi(t)_j
 ,\]%
@@ -242,7 +242,19 @@ where, with matrix $\mathbf{A}$ defined as $\mathbf{A}_{ij} = \eta_d\left(\|t_i 
   \right)
 .\]%
 
+With $\gamma$ given, we denote the manifold coefficients at time $t$ estimated by function $g(\cdot)$ as $w_{\gamma}(t) = \left[\mathbf{s}_{\gamma}(t), \mathbf{\alpha}_{\gamma}(t)\right]$. Hence, given $\gamma$, the estimated embedding function given time $t$ and $d$-dimensional parameterization $\mathbf{r}$ may be written as
+\[%
+  f_{\gamma}(t, \mathbf{r}) = \sum_{j=1}^{N}\mathbf{s}_{\gamma}(t)_j \eta_{4-d}\left(\|\mathbf{r} - \mathbf{r}_j^*\|\right) + \sum_{k=1}^{d+1}\mathbf{\alpha}_{\gamma}(t)_k \phi_k(\mathbf{r})
+.\]%
+
 \subsection*{Tuning}
+
+Once longitudinal estimates $f_{\gamma}(t, \mathbf{r})$ have been estimated for all provided tuning values, the optimal tuning parameter $\gamma^*$ is identified using leave-one-out cross-validation. In this process, the coefficient smoothing function is computed while excluding all data and coefficients with time $t$ from consideration, for $t = 1, \dots, T$. We denote this function $g_{\gamma}^{(t)}$. We can then assess the performance of the LPME model using tuning value $\gamma$ by averaging over estimates of MSD calculated using the original observations associated with the left-out time $t$ as follows:
+\[%
+  MSD(\gamma) = \frac{1}{T} \sum_{t=1}^{T}\frac{1}{I_t}\sum_{i=1}^{I_t}\|Y_{i, t} - f_{\gamma}^{(t)}(t, \pi_{f_{\gamma}^{(t)}}(Y_{i, t}))\|^2
+.\]%
+
+The optimal tuning value $\gamma^*$ is then found to be the value of $\gamma$ that minimizes $MSD(\gamma)$.
 
 \RestyleAlgo{ruled}
 \LinesNumbered
@@ -305,9 +317,10 @@ $f^*(r) = \hat{f}_{l^*}(r)$, where the analytic formula of $f^*$ is from (14), a
 
 \section{Discussion}
 
-Contributions:
+\subsection*{Contributions}
 
-Limitations:
+\subsection*{Limitations}
+
 \begin{enumerate}
   \item Algorithm assumes stability in shape over time.
   \item Algorithm initialization is sensitive to magnitude of change between time points.
