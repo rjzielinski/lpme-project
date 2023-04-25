@@ -9,45 +9,6 @@
     ]
   },
   "Packages": {
-    "ANTsR": {
-      "Package": "ANTsR",
-      "Version": "0.5.7.5",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "ANTsX",
-      "RemoteRepo": "ANTsR",
-      "RemoteRef": "master",
-      "RemoteSha": "14996a710c5bd36b5277917c5cfa85bdbcf8cf5b",
-      "Remotes": "stnava/ITKR, ANTsX/ANTsRCore, cran/wmtsa, cran/ifultools",
-      "Hash": "15a4ea6e4b6ec9cc40dba29543cece20",
-      "Requirements": [
-        "ANTsRCore",
-        "ITKR",
-        "Rcpp",
-        "magrittr"
-      ]
-    },
-    "ANTsRCore": {
-      "Package": "ANTsRCore",
-      "Version": "0.7.5",
-      "Source": "GitHub",
-      "Repository": "Neuroconductor",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "ANTsX",
-      "RemoteRepo": "ANTsRCore",
-      "RemoteRef": "master",
-      "RemoteSha": "038b62f258d426e82ec3dd837793a7746b5d83b8",
-      "Remotes": "stnava/ITKR",
-      "Hash": "900f626f82c047afb6bc6b393b2d314b",
-      "Requirements": [
-        "ITKR",
-        "Rcpp",
-        "RcppEigen",
-        "magrittr"
-      ]
-    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.1.3",
@@ -679,34 +640,6 @@
       "Repository": "CRAN",
       "Hash": "5aac3cd0a3ccb1a738941796b28c26fe",
       "Requirements": []
-    },
-    "extrantsr": {
-      "Package": "extrantsr",
-      "Version": "3.9.13.1",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "Remotes": "muschellij2/neurobase, muschellij2/fslr, bjw34032/oro.nifti,\n    muschellij2/kirby21.t1, ANTsX/ANTsR, ANTsX/ANTsRCore, muschellij2/stapler",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "extrantsr",
-      "RemoteUsername": "muschellij2",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "eb0730e90b24bf4293147b9984dceb0f52199a5f",
-      "Hash": "9f907640f49151031bd8a16306d2fa0c",
-      "Requirements": [
-        "ANTsR",
-        "ANTsRCore",
-        "R.matlab",
-        "R.utils",
-        "RNifti",
-        "WhiteStripe",
-        "abind",
-        "fslr",
-        "matrixStats",
-        "neurobase",
-        "oro.nifti",
-        "plyr",
-        "stapler"
-      ]
     },
     "fansi": {
       "Package": "fansi",
