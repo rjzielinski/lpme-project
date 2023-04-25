@@ -1,4 +1,15 @@
+library(Rcpp)
 library(vctrs)
+
+source("code/pme.R")
+source("code/functions/plot_lpme.R")
+source("code/functions/projection_lpme.R")
+source("code/functions/solve_eq2.R")
+require(plotly)
+require(svMisc)
+require(Rcpp)
+require(nloptr)
+sourceCpp("code/functions/pme_functions.cpp")
 
 new_lpme <- function(
     msd,
@@ -759,3 +770,14 @@ embed <- function(object, x) {
   return(c(x[1], vec))
 }
 
+parameterize <- function(object, x) {
+  embeddings <- map(
+    1:nrow(object$r_fit),
+    ~ embed(object, object$r_fit[.x, ])
+  ) %>%
+    reduce(rbind)
+  nearest <- calc_nearest_x(matrix(x, nrow = 1), embeddings[embeddings[, 1] == x[1], ])
+  estimate <- projection_lpme(x, function(t) embed(object, t), object$r_fit[object$r_fit[, 1] == x[1], ][nearest, ])
+
+  return(estimate)
+}
