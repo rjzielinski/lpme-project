@@ -180,34 +180,65 @@ We now introduce the proposed longitudinal principal manifold estimation (LPME) 
 To solve this problem, we propose an extension of the method developed in \cite{mengPrincipalManifoldEstimation2021}. The output of the PME algorithm run used for the data at an individual time point is a spline function mapping from a low-dimensional paramterization to a high-dimensional space. In the LPME algorithm, we use the coefficients of PME functions fit at each time point as the outcomes in a thin plate spline, thus smoothing over the coefficients with respect to time. This yields a multistage model that, for a provided time point and set of parameters, obtains a set of spline coefficients associated with the time value, then returns the high-dimensional output of the spline function associated with the parameter set. Details of this approach are described below.
 
 \subsection*{Initialization}
-We begin by considering $D$-dimensional observations $\left\{y_{it}\right\}_{i=1, t=1}^{I_t, T}$. Like PME, the LPME algorithm begins with a data reduction step, using the HDMDE method detailed in \cite{mengPrincipalManifoldEstimation2021} to estimate a reduced set of cluster centers from $\left\{y_{it}\right\}_{i=1, t=1}^{I_t, T}$. HDMDE is run separately for each individual time point to ensure the time dimension is preserved, while the number of clusters being estimated is allowed to vary for each time point to accommodate potential changes in the shape of the underlying structure. The centers estimated in this step are then used to reach an initial low-dimensional parameterization.
+We begin by considering $D$-dimensional observations $\left\{y_{it}\right\}_{i=1, t=1}^{I_t, T}$. Like PME, the LPME algorithm begins with a data reduction step, using the HDMDE method detailed in \cite{mengPrincipalManifoldEstimation2021} to estimate a reduced set of cluster centers, $\left\{\mu_{j, t}\right\}_{j=1, t=1}^{N_t, T}$, along with corresponding weights $\left\{\hat{\theta}_{j, t}\right\}$. HDMDE is run separately for each individual time point to ensure the time dimension is preserved, while the number of clusters being estimated is allowed to vary for each time point to accommodate potential changes in the shape of the underlying structure. The centers estimated in this step are then used to reach an initial low-dimensional parameterization.
 
-The PME algorithm uses ISOMAP (\cite{tenenbaumGlobalGeometricFramework2000}) to develop an initial parameterization, which the algorithm proceeds to iteratively improve. However, using this process several times over similarly shaped structures is likely to result in inconsistent parameterization directions (i.e. low values in the parameter space may be associated with low values in the embedding space for one run, while low values in the parameter space may be associated with high values in the embedding space in another). Reaching a successful fit in the LPME algorithm requires consistent parameterizations across time points, so a different approach to generating an initial parameterization is needed. Instead of using ISOMAP on the data for each time point separately, the LMPE approach removes the time dimension from the cluster centers of all time steps, then uses one ISOMAP run to reach a parameterization for the centers across all time points simultaneously. Assuming relative stability in the structure shape over time, this process ensures that the initial parameterization remains consistent over time.
+The PME algorithm uses ISOMAP (\cite{tenenbaumGlobalGeometricFramework2000}) to develop an initial parameterization, which the algorithm proceeds to iteratively improve. However, using this process several times over similarly shaped structures is likely to result in inconsistent parameterization directions (i.e. low values in the parameter space may be associated with low values in the embedding space for one run, while low values in the parameter space may be associated with high values in the embedding space in another). Reaching a successful fit in the LPME algorithm requires consistent parameterizations across time points, so a different approach to generating an initial parameterization is needed. Instead of using ISOMAP on the data for each time point separately, the LMPE approach collapses the time dimension in the cluster centers of all time steps, then uses one ISOMAP run to reach a parameterization for the centers across all time points simultaneously. Assuming relative stability in the structure shape over time, this process ensures that the initial parameterization remains consistent over time.
 
 \subsection*{Fitting}
-Once the initial parameterization for each cluster center is obtained, the model fitting process begins by using this parameterization as the initialization for runs of the PME algorithm at each time point. Specifically, for each time point, the cluster centers associated with the given time value, their weights, and the corresponding parameterizations for these points are used to initialize a PME run. This results in an estimated principal manifold for each time point. The remainder of the fitting stage involves estimating a thin plate spline function mapping from the time dimension to the coefficient space that smooths over the coefficients for these principal manifolds, given a tuning parameter $\gamma$.
+Once the initial parameterization for each cluster center is obtained, the model fitting process begins by using this parameterization as the initialization for runs of the PME algorithm at each time point. Specifically, for each time point, the cluster centers associated with the given time value, their weights, and the corresponding parameterizations for these points are used to initialize a PME run. This results in an estimated principal manifold for each time point, $f_t$, and an optimal tuning parameter $\lambda_t^*$. The remainder of the fitting stage involves estimating a thin plate spline function mapping from the time dimension to the coefficient space that smooths over the coefficients for these principal manifolds, given a tuning parameter $\gamma$.
 
-At each time point, the estimated principal manifold has the functional form of a smoothing spline or thin plate spline, depending on the intrinsic dimension $d$. As detailed by \cite{greenSilverman1994}, smoothing splines, and thin plate splines as their higher dimensional analogues, may be considered to have knots at the points being used to fit them. This means that, in order for the coefficients of the manifolds estimated at each time point to be comparable, the parameter values used as inputs when the functions were fit must be identical. Hence, to obtain coefficients that can be compared across time points, a grid of values ranging from the minimum to the maximum of the parameters in each of the $d$ dimensions is input into the estimated embedding functions for each time point $f_t^*$. This yields a set of outcomes corresponding to same parameter values at each time point. Following the discussion in Chapter 7 of \cite{greenSilverman1994}, comparable spline coefficients $\delta$ and $\mathbf{a}$ can then be calculated by minimizing
+At each time point, the estimated principal manifold has the functional form of a smoothing spline or thin plate spline, depending on the intrinsic dimension $d$. As detailed by \cite{greenSilverman1994}, smoothing splines, and thin plate splines as their higher dimensional analogues, may be considered to have knots at the points being used to fit them. This means that, in order for the coefficients of the manifolds estimated at each time point to be comparable, the parameter values used as inputs when the functions were fit must be identical. Hence, to obtain coefficients that can be compared across time points, a grid of values $\left\{\mathbf{r}_i\right\}_{i=1}^{N}$ ranging from the minimum to the maximum of the parameters in each of the $d$ dimensions is input into the estimated embedding functions for each time point $f_t$. This yields a set of outcomes, $\left\{X_{i,t}\right\}_{i=1, t = 1}^{N, T}$, corresponding to same parameter values at each time point. Following the discussion in Chapter 7 of \cite{greenSilverman1994}, for each time point $t$, comparable spline coefficients $\mathbf{s}_t^*$ and $\mathbf{\alpha}_t^*$ can then be calculated by minimizing
 \[%
-  S(g) = (\mathbf{X} - E\delta - T^{T}\mathbf{a})^{T}(\mathbf{Y} - E\delta - T^{T}\mathbf{a}) + \gamma\delta^{T}E\delta
+  \mathcal{L}(f_t) = (\mathbf{X_t} - E\mathbf{s}_t - R^{T}\mathbf{\alpha}_t)^{T}(\mathbf{X} - E\mathbf{s}_t - R^{T}\mathbf{\alpha}_t) + \gamma\mathbf{s}_t^{T}E\mathbf{s}_t
 ,\]%
-where matrix $E$ is defined by $E_{ij} = \eta_{d}(\|\mathbf{r}_i - \mathbf{r}_j\|)$ and matrix $T$ has $T_{ij} = \phi_i(\mathbf{r}_j)$. This minimization is conducted by solving
+where matrix $E$ is defined by $E_{ij} = \eta_{d}(\|\mathbf{r}_i - \mathbf{r}_j\|)$ and matrix $R$ has $R_{ij} = \phi_i(\mathbf{r}_j)$, where $\phi_i(\cdot)$ is a linear basis function. This minimization is conducted by solving
 \[%
   \left[
     \begin{array}{cc}
-      E + \gamma I & T^{T} \\
-      T^{T} & 0
+      E + \lambda_t^* I & R^{T} \\
+      R^{T} & 0
     \end{array}
   \right]\left(
     \begin{array}{c}
-      \mathbf{\delta} \\
-      \mathbf{a}
+      \mathbf{s}_t \\
+      \mathbf{\alpha}_t
     \end{array}
   \right) = \left(
     \begin{array}{c}
-      \mathbf{Y} \\
+      \mathbf{X}_t \\
       0
     \end{array}
+  \right)
+,\]%
+yielding function
+\[%
+  f_t^*(r) = \sum_{j=1}^{N}s_{jt}^* \eta_{4-d}\left(\|r - r_j^*\|\right) + \sum_{k=1}^{d + 1}\alpha_{kt}^*\phi(r)_k
+.\]%
+
+We denote the PME coefficients at each time point $t$ as $\omega_i = [\mathbf{s}_t, \mathbf{\alpha}_t]$. To limit the ability of a poorly-fitting PME estimate to greatly influence the results of the LPME model, we fit a weighted spline model to smooth over the PME coefficients, where with $\tau_t$ denoting the estimated mean squared distance of the PME model fit at time $t$, the weights for each time are equal to $w_t = \frac{\frac{1}{\tau_t}}{\sum_{i=1}^{T}\frac{1}{\tau_i}}$. With a given tuning value $\gamma$, we then follow the estimation approach described in \cite{mengPrincipalManifoldEstimation2021} to estimate spline function
+\[%
+  g_{\gamma}(t) = \sum_{i=1}^{T}\delta_i \eta_{4-d}\left(\|t - t_i\|\right) + \sum_{j=1}^{2}\nu_j\phi(t)_j
+,\]%
+where, with matrix $\mathbf{A}$ defined as $\mathbf{A}_{ij} = \eta_d\left(\|t_i - t_j\|\right)$, matrix $\mathbf{T}$ defined as $\mathbf{T}_{ij} = \phi_i(t_j)$, and $\mathbf{W} = diag(w_1, \dots, w_T)$,  $\mathbf{\delta}$ and $\mathbf{\nu}$ are the solutions to 
+\[%
+  \left(
+  \begin{array}{ccc}
+    2\mathbf{A}\mathbf{W}\mathbf{A} + 2\gamma\mathbf{A} & 2\mathbf{A}\mathbf{W}\mathbf{T} & \mathbf{T} \\
+    2\mathbf{T}^{T}\mathbf{W}\mathbf{A} & 2\mathbf{T}^{T}\mathbf{W}\mathbf{T} & \mathbf{0} \\
+    \mathbf{T}^{T} & \mathbf{0} & \mathbf{0}
+  \end{array}
+  \right)\left(
+  \begin{array}{c}
+    \mathbf{\delta} \\
+    \mathbf{\nu} \\
+    \mathbf{m}
+  \end{array}
+  \right) = \left(
+  \begin{array}{c}
+    2\mathbf{A}\mathbf{W}\mathbf{\omega} \\
+    2\mathbf{T}^{T}\mathbf{W}\mathbf{\omega} \\
+    \mathbf{0}
+  \end{array}
   \right)
 .\]%
 
