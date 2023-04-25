@@ -193,12 +193,12 @@ At each time point, the estimated principal manifold has the functional form of 
 ,\]%
 where matrix $E$ is defined by $E_{ij} = \eta_{d}(\|\mathbf{r}_i - \mathbf{r}_j\|)$ and matrix $R$ has $R_{ij} = \phi_i(\mathbf{r}_j)$, where $\phi_i(\cdot)$ is a linear basis function. This minimization is conducted by solving
 \[%
-  \left[
+  \left(
     \begin{array}{cc}
       E + \lambda_t^* I & R^{T} \\
       R^{T} & 0
     \end{array}
-  \right]\left(
+  \right)\left(
     \begin{array}{c}
       \mathbf{s}_t \\
       \mathbf{\alpha}_t
@@ -249,12 +249,13 @@ With $\gamma$ given, we denote the manifold coefficients at time $t$ estimated b
 
 \subsection*{Tuning}
 
-Once longitudinal estimates $f_{\gamma}(t, \mathbf{r})$ have been estimated for all provided tuning values, the optimal tuning parameter $\gamma^*$ is identified using leave-one-out cross-validation. In this process, the coefficient smoothing function is computed while excluding all data and coefficients with time $t$ from consideration, for $t = 1, \dots, T$. We denote this function $g_{\gamma}^{(t)}$. We can then assess the performance of the LPME model using tuning value $\gamma$ by averaging over estimates of MSD calculated using the original observations associated with the left-out time $t$ as follows:
+Once longitudinal estimates $f_{\gamma}(t, \mathbf{r})$ have been estimated for all provided tuning values, the optimal tuning parameter $\gamma^*$ is identified using leave-one-out cross validation. In this process, the coefficient smoothing function is computed while excluding all data and coefficients with time $t$ from consideration, for $t = 1, \dots, T$. We denote this function $g_{\gamma}^{(t)}$. We can then assess the performance of the LPME model using tuning value $\gamma$ by averaging over estimates of MSD calculated using the original observations associated with the left-out time $t$ as follows:
 \[%
   MSD(\gamma) = \frac{1}{T} \sum_{t=1}^{T}\frac{1}{I_t}\sum_{i=1}^{I_t}\|Y_{i, t} - f_{\gamma}^{(t)}(t, \pi_{f_{\gamma}^{(t)}}(Y_{i, t}))\|^2
 .\]%
-
 The optimal tuning value $\gamma^*$ is then found to be the value of $\gamma$ that minimizes $MSD(\gamma)$.
+
+Note that alternative cross validation methods, such as $k$-fold cross validation, could easily be used in place of leave-one-out cross validation to better meet computational demands.
 
 \RestyleAlgo{ruled}
 \LinesNumbered
@@ -266,19 +267,20 @@ The optimal tuning value $\gamma^*$ is then found to be the value of $\gamma$ th
 
 \begin{algorithm}
 \caption{Longitudinal Principal Manifold Estimation}\label{alg:lpme}
-\KwData{Data points $\left\{y_{i, t}\right\}_{i, t}^{I_t, T}$, positive integer $d$, positive integer $N_0 < I - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\left\{\lambda_k\right\}_{k=1}^K$, $\left\{\gamma_l\right\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
-\KwResult{Analytic formula of $\hat{g}^*: \mathbb{R}^{d + 1} \to \mathbb{R}^{D}$, optimal tuning parameter $\gamma^*$.}
+  \KwData{Data points $\left\{Y_{i, t}\right\}_{i=1, t=1}^{I_t, T}$, positive integer $d$, positive integer $N_0 < \min{I_t} - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\left\{\lambda_k\right\}_{k=1}^K$, $\left\{\gamma_l\right\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
+\KwResult{Analytic formula of $\hat{f}^*: \mathbb{R}^{d + 1} \to \mathbb{R}^{D + 1}$, optimal tuning parameter $\gamma^*$.}
 \For{$t = 1, 2, \dots, T$} {
-  Apply HDMDE algorithm with input $\left(\left\{y_{i, t}\right\}_{i = 1}^{I_t}, N_0, \epsilon, \alpha\right)$ and obtain $N_t$, $\left\{\mu_{j, N_t, t}\right\}_{j = 1}^{N_t}$, and $\left\{\theta_{j, N_t, t}\right\}_{j = 1}^{N_t}$\;
+  Apply HDMDE algorithm with input $\left(\left\{Y_{i, t}\right\}_{i = 1}^{I_t}, N_0, \epsilon, \alpha\right)$ and obtain $N_t$, $\left\{\mu_{j, t}\right\}_{j = 1}^{N_t}$, and $\left\{\theta_{j, t}\right\}_{j = 1}^{N_t}$\;
 }
 
-Parameterization: Apply ISOMAP to parameterize $\left\{\mu_{j, N_t, t}\right\}_{j = 1, t = 1}^{N_t, T}$ by the $d$-dimensional parameters $\left\{r_{j, t}\right\}_{j = 1, t = 1}^{N_t, T}$. Formally set $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets r_j$ for $j = 1, 2, \dots, N_t$, $t = 1, 2, \dots, T$\;
+  Apply ISOMAP to parameterize $\left\{\mu_{j, t}\right\}_{j = 1, t = 1}^{N_t, T}$ by the $d$-dimensional parameters $\left\{r_{j, t}\right\}_{j = 1, t = 1}^{N_t, T}$. Formally set $\pi_{f_t(0)}(\mu_{j, t}) \gets r_{j, t}$ for $j = 1, 2, \dots, N_t$, $t = 1, 2, \dots, T$\;
 
 \For{t = 1, 2, \dots, T} {
-  Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^{N_t}$ and obtain $f_t^*$ and $\lambda_t^*$\;
-  $\left\{r_{j, t}\right\} \gets \pi_{f_t^*}(\mu_{j, N_t, t})$ for $j = 1, \dots, N_t$ and $x_{j, t} \gets f_t^*(r_{j, t})$ for $j = 1, \dots, N_t$\;
+  Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^{N_t}$ and obtain $f_t$ and $\lambda_t^*$\;
+  $\left\{r_{j, t}\right\} \gets \pi_{f_t}(\mu_{j, t})$ for $j = 1, \dots, N_t$ and $X_{j, t} \gets f_t(r_{j, t})$ for $j = 1, \dots, N_t$\;
 }
 
+  Let $N = \max(N_t)$, $\left\{r_i^*\right\}_{i=1}^{N}$ be a grid spanning the range of estimated values of $\left\{r_{i, j}\right\}_{i=1, t=1}^{N_t, T}$, and $X_{i, t} = f_t(r_{i}^*)$ for $i = 1, \dots, N$ and $t = 1, \dots, T$\;
 Let $N = \sum_{t=1}^{T}N_t$, $\mathbf{x}$ be a $N \times D$ matrix of stacked values of $\left\{x_{j, t}\right\}_{t = 1}^T$, and $\mathbf{r}$ be a $N \times d + 1$ matrix of stacked values of $\left\{r_{j, t}\right\}_{t = 1}^T$ \;
 
 Set $\pi_{g(0)}(x_i) \gets r_i$ for $i = 1, 2, \dots, N$\;
@@ -328,16 +330,6 @@ $f^*(r) = \hat{f}_{l^*}(r)$, where the analytic formula of $f^*$ is from (14), a
 \end{enumerate}
 
 Future Work:
-
-Questions:
-\begin{enumerate}
-  \item What is the best way to evaluate the performance of the estimates? We can use SSD for the embedded values, but how to assess the parameterized values?
-  \item Should there be updates to what is defined as the "optimal" model in the PME algorithm? Currently it is possible for a model with non-minimal SSD to be chosen within the fitting of a single tuning value.
-  \item Why would we see the SSD increase substantially in late optimization steps?
-  \item Generally, what are the limitations on the estimated manifolds intersecting? How close can it come to intersecting without showing strange behavior?
-  \item Is thin-plate spline computational strategy from Wahba the best approach, or could updated computational approach help (Wood, 2003)?
-  \item How much error does the registration process introduce? Can the LPME algorithm successfully handle a certain number of bad registrations or extractions?
-\end{enumerate}
 
 \nocite{*}
 %\bibliographystyle{plain}
