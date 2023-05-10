@@ -94,7 +94,7 @@ The remainder of this article is laid out as follows: In Section 2, we review th
 
 The framework for principal manifolds originated with the concept of principal curves (PS, \cite{hastiePrincipalCurves1989}), which are essentially curves that pass through the middle of the data. However, the PS framework in \cite{hastiePrincipalCurves1989} is flawed by the model complexity selection, which \cite{duchamp1996extremal} pointed out. Motivated by the penalization approaches in \cite{kegl2000learning} and \cite{smolaRegularizedPrincipalManifolds2001}, \cite{mengPrincipalManifoldEstimation2021} proposed the principal manifold estimation (PME) framework and algorithm. Since our LPME is based on the PME, we review the PME in this section for the audience's convenience. The following concepts and notations are necessary for both the PME and our proposed LPME, and they will be used throughout this paper
 \begin{itemize}
-\item $d$ and $D$ are two positive integers denoting dimensions, and $d<D$; \meng{Add some explanations of the dimensionalities $d$ and $D$.}
+\item $d$ and $D$ are two positive integers denoting the dimensions of the low-dimensional manifold and high-dimensional space, respectively; 
 \item for any positive integer $q$ and point $\xi=(\xi_1,\ldots,\xi_q)\in\mathbb{R}^q$, $\Vert \xi\Vert_{\mathbb{R}^q}=\sqrt{\sum_{l=1}^q \xi_l^2}$;
     \item $\mathcal{C}_{\infty}(\mathbb{R}^{d} \to \mathbb{R}^{D}) = \left\{f \in \mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D}): \lim_{\|r\|_{\mathbb{R}^{d}} \to \infty}\|f(r)\|_{\mathbb{R}^{D}} = \infty\right\}$, where $\mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D})$ denotes the collection of continuous vector-valued functions mapping from $\mathbb{R}^d$ to $\mathbb{R}^D$; 
     \item for every $f\in \mathcal{C}_{\infty}(\mathbb{R}^{d} \to \mathbb{R}^{D})$, the image of $f$ is referred to as the $d$-dimensional manifold $M_f^d$ determined by $f$, i.e., $M_f^d=\{f(r):\,r\in\mathbb{R}^d\}$;
@@ -177,7 +177,7 @@ referred to as the total squared curvature of a manifold. With this penalty term
 &\mathcal{K}_{\lambda, \mathbb{P}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f).
     \end{aligned}
   \end{align}
-A manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ is called a principal manifold for $\boldsymbol{X}$ with the tuning parameter $\lambda$ if 
+  A manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ is called a principal manifold for $\boldsymbol{X}$ with the tuning parameter $\lambda$ if 
   \begin{equation}\label{eq:7}
     \begin{aligned}
         & f_{\lambda}^{*} = \argmin_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f), \\ 
@@ -185,8 +185,7 @@ A manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ is called a principal manifold 
     \end{aligned}
   \end{equation}
 \end{definition}
-\meng{Add some explanations for the terms in Eq.~\eqref{eq:5}.}
-In this setting, we can see that $\pi_{f_{\lambda}^{*}}(\boldsymbol{X})$ maps the $D$-vector $\boldsymbol{X}$ to a $d$-dimensional parameterization, while $f_{\lambda}^{*}$ embeds the $d$-dimensional parameterization in the original $D$-dimensional space.
+In this setting, we can see that $\pi_{f_{\lambda}^{*}}(\boldsymbol{X})$ maps the $D$-vector $\boldsymbol{X}$ to a $d$-dimensional parameterization, while $f_{\lambda}^{*}$ embeds the $d$-dimensional parameterization in the original $D$-dimensional space. Thus, the first segment of the functional $\mathcal{K}_{\lambda, \mathbb{P}}$ provides a measure of the expected distance between the provided $D$-vector $\mathbf{X}$ and the value of $\mathbf{X}$ when projected onto the manifold. Meanwhile the second segment of $\mathcal{K}_{\lambda, \mathbb{P}}$ penalizes the roughness of the function $f$, with the magnitude of the penalty dependent on the provided value of $\lambda$.
 
 To estimate principal manifolds under this definition, \cite{mengPrincipalManifoldEstimation2021} propose the Principal Manifold Estimation (PME) algorithm. This algorithm has three main steps: data reduction, fitting, and tuning (see Figure 2 of \cite{mengPrincipalManifoldEstimation2021}). \meng{I would suggest presenting Figure 2 of \cite{mengPrincipalManifoldEstimation2021} in the present paper.}
 \begin{enumerate}
@@ -216,9 +215,10 @@ Let $\left\{x_i\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_
 \subsection{Definition of LPM}
 
 Suppose the $d$-dimensional manifold of interest depends on time $t$, which can be represented by a function $F(r,t)$ defined on the ``spacetime" $\mathbb{R}^d\times\mathbb{R}$, where $\mathbb{R}^d$ and $\mathbb{R}$ correspond to ``space" and ``time," respectively. In addition, we assume $F\in\mathcal{C}_\infty\cap\nabla^{-\otimes2}L^2(\mathbb{R}^d\times\mathbb{R}\rightarrow\mathbb{R}^D)$. For each fixed time point $t$, the function $f_t(r):=F(r,t)$ of $r$ is the manifold at the time point. For given tuning parameters $\lambda=\{\lambda_t\}_{t\in\mathbb{R}}$ and $\gamma$, we plan to minimize the following functional
-\begin{equation}
-  \mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F) = \int_\mathbb{R} \mathbb{E}\left\|\boldsymbol{X}_t - f_t\left(\pi_{f_t}(\boldsymbol{X}_t)\right)\right\|_{\mathbb{R}^{D}}^2 \, dt + \int_\mathbb{R} \lambda_t \cdot\|\nabla^{\otimes 2}f_t\|_{L^2(\mathbb{R}^{d})}^2 \, dt + \gamma\cdot \int_{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \, dt. \label{eq:11}
-\end{equation}
+\begin{align}
+  \mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F) &= \int_\mathbb{R} \mathbb{E}\left\|\boldsymbol{X}_t - f_t\left(\pi_{f_t}(\boldsymbol{X}_t)\right)\right\|_{\mathbb{R}^{D}}^2 \, dt + \int_\mathbb{R} \lambda_t \cdot\|\nabla^{\otimes 2}f_t\|_{L^2(\mathbb{R}^{d})}^2 \, dt + \gamma\cdot \int_{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \, dt \label{eq:11} \\
+  &= \mathcal{K}_{\lambda, \mathbb{P}}(f_t) + \gamma \cdot \int{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \nonumber
+.\end{align}
 \meng{Combine Eq.~\eqref{eq:5} and the functional above.}
 
 \meng{Add the interpretation of the terms above. This interpretation presents the key idea of this paper. I need to address it carefully. One thing I would strongly suggest is to explain why we chose to deal with space and time separately.}
