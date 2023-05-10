@@ -172,10 +172,8 @@ referred to as the total squared curvature of a manifold. With this penalty term
   \label{def:principal_manifolds}
   Let $\boldsymbol{X}$ be a random $D$-vector associated with the probability measure $\mathbb{P}$ such that $\boldsymbol{X}$ has compact support $\text{supp}(\mathbb{P})$ and finite second moments. Let $f, g \in \mathcal{C}_{\infty}\cap \nabla^{-\otimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D})$ and $\lambda \in [0, \infty]$, and define the following functionals:
   \begin{align}\label{eq:5}
-    \begin{aligned}
 &\mathcal{K}_{\lambda, \mathbb{P}}(f, g) = \mathbb{E}\|\boldsymbol{X} - f(\pi_g(\boldsymbol{X}))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2, \\
-&\mathcal{K}_{\lambda, \mathbb{P}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f).
-    \end{aligned}
+&\mathcal{K}_{\lambda, \mathbb{P}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f). \nonumber
   \end{align}
   A manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ is called a principal manifold for $\boldsymbol{X}$ with the tuning parameter $\lambda$ if 
   \begin{equation}\label{eq:7}
@@ -217,9 +215,10 @@ Let $\left\{x_i\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_
 Suppose the $d$-dimensional manifold of interest depends on time $t$, which can be represented by a function $F(r,t)$ defined on the ``spacetime" $\mathbb{R}^d\times\mathbb{R}$, where $\mathbb{R}^d$ and $\mathbb{R}$ correspond to ``space" and ``time," respectively. In addition, we assume $F\in\mathcal{C}_\infty\cap\nabla^{-\otimes2}L^2(\mathbb{R}^d\times\mathbb{R}\rightarrow\mathbb{R}^D)$. For each fixed time point $t$, the function $f_t(r):=F(r,t)$ of $r$ is the manifold at the time point. For given tuning parameters $\lambda=\{\lambda_t\}_{t\in\mathbb{R}}$ and $\gamma$, we plan to minimize the following functional
 \begin{align}
   \mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F) &= \int_\mathbb{R} \mathbb{E}\left\|\boldsymbol{X}_t - f_t\left(\pi_{f_t}(\boldsymbol{X}_t)\right)\right\|_{\mathbb{R}^{D}}^2 \, dt + \int_\mathbb{R} \lambda_t \cdot\|\nabla^{\otimes 2}f_t\|_{L^2(\mathbb{R}^{d})}^2 \, dt + \gamma\cdot \int_{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \, dt \label{eq:11} \\
-  &= \mathcal{K}_{\lambda, \mathbb{P}}(f_t) + \gamma \cdot \int{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \nonumber
+  &= \int_{\mathbb{R}}\mathcal{K}_{\lambda, \mathbb{P}}(f_t) \, dt + \gamma \cdot \int{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \, dt \nonumber
 .\end{align}
-\meng{Combine Eq.~\eqref{eq:5} and the functional above.}
+
+By minimizing the functional above, we retain the goals of Eq.~\eqref{eq:5} while also penalizing the changes in $F$ over time. Thus, we seek to minimize the distance between the observations $\mathbf{X_t}$ and their projections to $f_t$ while separately discouraging roughness both over the manifolds at each time point and over the changes in manifolds in the time dimension. The ability to distinguish between smoothing at a fixed time point and smoothing over time differentiates this approach from a thin plate spline, which would smooth over both the manifold and time jointly. Using separate smoothing parameters provides additional flexibility in situations where a manifold with a high level of roughness shows minimal changes over time, or vice versa.
 
 \meng{Add the interpretation of the terms above. This interpretation presents the key idea of this paper. I need to address it carefully. One thing I would strongly suggest is to explain why we chose to deal with space and time separately.}
 
@@ -248,11 +247,11 @@ Once the initial parameterization for each cluster center is obtained, the model
 
 The remainder of the fitting stage deals with the third term of $\mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F)$, i.e., the curvature in the time dimension (see Eq.~\eqref{eq:11}). Specifically, the remainder of this stage involves estimating a spline function mapping from the time dimension to the coefficient space that smooths over the coefficients for these principal manifolds, given a tuning parameter $\gamma$. \meng{The term ``coefficient space" is clear to me, but it might be confusing to other readers who are unfair with the details of PME.}
 
-At each time point, the estimated principal manifold has a spline form. As detailed by \cite{greenSilverman1994}, splines can be considered to have knots at the points being used to fit them. This means that, in order for the coefficients of the manifolds estimated at each time point to be comparable, the parameter values used as inputs when the functions were fitted must be identical. Hence, to obtain coefficients that can be compared across time points, a grid of values $\left\{\boldsymbol{r}_i\right\}_{i=1}^{N}$ ($\subset\mathbb{R}^d$) ranging from the minimum to the maximum of the parameters in each of the $d$ dimensions is input into the estimated embedding functions $\widehat{f_t}$ for each time point  \meng{What is the $N$ herein?}. This yields a set of outcomes, $\left\{X_{i,t}\right\}_{i=1, t = 1}^{N, T}$, corresponding to same parameter values at each time point, i.e., $X_{i,t}=\widehat{f_t}(\boldsymbol{r}_i)$ for all $i$ and $t$. Following the discussion in Chapter 7 of \cite{greenSilverman1994}, for each time point $t$, comparable spline coefficients $\boldsymbol{s}_t^*$ and $\boldsymbol{\alpha}_t^*$ can then be calculated by minimizing $\mathcal{L}(f_t)$, where
+At each time point, the estimated principal manifold has a spline form. As detailed by \cite{greenSilverman1994}, splines can be considered to have knots at the points being used to fit them. This means that, in order for the coefficients of the manifolds estimated at each time point to be comparable, the parameter values used as inputs when the functions were fitted must be identical. Hence, to obtain coefficients that can be compared across time points, a grid of values $\left\{\boldsymbol{r}_i\right\}_{i=1}^{N}$ ($\subset\mathbb{R}^d$) ranging from the minimum to the maximum of the parameters in each of the $d$ dimensions is input into the estimated embedding functions $\widehat{f_t}$ for each time point, with $N$ being specified based on the maximum number of clusters identified in the data reduction step at any time point. This yields a set of outcomes, $\left\{Y_{i,t}\right\}_{i=1, t = 1}^{N, T}$, corresponding to same parameter values at each time point, i.e., $Y_{i,t}=\widehat{f_t}(\boldsymbol{r}_i)$ for all $i$ and $t$. Following the discussion in Chapter 7 of \cite{greenSilverman1994}, for each time point $t$, comparable spline coefficients $\boldsymbol{s}_t^*$ and $\boldsymbol{\alpha}_t^*$ can then be calculated by minimizing $\mathcal{L}(f_t)$, where
 \begin{itemize}
-    \item $\mathcal{L}(f_t) = (\boldsymbol{X}_t - \boldsymbol{E}\boldsymbol{s}_t - \boldsymbol{R}^\T\boldsymbol{\alpha}_t)^\T(\boldsymbol{X}_t - \boldsymbol{E}\boldsymbol{s}_t - \boldsymbol{R}^\T\boldsymbol{\alpha}_t) + \gamma\boldsymbol{s}_t^\T \boldsymbol{E}\boldsymbol{s}_t$;
-    \item \meng{specify the function $\eta_{4-d}$};
-    \item matrix $\boldsymbol{E}=(E_{ij})_{1\le i,j\le N}$ is defined by $E_{ij} = \eta_{d}(\|\boldsymbol{r}_i - \boldsymbol{r}_j\|)$ \meng{$\eta_d$ or $\eta_{4-d}$?};
+    \item $\mathcal{L}(f_t) = (\boldsymbol{Y}_t - \boldsymbol{E}\boldsymbol{s}_t - \boldsymbol{R}^\T\boldsymbol{\alpha}_t)^\T(\boldsymbol{Y}_t - \boldsymbol{E}\boldsymbol{s}_t - \boldsymbol{R}^\T\boldsymbol{\alpha}_t) + \gamma\boldsymbol{s}_t^\T \boldsymbol{E}\boldsymbol{s}_t$;
+    \item $\eta_{d}(r) = r^{4 - d}\log r$ if $d$ is even, and $\eta_d(r) = r^{4-d}$ if $d$ is odd;
+    \item matrix $\boldsymbol{E}=(E_{ij})_{1\le i,j\le N}$ is defined by $E_{ij} = \eta_{d}(\|\boldsymbol{r}_i - \boldsymbol{r}_j\|)$;
     \item functions $\phi_1,\ldots,\phi_{d+1}$ form a basis of the linear space of polynomials on $\mathbb{R}^d$ with degrees $\le1$;
     \item matrix $\boldsymbol{R}=(R_{ij})_{1\le i\le d+1,1\le j\le N}$ is defined by has $R_{ij} = \phi_i(\boldsymbol{r}_j)$.
 \end{itemize}
@@ -270,24 +269,25 @@ This minimization is conducted by solving
     \end{array}
   \right) = \left(
     \begin{array}{c}
-      \boldsymbol{X}_t \\
+      \boldsymbol{Y}_t \\
       \boldsymbol{0}
     \end{array}
   \right). \label{eq:13}
 \end{equation}
 The solution to Eq.~\eqref{eq:13} , denoted by $\boldsymbol{\alpha}^*_t=(\alpha^*_{1,t},\ldots,\alpha^*_{d+1,t})^\T$ and $\boldsymbol{s}^*_t=(s^*_{1,t},\ldots,s^*_{N,t})^\T$, yields function
 \begin{equation}
-  f_t^*(r) = \sum_{j=1}^{N}s_{j,t}^* \cdot  \eta_{4-d}\left(\|r - r_j^*\|\right) + \sum_{k=1}^{d + 1}\alpha_{k,t}^* \cdot \phi_k(r). \label{eq:14}
+  f_t^*(r) = \sum_{j=1}^{N}s_{j,t}^* \cdot  \eta_{d}\left(\|r - r_j^*\|\right) + \sum_{k=1}^{d + 1}\alpha_{k,t}^* \cdot \phi_k(r). \label{eq:14}
 \end{equation}
 
 We denote the manifold coefficients at each time point $t$ as $\boldsymbol{\omega}_t = (\boldsymbol{s}_t^{*\T}, \boldsymbol{\alpha}_t^{*\T})^\T$. To limit the ability of a poorly-fitting PME estimate to greatly influence the results of the LPME model, we fit a weighted spline model to smooth over the manifold coefficients, where with $\tau_t$ denoting the estimated mean squared distance of the PME model fit at time $t$ \meng{I would suggest writing the $\tau_t$ in a more precise way.}, the weights for each time are equal to 
-$$w_t = \frac{\frac{1}{\tau_t}}{\sum_{i=1}^{T}\frac{1}{\tau_i}}.$$ 
+$$w_t = \frac{1}{\tau_t\sum_{i=1}^{T}\frac{1}{\tau_i}}.$$ 
 
-With a given tuning value $\gamma$, we then follow the estimation approach described in \cite{mengPrincipalManifoldEstimation2021} to estimate spline function \meng{Explicitly say that we apply a weighted cubic spline regression using $\{t_i\}_{=1}^T$ as the predictors and $\{\boldsymbol{\omega}_t\}_t$ as responses. I mean, we need to clearly point out the predictors and responses of the spline regression.}
+With a given tuning value $\gamma$, we the fit a weighted cubic spline function using $\left\{t_i\right\}_{i=1}^T$ as predictors and $\left\{\mathbf{\omega}_t\right\}_t$ as the response values, with weights $\left\{w_t\right\}_t$. This function takes the form
+
 \begin{equation}
-  g_{\gamma}(t) = \sum_{i=1}^{T}\delta_i \,\eta_{4-d}\left(\|t - t_i\|\right) + \sum_{j=1}^{2}\nu_j\,\phi(t)_j, \label{eq:15}
+  g_{\gamma}(t) = \sum_{i=1}^{T}\delta_i \,\|t - t_i\|^{3} + \sum_{j=1}^{2}\nu_j\,\phi(t)_j, \label{eq:15}
 \end{equation}
-where, with matrix $\boldsymbol{A}$ defined as $\boldsymbol{A}_{ij} = \eta_d\left(\|t_i - t_j\|\right)$, matrix $\boldsymbol{T}$ defined as $\boldsymbol{T}_{ij} = \phi_i(t_j)$, and $\boldsymbol{W} = \operatorname{diag}(w_1, \dots, w_T)$,  $\boldsymbol{\delta}=(\delta_1,\ldots,\delta_T)^\T$ and $\boldsymbol{\nu}=(\nu_1,\nu_2)^\T$ are the solutions to 
+where, with matrix $\boldsymbol{A}$ defined as $\boldsymbol{A}_{ij} = \|t_i - t_j\|^{3}$, matrix $\boldsymbol{T}$ defined as $\boldsymbol{T}_{ij} = \phi_i(t_j)$, and $\boldsymbol{W} = \operatorname{diag}(w_1, \dots, w_T)$,  $\boldsymbol{\delta}=(\delta_1,\ldots,\delta_T)^\T$ and $\boldsymbol{\nu}=(\nu_1,\nu_2)^\T$ are the solutions to 
 \begin{equation}
   \left(
   \begin{array}{ccc}
@@ -311,11 +311,9 @@ where, with matrix $\boldsymbol{A}$ defined as $\boldsymbol{A}_{ij} = \eta_d\lef
 \end{equation}
 where $\boldsymbol{\Omega}=(\boldsymbol{\omega}_1,\ldots, \boldsymbol{\omega}_T)^\T$.
 
-\meng{Since the dimensionality of time $t$ is $d=1$, the spline $\eta_{4-d}$ is the cubic spline. We need to replace all $\eta_{4-d}(\Vert t-t_j\Vert)$ with $\Vert t-t_j\Vert^3$.}
-
 With $\gamma$ given, we denote the manifold coefficients at time $t$ estimated by function $g(\cdot)$ as $\boldsymbol{\Omega}_{\gamma}(t) = \left(\boldsymbol{s}_{\gamma}(t)^\T, \boldsymbol{\alpha}_{\gamma}(t)^\T\right)^\T$. Hence, given $\gamma$, the estimated embedding function given time $t$ and $d$-dimensional parameterization $\boldsymbol{r}$ may be written as
 \begin{equation}
-  F_{\gamma}(t, \boldsymbol{r}) = \sum_{j=1}^{N}\boldsymbol{s}_{\gamma}(t)_j \eta_{4-d}\left(\|\boldsymbol{r} - \boldsymbol{r}_j^*\|\right) + \sum_{k=1}^{d+1}\boldsymbol{\alpha}_{\gamma}(t)_k \phi_k(\boldsymbol{r}). \label{eq:17}
+  F_{\gamma}(t, \boldsymbol{r}) = \sum_{j=1}^{N}\boldsymbol{s}_{\gamma}(t)_j \eta_{d}\left(\|\boldsymbol{r} - \boldsymbol{r}_j^*\|\right) + \sum_{k=1}^{d+1}\boldsymbol{\alpha}_{\gamma}(t)_k \phi_k(\boldsymbol{r}). \label{eq:17}
 \end{equation}
 
 \meng{From the methodology viewpoint, the fitting section is the most important part of this paper.}
@@ -326,7 +324,7 @@ With $\gamma$ given, we denote the manifold coefficients at time $t$ estimated b
 
 Once longitudinal estimates $F_{\gamma}(t, \boldsymbol{r})$ have been estimated for all provided tuning values, the optimal tuning parameter $\gamma^*$ is identified using leave-one-out cross validation. In this process, the coefficient smoothing function is computed while excluding all data and coefficients with time $t$ from consideration, for $t = 1, \dots, T$. We denote this function $g_{\gamma}^{(t)}$. We can then assess the performance of the LPME model using tuning value $\gamma$ by averaging over estimates of MSD calculated using the original observations associated with the left-out time $t$ as follows: \meng{What are the $Y_{i,t}$'s?}
 \begin{equation}
-  MSD(\gamma) = \frac{1}{T} \sum_{t=1}^{T}\frac{1}{I_t}\sum_{i=1}^{I_t}\|Y_{i, t} - f_{\gamma}^{(t)}(t, \pi_{f_{\gamma}^{(t)}}(Y_{i, t}))\|^2. \label{eq:18}
+  MSD(\gamma) = \frac{1}{T} \sum_{t=1}^{T}\frac{1}{I_t}\sum_{i=1}^{I_t}\|x_{i, t} - f_{\gamma}^{(t)}(t, \pi_{f_{\gamma}^{(t)}}(x_{i, t}))\|^2. \label{eq:18}
 \end{equation}
 The optimal tuning value $\gamma^*$ is then found to be the value of $\gamma$ that minimizes $MSD(\gamma)$. \meng{I would suggest some simulation studies showing the performance of the $\gamma^*$ something, like the Figure 4 of \cite{mengPrincipalManifoldEstimation2021}.}
 
