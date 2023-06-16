@@ -1,29 +1,24 @@
 library(tidyverse)
 library(plotly)
 library(pracma)
-library(profvis)
+# library(profvis)
 library(foreach)
 library(doParallel)
 library(doSNOW)
 library(furrr)
 library(progress)
-library(multimode)
+# library(multimode)
+library(pme)
 
 source("code/functions/sim_data.R")
 source("code/functions/calc_pme_est.R")
 source("code/functions/calc_lpme_est.R")
-source("code/pme.R")
-# source("code/lpme.R")
-source("code/lpme_s3.R")
 
 ### Simulation Case 1
 
-sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
@@ -34,7 +29,9 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -46,14 +43,14 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, n, run =
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
-  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = TRUE)
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
   # lpme_vals[, 1] <- sim_df[, 1]
   pme_result <- list()
   pme_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 1, verbose = FALSE)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
   }
   pme_vals <- reduce(pme_vals, rbind)
@@ -79,14 +76,14 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -118,6 +115,9 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -126,17 +126,14 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case1,
     paste0(sim_dir, filename)
   )
-  return(sim_case1)
+  return(0)
 }
 
 ### Simulation Case 2
 
-sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
@@ -147,7 +144,9 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -174,14 +173,14 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -232,6 +231,9 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -240,17 +242,14 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case2,
     paste0(sim_dir, filename)
   )
-  return(sim_case2)
+  return(0)
 }
 
 ### Simulation Case 3
 
-sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
@@ -261,7 +260,9 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -292,14 +293,14 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, 1:3])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:3])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, 1:3])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:3])^2
   ) %>%
     unlist() %>%
     mean()
@@ -351,6 +352,9 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -359,12 +363,12 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case3,
     paste0(sim_dir, filename)
   )
-  return(sim_case3)
+  return(0)
 }
 
 ### Simulation Case 4
 
-sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
@@ -380,7 +384,9 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -424,14 +430,14 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -483,6 +489,9 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -491,12 +500,12 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case4,
     paste0(sim_dir, filename)
   )
-  return(sim_case4)
+  return(0)
 }
 
 ### Simulation Case 5
 
-sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
@@ -512,7 +521,9 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -539,14 +550,14 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -600,6 +611,9 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -608,12 +622,12 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case5,
     paste0(sim_dir, filename)
   )
-  return(sim_case5)
+  return(0)
 }
 
 ### Simulation Case 6
 
-sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
@@ -629,7 +643,9 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -656,14 +672,14 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -718,6 +734,9 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -727,12 +746,12 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case6,
     paste0(sim_dir, filename)
   )
-  return(sim_case6)
+  return(0)
 }
 
 ### Simulation Case 7
 
-sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
@@ -748,7 +767,9 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -775,14 +796,14 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, ])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -837,6 +858,9 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -845,12 +869,12 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case7,
     paste0(sim_dir, filename)
   )
-  return(sim_case7)
+  return(0)
 }
 
 ### Simulation Case 8
 
-sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
@@ -866,7 +890,9 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise / 25,
     period_noise = shape_noise / 25,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -897,14 +923,14 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -959,6 +985,9 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -967,12 +996,12 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case8,
     paste0(sim_dir, filename)
   )
-  return(sim_case8)
+  return(0)
 }
 
 ### Simulation Case 9
 
-sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
@@ -988,7 +1017,9 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -1019,14 +1050,14 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, n, run =
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1081,6 +1112,9 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -1089,12 +1123,12 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, n, run =
     sim_case9,
     paste0(sim_dir, filename)
   )
-  return(sim_case9)
+  return(0)
 }
 
 ### Simulation Case 10
 
-sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, n, run = 1, print_plots = FALSE) {
+sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
   source("code/functions/sim_data.R")
   source("code/pme.R")
@@ -1110,7 +1144,9 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, n, run 
     noise = 0.15,
     amp_noise = amp_noise,
     period_noise = shape_noise,
-    N = n
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
   )
 
   sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
@@ -1141,14 +1177,14 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, n, run 
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], pme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclideanC(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1203,6 +1239,9 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, n, run 
     str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
     "_n_",
     str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
     "_run_",
     str_pad(as.character(run), 2, side = "left", pad = "0"),
     ".rds"
@@ -1211,7 +1250,7 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, n, run 
     sim_case10,
     paste0(sim_dir, filename)
   )
-  return(sim_case10)
+  return(0)
 }
 
 amp_noise_vals <- seq(0, 2, 0.25)
@@ -1221,6 +1260,8 @@ intervals <- c(0.1, 0.25, 0.5, 1)
 n_vals <- 10^(3:4)
 replicates <- 1:4
 case <- 1:10
+time_changes <- seq(0, 2, 0.25)
+time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
 
 param_grid <- expand.grid(
   amp_noise_vals,
@@ -1229,14 +1270,16 @@ param_grid <- expand.grid(
   intervals,
   max_times,
   replicates,
-  case
+  case,
+  time_changes,
+  time_trends
 )
 
 param_grid <- param_grid[param_grid[, 7] != 4, ]
 
 # plan(multisession, workers = availableCores() / 2)
-plan(multicore, workers = availableCores() - 2)
-# plan(sequential)
+# plan(multicore, workers = availableCores() - 2)
+plan(sequential)
 set.seed(26818)
 pb <- progress_bar$new(total = nrow(param_grid))
 # errors <- map(
@@ -1345,7 +1388,7 @@ pb <- progress_bar$new(total = nrow(param_grid))
 # )
 
 errors <- future_map(
-  1:nrow(param_grid),
+  sample(1:nrow(param_grid), nrow(param_grid)),
   ~ {
       if (param_grid[.x, 7] == 1) {
         try(
@@ -1354,6 +1397,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1366,6 +1411,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1378,6 +1425,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1390,6 +1439,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1402,6 +1453,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1414,6 +1467,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1426,6 +1481,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1438,6 +1495,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
@@ -1450,6 +1509,8 @@ errors <- future_map(
             param_grid[.x, 4],
             param_grid[.x, 1],
             param_grid[.x, 2],
+            param_grid[.x, 8],
+            param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
             print_plots = FALSE
