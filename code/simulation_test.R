@@ -7,7 +7,7 @@ library(doParallel)
 library(doSNOW)
 library(furrr)
 library(progress)
-library(multimode)
+# library(multimode)
 
 source("code/functions/sim_data.R")
 source("code/functions/calc_pme_est.R")
