@@ -1,81 +1,86 @@
-sim_data <- function(time_val, case, noise, amp_noise, period_noise, N = 1000) {
+sim_data <- function(time_val, case, noise, amp_noise, period_noise, time_change, time_trend, N = 1000) {
+  if (time_trend == "constant") {
+    time_trend_val <- 0
+  } else if (time_trend == "linear") {
+    time_trend_val <- time_val
+  } else if (time_trend == "quadratic") {
+    time_trend_val <- time_val^2
+  } else if (time_trend == "sinusoidal") {
+    time_trend_val <- sin(time_val)
+  }
+  time_change_d2 <- rep(time_change * time_trend_val, 2)
+  time_change_d3 <- rep(time_change * time_trend_val, 3)
   manifolds <- list(
     function(tau, amp_noise, period_noise) {
-      return(c(tau, amp_noise[1] * sin(period_noise[1] * tau + pi / 2)))
+      c(tau, amp_noise[1] * sin(period_noise[1] * tau + pi / 2)) +
+        time_change_d2
     },
     function(tau, amp_noise, period_noise) {
-      return(c(tau, amp_noise[1] * sin(period_noise[1] * tau)))
+      c(tau, amp_noise[1] * sin(period_noise[1] * tau)) +
+        time_change_d2
     },
     function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          amp_noise[1] * cos(period_noise[1] * tau),
-          amp_noise[2] * sin(period_noise[2] * tau)
-        )
-      )
+      c(
+        amp_noise[1] * cos(period_noise[1] * tau),
+        amp_noise[2] * sin(period_noise[2] * tau)
+      ) +
+      time_change_d2
     },
     function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          amp_noise[1] * cos(period_noise[1] * tau),
-          amp_noise[2] * sin(period_noise[2] * tau)
-        )
-      )
+      c(
+        amp_noise[1] * cos(period_noise[1] * tau),
+        amp_noise[2] * sin(period_noise[2] * tau)
+      ) +
+      time_change_d2
     },
     function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          tau,
-          (tau * amp_noise[1] + period_noise[1]) ^ 2,
-          (tau * amp_noise[2] + period_noise[2]) ^ 3
-        )
-      )
+      c(
+        tau,
+        (tau * amp_noise[1] + period_noise[1]) ^ 2,
+        (tau * amp_noise[2] + period_noise[2]) ^ 3
+      ) +
+      time_change_d3
     },
     function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          tau,
-          amp_noise[1] * cos(period_noise[1] * tau),
-          amp_noise[2] * sin(period_noise[2] * tau)
-        )
-      )
+      c(
+        tau,
+        amp_noise[1] * cos(period_noise[1] * tau),
+        amp_noise[2] * sin(period_noise[2] * tau)
+      ) +
+      time_change_d3
     },
     function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          period_noise[1] * tau[1],
-          period_noise[2] * tau[2],
-          amp_noise[1] * (amp_noise[2] * norm_euclidean(period_noise[1:d] * tau) ^ 2)
-        )
-      )
+      c(
+        period_noise[1] * tau[1],
+        period_noise[2] * tau[2],
+        amp_noise[1] * (amp_noise[2] * norm_euclidean(period_noise[1:d] * tau) ^ 2)
+      ) +
+      time_change_d3
     },
     function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          (period_noise[1] * amp_noise[1] * tau[1]) * cos(amp_noise[1] * tau[1]),
-          (period_noise[2] * amp_noise[2] * tau[1]) * sin(amp_noise[2] * tau[1]),
-          tau[2]
-        )
-      )
+      c(
+        (period_noise[1] * amp_noise[1] * tau[1]) * cos(amp_noise[1] * tau[1]),
+        (period_noise[2] * amp_noise[2] * tau[1]) * sin(amp_noise[2] * tau[1]),
+        tau[2]
+      ) +
+      time_change_d3
     },
     function(tau, amp_noise, period_noise) {
-      return(
-        c(
-          amp_noise[1] * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
-          amp_noise[1] * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
-          amp_noise[1] * cos(period_noise[1] * tau[1])
-        )
-      )
+      c(
+        amp_noise[1] * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
+        amp_noise[1] * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
+        amp_noise[1] * cos(period_noise[1] * tau[1])
+      ) +
+      time_change_d3
     },
     function(tau, amp_noise, period_noise) {
       r <- 1 + amp_noise[1] * (tau[1] + 1) * sqrt(tau[2] + 1)
-      return(
-        c(
-          r * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
-          r * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
-          r * cos(period_noise[1] * tau[1])
-        )
-      )
+      c(
+        r * sin(period_noise[1] * tau[1]) * cos(period_noise[2] * tau[2]),
+        r * sin(period_noise[1] * tau[1]) * sin(period_noise[2] * tau[2]),
+        r * cos(period_noise[1] * tau[1])
+      ) +
+        time_change_d3
     }
   )
 
