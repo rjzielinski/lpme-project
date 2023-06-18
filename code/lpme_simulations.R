@@ -1278,8 +1278,8 @@ param_grid <- expand.grid(
 param_grid <- param_grid[param_grid[, 7] != 4, ]
 
 # plan(multisession, workers = availableCores() / 2)
-# plan(multicore, workers = availableCores() - 2)
-plan(sequential)
+plan(multicore, workers = availableCores() - 2)
+# plan(sequential)
 set.seed(26818)
 pb <- progress_bar$new(total = nrow(param_grid))
 # errors <- map(
