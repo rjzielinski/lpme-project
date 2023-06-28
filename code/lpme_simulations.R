@@ -53,14 +53,14 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
-  lpme_result_gp <- lpme(
-    sim_df,
-    1,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
 
   pme_result <- list()
   pme_vals <- list()
@@ -139,12 +139,12 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   sim_case1 <- list(
     df = sim_df,
@@ -153,18 +153,18 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case1/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -230,14 +230,14 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     verbose = TRUE
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_result_gp <- lpme(
-    sim_df,
-    1,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
   smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
@@ -284,12 +284,12 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -329,18 +329,18 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case2/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -410,14 +410,14 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     verbose = TRUE
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_result_gp <- lpme(
-    sim_df,
-    1,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
   smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
@@ -464,12 +464,12 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:3])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:3])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -510,18 +510,18 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case3/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -604,14 +604,14 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     verbose = TRUE
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_result_gp <- lpme(
-    sim_df,
-    1,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
   smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
@@ -658,12 +658,12 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -704,18 +704,18 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case4/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -782,14 +782,14 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
-  lpme_result_gp <- lpme(
-    sim_df,
-    1,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
   smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
@@ -836,12 +836,12 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -885,18 +885,18 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case5/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -963,14 +963,14 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
-  lpme_result_gp <- lpme(
-    sim_df,
-    1,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
 
   pme_result <- list()
   pme_vals <- list()
@@ -1018,12 +1018,12 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -1067,11 +1067,11 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
@@ -1079,7 +1079,7 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   sim_dir <- "simulations/case6/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1148,14 +1148,14 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
-  lpme_result_gp <- lpme(
-    sim_df,
-    2,
-    smoothing_method = "gp",
-    rint_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
 
   pme_result <- list()
   pme_vals <- list()
@@ -1192,12 +1192,12 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -1241,18 +1241,18 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case7/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1323,14 +1323,14 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
-  lpme_result_gp <- lpme(
-    sim_df,
-    2,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
 
   pme_result <- list()
   pme_vals <- list()
@@ -1367,12 +1367,12 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -1417,18 +1417,18 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case8/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1499,14 +1499,14 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
-  lpme_result_gp <- lpme(
-    sim_df,
-    2,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
 
   pme_result <- list()
   pme_vals <- list()
@@ -1543,12 +1543,12 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -1592,18 +1592,18 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case9/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1674,14 +1674,14 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
-  lpme_result_gp <- lpme(
-    sim_df,
-    2,
-    smoothing_method = "gp",
-    print_plots = print_plots,
-    verbose = TRUE
-  )
-  lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
 
   pme_result <- list()
   pme_vals <- list()
@@ -1718,12 +1718,12 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     unlist() %>%
     mean()
 
-  lpme_error_gp <- map(
-    1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
-  ) %>%
-    unlist() %>%
-    mean()
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   principal_curve_error <- map(
     1:nrow(true_vals),
@@ -1768,18 +1768,18 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
-    lpme_gp_result = lpme_result_gp,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
     principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
-    lpme_gp_error = lpme_error_gp,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case10/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1836,8 +1836,8 @@ plan(sequential)
 set.seed(21986)
 # pb <- progress_bar$new(total = nrow(param_grid))
 errors <- map(
-  # sample(1:nrow(param_grid), nrow(param_grid)),
-  1:nrow(param_grid),
+  sample(1:nrow(param_grid), nrow(param_grid)),
+  # 1:nrow(param_grid),
   ~ {
       if (param_grid[.x, 7] == 1) {
         try(
