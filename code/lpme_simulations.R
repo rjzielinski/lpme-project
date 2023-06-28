@@ -11,17 +11,17 @@ library(progress)
 library(pme)
 library(princurve)
 
-source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+source("code/functions/sim_data.R")
+source("code/functions/calc_pme_est.R")
+source("code/functions/calc_lpme_est.R")
 
 ### Simulation Case 1
 
 sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -195,9 +195,9 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -371,9 +371,9 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -552,9 +552,9 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -746,9 +746,9 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -927,9 +927,9 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -1111,10 +1111,10 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/prinSurf_v3.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  source("code/prinSurf_v3.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -1283,9 +1283,11 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  source("code/prinSurf_v3.R")
+
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -1459,9 +1461,11 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  source("code/prinSurf_v3.R")
+
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -1634,9 +1638,11 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
-  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("code/functions/sim_data.R")
+  source("code/functions/calc_pme_est.R")
+  source("code/functions/calc_lpme_est.R")
+  source("code/prinSurf_v3.R")
+
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
