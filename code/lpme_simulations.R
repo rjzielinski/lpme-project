@@ -9,18 +9,19 @@ library(furrr)
 library(progress)
 # library(multimode)
 library(pme)
+library(princurve)
 
-source("code/functions/sim_data.R")
-source("code/functions/calc_pme_est.R")
-source("code/functions/calc_lpme_est.R")
+source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
 
 ### Simulation Case 1
 
 sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -43,17 +44,55 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
-  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = TRUE)
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  # lpme_vals[, 1] <- sim_df[, 1]
+
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+
   pme_result <- list()
   pme_vals <- list()
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 1, verbose = FALSE)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- map(
+        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
+        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
+      ) %>%
+        unlist() %>%
+        mean()
+    }
+    opt_curve <- which.min(curve_error)
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   p <- plot_ly(
     x = lpme_vals[, 2],
@@ -69,6 +108,11 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       z = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 1]
@@ -81,12 +125,26 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
 
   sim_case1 <- list(
     df = sim_df,
@@ -95,14 +153,18 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case1/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -133,9 +195,10 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -159,17 +222,53 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   true_vals <- true_vals[-1, ]
 
 
-  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- map(
+        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
+        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
+      ) %>%
+        unlist() %>%
+        mean()
+    }
+    opt_curve <- which.min(curve_error)
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -181,6 +280,20 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -199,6 +312,11 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       z = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 1]
@@ -211,14 +329,18 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case2/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -249,9 +371,10 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -279,17 +402,53 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     cart2pol()
   sim_df <- cbind(sim_df, pol)[, -5]
 
-  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- map(
+        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
+        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
+      ) %>%
+        unlist() %>%
+        mean()
+    }
+    opt_curve <- which.min(curve_error)
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -301,6 +460,20 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:3])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:3])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:3])^2
   ) %>%
     unlist() %>%
     mean()
@@ -319,6 +492,11 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       z = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 1]
@@ -332,14 +510,18 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case3/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -370,12 +552,10 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -416,17 +596,53 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df2 <- pol2cart(pol)
   sim_df <- cbind(sim_df, cart2pol(sim_df2))
 
-  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- map(
+        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
+        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
+      ) %>%
+        unlist() %>%
+        mean()
+    }
+    opt_curve <- which.min(curve_error)
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -438,6 +654,20 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -456,6 +686,11 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       z = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 1]
@@ -469,14 +704,18 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case4/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -507,12 +746,10 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -536,17 +773,54 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   true_vals <- true_vals[-1, ]
 
 
-  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
   pme_result <- list()
   pme_vals <- list()
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- map(
+        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
+        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
+      ) %>%
+        unlist() %>%
+        mean()
+    }
+    opt_curve <- which.min(curve_error)
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -558,6 +832,20 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -578,6 +866,12 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       frame = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
@@ -591,14 +885,18 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case5/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -629,12 +927,10 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -658,17 +954,55 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   true_vals <- true_vals[-1, ]
 
 
-  lpme_result <- lpme(sim_df, 1, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   1,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+
   pme_result <- list()
   pme_vals <- list()
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- map(
+        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
+        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
+      ) %>%
+        unlist() %>%
+        mean()
+    }
+    opt_curve <- which.min(curve_error)
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -680,6 +1014,20 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -700,6 +1048,12 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       frame = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
@@ -713,15 +1067,19 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
 
   sim_dir <- "simulations/case6/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -753,12 +1111,11 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/prinSurf_v3.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -782,17 +1139,44 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   true_vals <- true_vals[-1, ]
 
 
-  lpme_result <- lpme(sim_df, 2, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    2,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+
   pme_result <- list()
   pme_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    principal_surface <- prinSurf(temp_data)
+    surface_mse <- map(
+      1:length(principal_surface),
+      ~ principal_surface[[.x]]$MSE
+    ) %>%
+      unlist()
+    opt_surface <- which.min(surface_mse)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -804,6 +1188,20 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
   ) %>%
     unlist() %>%
     mean()
@@ -824,12 +1222,17 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       frame = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
       frame = true_vals[, 1]
     )
-
 
   sim_case7 <- list(
     df = sim_df,
@@ -838,14 +1241,18 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case7/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -876,12 +1283,10 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -909,17 +1314,44 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- cbind(sim_df, pol)
   sim_df <- sim_df[, -5]
 
-  lpme_result <- lpme(sim_df, 2, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    2,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+
   pme_result <- list()
   pme_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    principal_surface <- prinSurf(temp_data)
+    surface_mse <- map(
+      1:length(principal_surface),
+      ~ principal_surface[[.x]]$MSE
+    ) %>%
+      unlist()
+    opt_surface <- which.min(surface_mse)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -931,6 +1363,20 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -951,6 +1397,12 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       frame = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
@@ -965,14 +1417,18 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case8/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1003,12 +1459,10 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1036,17 +1490,44 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- cbind(sim_df, sph)
 
 
-  lpme_result <- lpme(sim_df, 2, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    2,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+
   pme_result <- list()
   pme_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    principal_surface <- prinSurf(temp_data)
+    surface_mse <- map(
+      1:length(principal_surface),
+      ~ principal_surface[[.x]]$MSE
+    ) %>%
+      unlist()
+    opt_surface <- which.min(surface_mse)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -1058,6 +1539,20 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1078,12 +1573,17 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       frame = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
       frame = true_vals[, 1]
     )
-
 
   sim_case9 <- list(
     df = sim_df,
@@ -1092,14 +1592,18 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case9/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1130,12 +1634,10 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
   require(tidyverse)
-  source("code/functions/sim_data.R")
-  source("code/pme.R")
-  # source("code/lpme.R")
-  source("code/lpme_s3.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/sim_data.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_pme_est.R")
+  source("~/Documents/brown/research/lpme-project/code/functions/calc_lpme_est.R")
+
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1163,17 +1665,44 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   sim_df <- cbind(sim_df, sph)
 
 
-  lpme_result <- lpme(sim_df, 2, print_plots = print_plots, verbose = "MSD")
+  lpme_result <- lpme(
+    sim_df,
+    2,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE
+  )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
-  lpme_vals[, 1] <- sim_df[, 1]
+
+  # lpme_result_gp <- lpme(
+  #   sim_df,
+  #   2,
+  #   smoothing_method = "gp",
+  #   print_plots = print_plots,
+  #   verbose = TRUE
+  # )
+  # lpme_vals_gp <- calc_lpme_est(lpme_result_gp, sim_df)
+
   pme_result <- list()
   pme_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
     pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    principal_surface <- prinSurf(temp_data)
+    surface_mse <- map(
+      1:length(principal_surface),
+      ~ principal_surface[[.x]]$MSE
+    ) %>%
+      unlist()
+    opt_surface <- which.min(surface_mse)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
 
   pme_error <- map(
     1:nrow(true_vals),
@@ -1185,6 +1714,20 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   lpme_error <- map(
     1:nrow(true_vals),
     ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # lpme_error_gp <- map(
+  #   1:nrow(true_vals),
+  #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
+  # ) %>%
+  #   unlist() %>%
+  #   mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1205,6 +1748,12 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
       frame = pme_vals[, 1]
     ) %>%
     add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1]
+    ) %>%
+    add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
@@ -1219,14 +1768,18 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     period_noise = shape_noise,
     n = n,
     lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
     pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
     lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    principal_curve_error = principal_curve_error,
     plot = p
   )
   sim_dir <- "simulations/case10/"
   if (!dir.exists(sim_dir)) {
-    dir.create(sim_dir)
+    dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
     "duration_",
@@ -1277,118 +1830,14 @@ param_grid <- expand.grid(
 
 param_grid <- param_grid[param_grid[, 7] != 4, ]
 
-# plan(multisession, workers = availableCores() / 2)
+# plan(multisession, workers = availableCores() - 2)
 # plan(multicore, workers = availableCores() - 2)
 plan(sequential)
-set.seed(26818)
-pb <- progress_bar$new(total = nrow(param_grid))
-# errors <- map(
-#   1:nrow(param_grid),
-#   ~ {
-#     try(
-#       sim_error_case1(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case2(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case3(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case5(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case6(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case7(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case8(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case9(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#     try(
-#       sim_error_case10(
-#         param_grid[.x, 5],
-#         param_grid[.x, 4],
-#         param_grid[.x, 1],
-#         param_grid[.x, 2],
-#         param_grid[.x, 3],
-#         param_grid[.x, 6],
-#         print_plots = TRUE
-#       )
-#     )
-#   }
-# )
-
-errors <- future_map(
+set.seed(21986)
+# pb <- progress_bar$new(total = nrow(param_grid))
+errors <- map(
   sample(1:nrow(param_grid), nrow(param_grid)),
+  # 1:nrow(param_grid),
   ~ {
       if (param_grid[.x, 7] == 1) {
         try(
@@ -1401,7 +1850,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 2) {
@@ -1415,7 +1864,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 3) {
@@ -1429,7 +1878,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 5) {
@@ -1443,7 +1892,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 6) {
@@ -1457,7 +1906,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 7) {
@@ -1471,7 +1920,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 8) {
@@ -1485,7 +1934,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 9) {
@@ -1499,7 +1948,7 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       } else if (param_grid[.x, 7] == 10) {
@@ -1513,11 +1962,144 @@ errors <- future_map(
             param_grid[.x, 9],
             param_grid[.x, 3],
             param_grid[.x, 6],
-            print_plots = FALSE
+            print_plots = TRUE
           )
         )
       }
-    },
-  .progress = TRUE,
-  .options = furrr_options(seed = TRUE, scheduling = Inf)
+    }
 )
+
+# errors <- future_map(
+#   sample(1:nrow(param_grid), nrow(param_grid)),
+#   ~ {
+#       if (param_grid[.x, 7] == 1) {
+#         try(
+#           sim_error_case1(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 2) {
+#         try(
+#           sim_error_case2(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 3) {
+#         try(
+#           sim_error_case3(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 5) {
+#         try(
+#           sim_error_case5(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 6) {
+#         try(
+#           sim_error_case6(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 7) {
+#         try(
+#           sim_error_case7(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 8) {
+#         try(
+#           sim_error_case8(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 9) {
+#         try(
+#           sim_error_case9(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       } else if (param_grid[.x, 7] == 10) {
+#         try(
+#           sim_error_case10(
+#             param_grid[.x, 5],
+#             param_grid[.x, 4],
+#             param_grid[.x, 1],
+#             param_grid[.x, 2],
+#             param_grid[.x, 8],
+#             param_grid[.x, 9],
+#             param_grid[.x, 3],
+#             param_grid[.x, 6],
+#             print_plots = FALSE
+#           )
+#         )
+#       }
+#     },
+#   .progress = TRUE,
+#   .options = furrr_options(seed = TRUE, scheduling = Inf)
+# )
