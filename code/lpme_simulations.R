@@ -1,13 +1,10 @@
 library(tidyverse)
 library(plotly)
 library(pracma)
-# library(profvis)
 library(foreach)
 library(doParallel)
-library(doSNOW)
 library(furrr)
 library(progress)
-# library(multimode)
 library(pme)
 library(princurve)
 
