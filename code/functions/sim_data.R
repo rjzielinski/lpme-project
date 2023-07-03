@@ -1,4 +1,5 @@
 sim_data <- function(time_val, case, noise, amp_noise, period_noise, time_change, time_trend, N = 1000) {
+  require(pme)
   if (time_trend == "constant") {
     time_trend_val <- 0
   } else if (time_trend == "linear") {
