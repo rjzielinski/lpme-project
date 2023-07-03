@@ -2,7 +2,6 @@
 \documentclass[11pt,reqno]{article}
 %\usepackage{cases}
 
-
 %\RequirePackage[numbers]{natbib}
 %\RequirePackage[authoryear]{natbib}%% uncomment this for author-year citations
 \RequirePackage[colorlinks,citecolor=blue,urlcolor=blue]{hyperref}%% uncomment this for coloring bibliography citations and linked URLs
@@ -28,6 +27,11 @@ style=authoryear
 \usepackage{hyperref}
 \usepackage{color}  
 \usepackage{tikz}
+\usepackage{geometry}
+\geometry{
+  left=10mm,
+  right=10mm
+  }
 
 \usepackage{algorithm2e}
 
@@ -41,6 +45,7 @@ style=authoryear
 
 \renewcommand{\baselinestretch}{1.0}
 \setlength{\oddsidemargin}{-0.5cm}
+\setlength{\evensidemargin}{-0.5cm}
 \renewcommand{\topmargin}{-2cm}
 \renewcommand{\oddsidemargin}{0mm}
 \renewcommand{\evensidemargin}{0mm}
@@ -379,7 +384,28 @@ Note that alternative cross validation methods, such as $k$-fold cross validatio
 
 \section{Simulations}
 
-To assess the performance of the LPME algorithm, we compare its performance with the performance of two alternative approaches on simulated datasets. We consider settings in which $d = 1$ and $D = 2$, $d = 1$ and $D = 3$, and $d = 2$ and $D = 3$, with several manifolds being used to generate datasets in each setting. For each manifold, differing values for the time duration, interval between observations, noise levels within and between time points, and the type and magnitude of structural changes in the underlying manifold over time were considered.
+To assess the performance of the LPME algorithm, we compare its performance with the that of two alternative approaches on simulated datasets. We consider settings in which $d = 1$ and $D = 2$, $d = 1$ and $D = 3$, and $d = 2$ and $D = 3$, with several manifolds being used to generate datasets in each setting. For each manifold, differing values for the time duration, interval between observations, noise levels within and between time points, and the type and magnitude of structural changes in the underlying manifold over time were considered. The embedding functions used to define each manifold are given in Table \ref{table:1}. In these functions, the values of $\zeta$, $\alpha$, and $\beta$, as well as the functional form of $g(\cdot)$ are varied between trials. The values of $\iota$ are randomly sampled from a normal distribution with mean zero and variance varied between trials.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c c c c c|}
+    \hline
+    Case & $d$ & $D$ & $f(\mathbf{r})$ & Domain \\
+    \hline
+    1 & 1 & 2 & $\left(r, \ \alpha \text{sin} \ (\beta r + \frac{\pi}{2})\right) + \zeta\mathbf{g}(t) + \iota$ & $-3 \leq r \leq 3$ \\
+    2 & 1 & 2 & $\left(r, \ \alpha\text{sin} \ (\beta r)\right) + \zeta\mathbf{g}(t) + \iota$ & $-3\pi \leq r \leq 3\pi$ \\
+    3 & 1 & 2 & $\left(\alpha_1 \text{cos} \ (\beta_1 r), \ \alpha_2\text{cos} \ (\beta_2 r)\right) + \zeta\mathbf{g}(t) + \iota$ & $-\frac{4\pi}{5} \leq r \leq \frac{\pi}{2}$ \\
+    4 & 1 & 3 & $\left(r, (\alpha_1r + \beta_1)^2, \ (\alpha_2r + \beta_2)^3\right) + \zeta\mathbf{g}(t) + \iota$ & $-1 \leq r \leq 1$ \\
+    5 & 1 & 3 & $\left(r, \ \alpha_1\text{cos} \ (\beta_1 r), \ \alpha_2\text{sin} \ (\beta_2 r) \right) + \zeta\mathbf{g}(t) + \iota$ & $0 \leq r \leq 3\pi$ \\
+    6 & 2 & 3 & $\left(\beta_1r_1, \ \beta_2r_2, \ \alpha_1(\alpha_2\|\beta\mathbf{r}\|^2)\right) + \zeta\mathbf{g}(t) + \iota$ & $-1 \leq r_1, r_2 \leq 1$\\
+    7 & 2 & 3 & $\left(\alpha_1\beta_1r_1\text{cos} \ (\alpha_1r_1), \ \alpha_2\beta_2r_1\text{sin} \ (\alpha_2r_1), \ r_2\right) + \zeta\mathbf{g}(t) + \iota$ & $0 \leq r_1 \leq 3\pi$; \ $-1 \leq r_2 \leq 1$\\
+    8 & 2 & 3 & $\left(\alpha_1\text{sin}(\beta_1r_1)\text{cos}(\beta_2r_2), \ \alpha_1\text{sin}(\beta_1r_1)\text{sin}(\beta_2r_2), \ \alpha_1\text{cos}(\beta_1r_1)\right) + \zeta\mathbf{g}(t) + \iota$ & $0 \leq r_1 \leq \pi$; \ $0 \leq r_2 \leq 2\pi$\\
+    9 & 2 & 3 & $\left(\theta\text{sin} \ (\beta_1r_1)\text{cos} \ (\beta_2r_2), \ \theta\text{sin} \ (\beta_1)\text{sin} \ (\beta_2r_2), \ \theta\text{cos} \ (\beta_1r_1)\right) + \zeta\mathbf{g}(t) + \iota$ & $0 \leq r_1 \leq \pi$; \ $0 \leq r_2 \leq 2\pi$\\
+    \hline
+  \end{tabular}
+  \caption{Embedding functions used for simulation trials.}
+  \label{table:1}
+\end{table}
 
 In the situations where $d = 1$, LPME is compared to the PME method naively run at each time point without smoothing over time, as well as the principal curve algorithm described in \cite{hastiePrincipalCurves1989}, also run naively. The principal curve algorithm is implemented using the \texttt{principal\_curve()} function in the \texttt{princurve} package, developed using \texttt{R} (\cite{rSoftware2023}). In this function, each of the three smoothing options, \texttt{smooth\_spline}, \texttt{lowess}, and \texttt{periodic\_lowess}, are tested, with the option resulting in the lowest error from the true values being chosen. Following \cite{mengPrincipalManifoldEstimation2021}, the inputs for the PME algorithm are set to $N_0 = 20 \times D$, $\alpha = 0.05$, and $\epsilon = 0.001$, with $\lambda_g = \exp(g)$ for $g = -15, \dots, 5$, when the spline smoothing method is used and $\lambda_g = g + 0.5$ for $g = 0, \dots, 25$ when the Gaussian process smoothing method is used. In cases where $d = 2$, LPME is again compared to the naive PME approach described above, and the principal surface estimation algorithm developed by \cite{yueParameterizationWhiteMatter2016}.
 
