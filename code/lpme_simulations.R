@@ -159,6 +159,10 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case1/"
@@ -337,6 +341,10 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case2/"
@@ -520,6 +528,10 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case3/"
@@ -716,6 +728,10 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case4/"
@@ -899,6 +915,10 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case5/"
@@ -1083,6 +1103,10 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
 
@@ -1259,6 +1283,10 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case7/"
@@ -1439,6 +1467,10 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case8/"
@@ -1618,6 +1650,10 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case9/"
@@ -1798,6 +1834,10 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
     principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
     plot = p
   )
   sim_dir <- "simulations/case10/"
@@ -1854,8 +1894,8 @@ param_grid <- expand.grid(
 param_grid <- param_grid[param_grid[, 7] != 4, ]
 
 # plan(multisession, workers = availableCores() - 2)
-# plan(multicore, workers = availableCores() - 2)
-plan(sequential)
+plan(multicore, workers = availableCores() - 1)
+# plan(sequential)
 set.seed(21986)
 # pb <- progress_bar$new(total = nrow(param_grid))
 # errors <- map(
