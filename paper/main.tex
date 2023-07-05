@@ -63,7 +63,12 @@ style=authoryear
 \begin{document}
 
 \title{Longitudinal Principal Manifold Estimation}
-\author[1]{Robert Zielinski, Kun Meng, and Ani Eloyan}
+\author[1]{Robert Zielinski}
+\author[2]{Kun Meng}
+\author[1]{Ani Eloyan}
+\affil[1]{Department of Biostatistics, Brown University}
+\affil[2]{Division of Applied Mathematics, Brown University}
+
 
 
 \maketitle
@@ -74,9 +79,9 @@ style=authoryear
 
 \section{Introduction}
 
-Neuroimaging plays a critical role in the diagnosis and monitoring of a number of common neurodegenerative conditions, such as Alzheimer's disease and Parkinson's disease (\cite{knopmanAlzheimerDisease2021}, \cite{poeweParkinsonDisease2017}). Frequently, interest centers around longitudinal changes in one or more neurological substructures. For example, it is common to observe atrophy the hippocampus of those with Alzheimer's disease or cognitive impairment related to other causes. Image segmentation allows for the extraction of subcortical structures from images of the complete brain for further analysis.
+Neuroimaging plays a critical role in the diagnosis and monitoring of a number of common neurodegenerative conditions, such as Alzheimer's disease (AD) and Parkinson's disease (\cite{knopmanAlzheimerDisease2021}, \cite{poeweParkinsonDisease2017}). Frequently, interest centers around longitudinal changes in one or more neurological substructures. These structural changes can be observed in magnetic resonance imaging (MRI) data (\cite{crainiceanu2016tutorial}). For example, it is common to observe atrophy in the hippocampus, a structure in the temporal lobe of the brain, of those with AD or cognitive impairment related to other causes. Image segmentation allows for the extraction of subcortical structures from MRI images of the brain for further analysis.
 
-Traditionally, manual segmentation of images by a trained radiologist has been considered the most accurate approach and is the gold standard. However, this approach is highly time and resource intensive. In studies analyzing a large number of images, this approach may impose prohibitive costs. Additionally, manual segmentation suffers from meaningful inter-rater and intra-rater variability (\cite{boccardiSurveyProtocolsManual2011}). Automated segmentation approaches, such as FSL-FIRST and FreeSurfer, have been introduced to address these concerns (\cite{patenaudeBayesianModelShape2011}, \cite{reuterWithinsubjectTemplateEstimation2012}). While automating the segmentation process drastically reduces costs, it potentially introduces additional inaccuracies.
+Traditionally, manual segmentation of images by a trained radiologist has been considered the most accurate approach for segmentation of regions of interest and is the gold standard. However, this approach is highly time and resource intensive. In studies analyzing a large number of images, this approach may impose prohibitive costs. Additionally, manual segmentation suffers from meaningful inter-rater and intra-rater variability (\cite{boccardiSurveyProtocolsManual2011}). Automated segmentation approaches, such as FSL-FIRST and FreeSurfer, have been introduced to address these concerns (\cite{patenaudeBayesianModelShape2011}, \cite{reuterWithinsubjectTemplateEstimation2012}). While automating the segmentation process drastically reduces costs, it potentially introduces additional inaccuracies.
 
 To anecdotally demonstrate the potential extent of the inaccuracies introduced by segmentation, using FIRST to segment the hippocampus in images of one healthy individual over the course of four years in the ADNI dataset, the volume of the left and right hippocampus decreased by 3.6\% and 5.4\%, respectively, but each hippocampus was estimated to have increased in volume between subsequent study visits twice. In a larger comparison of the accuracy of FIRST and FreeSurfer, \cite{mulderHippocampalVolumeChange2014} found that 6.9\% of segmentations by FIRST failed visual inspection for accuracy, as did 7.5\% of segmentations by FreeSurfer. After removing these failed segmentations, FIRST and FreeSurfer produced segmentations with variability similar to and slightly lower than manual segmentation, respectively. If failed segmentations were not removed from analysis, reflecting a more realistic situation when working with a large number of images, variability as measured by the Limits of Agreement were much higher for FIRST and FreeSurfer than for manual segmentation. \cite{mulderHippocampalVolumeChange2014} also found slightly higher rates of segmentation failure among individuals with Alzheimer's disease for both automated segmentation approaches, suggesting that variability increases as images are taken from individuals with greater deviations from the healthy brains on which the segmentation models were trained [See original articles to confirm, see if there are any confirming studies].
 
