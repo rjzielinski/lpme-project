@@ -449,7 +449,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
       curve_error[smoother_idx] <- map(
         1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
-        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
+        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, 1:3])^2
       ) %>%
         unlist() %>%
         mean()
@@ -1207,8 +1207,8 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     ) %>%
       unlist()
     opt_surface <- which.min(surface_mse)
-    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
-    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface + 2]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface + 2]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
   principal_curve_vals <- reduce(principal_curve_vals, rbind)
@@ -1390,8 +1390,8 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     ) %>%
       unlist()
     opt_surface <- which.min(surface_mse)
-    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
-    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface + 2]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface + 2]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
   principal_curve_vals <- reduce(principal_curve_vals, rbind)
@@ -1574,8 +1574,8 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     ) %>%
       unlist()
     opt_surface <- which.min(surface_mse)
-    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
-    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface + 2]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface + 2]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
   principal_curve_vals <- reduce(principal_curve_vals, rbind)
@@ -1757,8 +1757,8 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     ) %>%
       unlist()
     opt_surface <- which.min(surface_mse)
-    principal_curve_result[[t]] <- principal_surface[[opt_surface]]
-    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface]]$PS)
+    principal_curve_result[[t]] <- principal_surface[[opt_surface + 2]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface + 2]]$PS)
   }
   pme_vals <- reduce(pme_vals, rbind)
   principal_curve_vals <- reduce(principal_curve_vals, rbind)
@@ -1894,9 +1894,9 @@ param_grid <- expand.grid(
 param_grid <- param_grid[param_grid[, 7] != 4, ]
 
 # plan(multisession, workers = availableCores() - 2)
-plan(multicore, workers = availableCores() - 1)
+plan(multicore, workers = availableCores() - 4)
 # plan(sequential)
-set.seed(21986)
+set.seed(10972)
 # pb <- progress_bar$new(total = nrow(param_grid))
 # errors <- map(
 #   sample(1:nrow(param_grid), nrow(param_grid)),
