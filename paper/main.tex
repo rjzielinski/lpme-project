@@ -59,6 +59,8 @@ style=authoryear
 \newcommand{\meng}[1]{{\color{purple} \sf $\clubsuit\clubsuit\clubsuit$ Kun Meng: [#1]}}
 \newcommand{\Meng}[1]{\margMa{(Kun Meng) #1}}
 
+\newcommand{\zielinski}[1]{{\color{blue} \sf $\spadesuit\spadesuit\spadesuit$ Rob Zielinski: [#1]}}
+
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
@@ -234,7 +236,7 @@ By minimizing the functional above, we retain the goals of Eq.~\eqref{eq:5} whil
 
 \commentout{Note that we assume changes over time to be smooth. Therefore, we seek a function $f^{*}$ that minimizes $\mathcal{D}_X(f^{*})$ while penalizing both the roughness of the function over the time-independent shape and the changes in the function over time, expressed as }
 
-\subsection{Alogirthm}
+\subsection{Algorithm}
 
 To solve this problem, we propose an extension of the PME algorithm developed in \cite{mengPrincipalManifoldEstimation2021}. The output of the PME algorithm run used for the data at an individual time point is a spline function mapping from a low-dimensional paramterization to a high-dimensional space. In the LPME algorithm, we use the coefficients of PME functions fit at each time point as the outcomes in a thin plate spline, thus smoothing over the coefficients with respect to time. This yields a multistage model that, for a provided time point and set of parameters, obtains a set of spline coefficients associated with the time value, then returns the high-dimensional output of the spline function associated with the parameter set. Our proposed LPME algorithm consists of four steps: data reduction, initialization, fitting, and tuning. Details of this approach are described below.
 
@@ -326,7 +328,7 @@ With $\gamma$ given, we denote the manifold coefficients at time $t$ estimated b
 
 \meng{From the methodology viewpoint, the fitting section is the most important part of this paper.}
 
-\meng{FYI, we may also apply Gaussian process regression (GPR) to smooth the time direction. The smoothness can be represented by the covariance kernel we use in the GPR. For example, we may apply the Gaussian or \href{https://en.wikipedia.org/wiki/Matern_covariance_function}{Matérn} kernels. The taste of the GPR is similar to \cite{dunson2021inferring}, and we may cite \cite{dunson2021inferring}.}
+\meng{FYI, we may also apply Gaussian process regression (GPR) to smooth the time direction. The smoothness can be represented by the covariance kernel we use in the GPR. For example, we may apply the Gaussian or \href{https://en.wikipedia.org/wiki/Matern_covariance_function}{Matérn} kernels. The taste of the GPR is similar to \cite{dunsonInferringManifoldsNoisy2022}, and we may cite \cite{dunsonInferringManifoldsNoisy2022}.}
 
 \subsection*{Tuning}
 
@@ -348,7 +350,7 @@ Note that alternative cross validation methods, such as $k$-fold cross validatio
 
 \meng{Make the notations in Algorithm \ref{alg:lpme} consistent with that in the description above.}
 
-\meng{FYI, to fit a circle-like manifold, you may need to refer to the following papers: \cite{fasy2014confidence}, \cite{dunson2021inferring}.}
+\meng{FYI, to fit a circle-like manifold, you may need to refer to the following papers: \cite{fasy2014confidence}, \cite{dunsonInferringManifoldsNoisy2022}.}
 
 \begin{algorithm}
 \caption{Longitudinal Principal Manifold Estimation}\label{alg:lpme}
@@ -387,9 +389,9 @@ Note that alternative cross validation methods, such as $k$-fold cross validatio
 
 \section{Simulations}
 
-To assess the performance of the LPME algorithm, we compare its performance with the that of two alternative approaches on simulated datasets. We consider settings in which $d = 1$ and $D = 2$, $d = 1$ and $D = 3$, and $d = 2$ and $D = 3$, with several manifolds being used to generate datasets in each setting. For each manifold, differing values for the time duration, interval between observations, noise levels within and between time points, and the type and magnitude of structural changes in the underlying manifold over time were considered. 
+To assess the performance of the LPME algorithm, we compare its performance with that of two alternative approaches on simulated datasets. We consider settings in which $d = 1$ and $D = 2$, $d = 1$ and $D = 3$, and $d = 2$ and $D = 3$, with several manifolds being used to generate datasets in each setting. For each manifold, differing values for the time duration, interval between observations, noise levels within and between time points, and the type and magnitude of structural changes in the underlying manifold over time were considered. 
 
-The embedding functions used to define each manifold are given in Table \ref{table:1}. In these functions, the value of $\zeta$ and the functional form of $g(\cdot)$ are varied between trials and represent change in the underlying manifold over time. The function $g(\cdot)$ may be constant, linear, quadratic, or sinusoidal, with $\zeta$ serving as a scalar multiplier. The values of $\iota$ represent noise in the high-dimensional space, and are randomly sampled from a normal distribution with mean zero and variance that is varied between trials. Meanwhile, $\alpha$ and $\beta$ are vectors of length $d$ that are drawn from a normal distribution with mean equal to 1 and variance that is varied between trials. These values describe random fluctuations in the manifold between time points, reflecting noise introduced by different imaging sessions.
+The embedding functions used to define each manifold are given in Table \ref{table:simulation_embeddings}. In these functions, the value of $\zeta$ and the functional form of $g(\cdot)$ are varied between trials and represent structural change in the underlying manifold over time. The function $g(\cdot)$ may show change with respect to time that is constant, linear, quadratic, or sinusoidal, with $\zeta$ serving as a scalar multiplier. The values of $\iota$ represent within-image noise in the high-dimensional space, and are randomly sampled from a normal distribution with mean zero and variance that is varied between trials. Meanwhile, $\alpha$ and $\beta$ are vectors of length $d$ that are drawn from a normal distribution with mean equal to 1 and variance that is varied between trials. These values describe random fluctuations in the manifold between time points, reflecting noise introduced by different imaging sessions.
 
 \begin{table}
   \centering
@@ -409,12 +411,12 @@ The embedding functions used to define each manifold are given in Table \ref{tab
     \hline
   \end{tabular}
   \caption{Embedding functions used for simulation trials.}
-  \label{table:1}
+  \label{table:simulation_embeddings}
 \end{table}
 
 In the situations where $d = 1$, LPME is compared to the PME method naively run at each time point without smoothing over time, as well as the principal curve algorithm described in \cite{hastiePrincipalCurves1989}, also run naively. The principal curve algorithm is implemented using the \texttt{principal\_curve()} function in the \texttt{princurve} package, developed using \texttt{R} (\cite{rSoftware2023}). In this function, each of the three smoothing options, \texttt{smooth\_spline}, \texttt{lowess}, and \texttt{periodic\_lowess}, are tested, with the option resulting in the lowest error from the true values being chosen. Following \cite{mengPrincipalManifoldEstimation2021}, the inputs for the PME algorithm are set to $N_0 = 20 \times D$, $\alpha = 0.05$, and $\epsilon = 0.001$, with $\lambda_g = \exp(g)$ for $g = -15, \dots, 5$. In cases where $d = 2$, LPME is again compared to the naive PME approach described above, and the principal surface estimation algorithm developed by \cite{yueParameterizationWhiteMatter2016}.
 
-Notably, the manifolds estimated in the simulated datasets included several connected manifolds, which methods based on the principal curves, including the principal manifold framework used here, are typically unable to fit due to the self-consistency property discussed above. To avoid this issue, we augmented the simulated datasets with polar or spherical coordinates, depending on the value of $D$. As a simple example, the unit circle can be considered a self-intersecting manifold with $d = 1$ when viewed in two dimensions. However, by adding a third dimension equal to the angle of each observation from the origin, we the manifold can be considered as having $d = 1$ and $D = 3$, while avoiding any self-intersections. This enables the PME algorithm, and thus the LPME algorithm, to be fit under these circumstances. This process is illustrated graphically in Figure \ref{fig:1}.
+Notably, the manifolds estimated in the simulated datasets included several self-intersecting manifolds, which methods based on the principal curve framework, including the principal manifold approach used here, are typically unable to fit due to the self-consistency property discussed above. To avoid this issue, we augmented the simulated datasets with polar or spherical coordinates, depending on the value of $D$. As a simple example, the unit circle can be considered a self-intersecting manifold with $d = 1$ when viewed in two dimensions. However, by adding a third dimension equal to the angle of each observation from the origin, we the manifold can be considered as having $d = 1$ and $D = 3$, while avoiding any self-intersections. This enables the PME algorithm, and thus the LPME algorithm, to be fit under these circumstances. This process is illustrated graphically in Figure \ref{fig:unit_circle_augmentation}.
 
 \begin{figure}%
   \centering
@@ -422,7 +424,44 @@ Notably, the manifolds estimated in the simulated datasets included several conn
   \hfill
   \subfloat[\centering $D = 3$]{{\includegraphics[width=9cm]{unit_circle_D3}}}
   \caption{Augmenting the Unit Circle}
-  \label{fig:1}
+  \label{fig:unit_circle_augmentation}
+\end{figure}
+
+\zielinski{The simulation results shown below use partial results run on my computer.}
+
+Visualizations of the results from some of the simulation cases, truncated for concision to include only integer-valued time points, are shown in Figures \ref{fig:sim_case1}, \ref{fig:sim_case5} and \ref{fig:sim_case8}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
+
+\zielinski{It may be necessary to put some of the simulation figures in an appendix.}
+
+A factorial design is used to run the simulation studies, with the factor levels set as follows:
+\begin{itemize}
+  \item $\alpha, \beta, \zeta \in \left\{0, 0.5, 1.0, 1.5, 2.0\right\}$
+  \item Study duration: $\left\{1, 2, 5, 10\right\}$
+  \item Interval between images: $\left\{0.1, 0.25, 0.5, 1\right\}$
+  \item Sample size: $\left\{1000, 10000\right\}$
+\end{itemize}
+
+Thus, each embedding map is simulated a total of 16,000 times. The results of these simulations are summarized in Table \ref{table:simulation_results}.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c c c c c c c c c c|}
+    \hline
+    Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
+    \hline
+    \hline
+  \end{tabular}
+  \caption{MSD Comparison.}
+  \label{table:simulation_results}
+\end{table}
+
+
+
+\begin{figure}%
+  \centering
+  \includegraphics[width=\textwidth]{sim_case1}
+  \caption{Simulation Case 1}
+  \label{fig:sim_case1}
 \end{figure}
 
 \section{Application}
