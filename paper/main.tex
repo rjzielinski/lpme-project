@@ -429,10 +429,6 @@ Notably, the manifolds estimated in the simulated datasets included several self
 
 \zielinski{The simulation results shown below use partial results run on my computer.}
 
-Visualizations of the results from some of the simulation cases, truncated for concision to include only integer-valued time points, are shown in Figures \ref{fig:sim_case1}, \ref{fig:sim_case5} and \ref{fig:sim_case8}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
-
-\zielinski{It may be necessary to put some of the simulation figures in an appendix.}
-
 A factorial design is used to run the simulation studies, with the factor levels set as follows:
 \begin{itemize}
   \item $\alpha, \beta, \zeta \in \left\{0, 0.5, 1.0, 1.5, 2.0\right\}$
@@ -441,7 +437,11 @@ A factorial design is used to run the simulation studies, with the factor levels
   \item Sample size: $\left\{1000, 10000\right\}$
 \end{itemize}
 
-Thus, each embedding map is simulated a total of 16,000 times. The results of these simulations are summarized in Table \ref{table:simulation_results}.
+Thus, each embedding map is simulated a total of 16,000 times. The results of these simulations are summarized in Table \ref{table:simulation_results}. All code required to reproduce the simulation results and the associated figures is provided at \texttt{https://github.com/rjzielinski/lpme-project}.
+
+Visualizations of the results from some of the simulation cases, truncated for concision to include only integer-valued time points, are shown in Figures \ref{fig:sim_case1}, \ref{fig:sim_case4} and \ref{fig:sim_case7}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
+
+\zielinski{It may be necessary to put some of the simulation figures in an appendix. Additionally, the figures are still very much a work in progress and are serving more of a placeholder status at the moment. Any suggestions regarding how to improve the clarity and depth perception of the figures would be greatly appreciated!}
 
 \begin{table}
   \centering
@@ -449,13 +449,15 @@ Thus, each embedding map is simulated a total of 16,000 times. The results of th
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
     \hline
+    Data & & & & & & & & & \\
+    LPME & & & & & & & & & \\
+    PME & & & & & & & & & \\
+    PC/PS & & & & & & & & & \\
     \hline
   \end{tabular}
   \caption{MSD Comparison.}
   \label{table:simulation_results}
 \end{table}
-
-
 
 \begin{figure}%
   \centering
@@ -463,6 +465,22 @@ Thus, each embedding map is simulated a total of 16,000 times. The results of th
   \caption{Simulation Case 1}
   \label{fig:sim_case1}
 \end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{sim_case5}
+  \caption{Simulation Case 4}
+  \label{fig:sim_case4}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{sim_case8}
+  \caption{Simulation Case 7}
+  \label{fig:sim_case7}
+\end{figure}
+
+\zielinski{A brief discussion of the simulation results will follow when they become available.}
 
 \section{Application}
 
