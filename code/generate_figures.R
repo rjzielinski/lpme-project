@@ -1,0 +1,297 @@
+library(plot3D)
+library(pracma)
+library(tidyverse)
+
+set.seed(1202)
+theta <- runif(1000, min = 0, max = 2 * pi)
+x <- cos(theta)
+y <- sin(theta)
+
+unit_df <- data.frame(theta, x, y) %>%
+  arrange(theta)
+angle <- cart2pol(as.matrix(unit_df[, 2:3], ncol = 2))
+
+
+png("paper/figures/unit_circle_augmentation.png")
+par(mfrow = c(1, 2))
+plot(
+  x = unit_df$x,
+  y = unit_df$y,
+  type = "l",
+  asp = 1,
+  main = "Unit Circle, D = 2",
+  xlab = "x",
+  ylab = "y"
+)
+
+plt2 <- lines3D(
+  x = unit_df$x,
+  y = unit_df$y,
+  z = angle[, 1],
+  main = "Unit Circle, D = 3",
+  xlab = "x",
+  ylab = "y",
+  zlab = "theta"
+)
+dev.off()
+
+png("paper/figures/unit_circle_D2.png")
+plot(
+  x = unit_df$x,
+  y = unit_df$y,
+  type = "l",
+  asp = 1,
+  main = "Unit Circle, D = 2",
+  xlab = "x",
+  ylab = "y"
+)
+dev.off()
+
+png("paper/figures/unit_circle_D3.png")
+lines3D(
+  x = unit_df$x,
+  y = unit_df$y,
+  z = angle[, 1],
+  main = "Unit Circle, D = 3",
+  xlab = "x",
+  ylab = "y",
+  zlab = "theta"
+)
+dev.off()
+
+sim_example_case1 <- readRDS("simulations/case1/duration_05_interval_010_ampnoise_125_pernoise_000_n_1000_constant025_run_03.rds")
+sim_example_case5 <- readRDS("simulations/case5/duration_05_interval_100_ampnoise_175_pernoise_125_n_1000_quadratic000_run_04.rds")
+sim_example_case8 <- readRDS("simulations/case8/duration_02_interval_025_ampnoise_125_pernoise_025_n_1000_sinusoidal200_run_02.rds")
+
+df_labels <- c("Data", "True", "LPME", "PME", "Principal Curve")
+
+data_case1 <- list(
+  sim_example_case1$df,
+  sim_example_case1$true_vals,
+  sim_example_case1$lpme_vals,
+  sim_example_case1$pme_vals,
+  sim_example_case1$principal_curve_vals
+)
+
+for (df_idx in 1:length(data_case1)) {
+  df <- as.data.frame(data_case1[[df_idx]])
+  names(df) <- c("time", "x", "y")
+  df$type <- df_labels[df_idx]
+  data_case1[[df_idx]] <- df
+}
+df_case1 <- reduce(data_case1, rbind)
+df_case1 <- df_case1 %>%
+  filter(mod(time, 1) == 0)
+
+time_vals <- sim_example_case1$times
+time_vals <- time_vals[mod(time_vals, 1) == 0]
+
+png("paper/figures/sim_case1.png")
+par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
+for (time_idx in 1:length(time_vals)) {
+  temp_data <- df_case1 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "Data"
+    ) %>%
+    arrange(x)
+  # temp_data <- temp_data[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_lpme <- sim_example_case1$lpme_vals[temp_data[, 1] == time_vals[time_idx], ]
+  temp_lpme <- df_case1 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "LPME"
+    ) %>%
+    arrange(x)
+  temp_pme <- df_case1 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "PME"
+    ) %>%
+    arrange(x)
+  temp_princurve <- df_case1 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "Principal Curve"
+    ) %>%
+    arrange(x)
+  temp_true <- df_case1 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "True"
+    ) %>%
+    arrange(x)
+  # temp_pme <- sim_example_case1$pme_vals[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_princurve <- sim_example_case1$principal_curve_vals[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_true <- sim_example_case1$true_vals[temp_data[, 1] == time_vals[time_idx], ]
+  plot(
+    x = temp_data$x,
+    y = temp_data$y,
+    xlab = "x",
+    ylab = "y",
+    col = alpha("black", 0.4),
+    bg = alpha("black", 0.4),
+    pch = 21,
+    main = paste0("Time = ", time_vals[time_idx])
+  )
+  points(
+    x = temp_true$x,
+    y = temp_true$y,
+    col = "red",
+    bg = "red",
+    pch = 21
+  )
+  points(
+    x = temp_lpme$x,
+    y = temp_lpme$y,
+    col = "blue",
+    bg = "blue",
+    pch = 21
+  )
+  points(
+    x = temp_pme$x,
+    y = temp_pme$y,
+    col = "green",
+    bg = "green",
+    pch = 21
+  )
+  points(
+    x = temp_princurve$x,
+    y = temp_princurve$y,
+    col = "purple",
+    bg = "purple",
+    pch = 21
+  )
+}
+par(fig = c(0, 1, 0, 1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
+plot(0, 0, type = "l", bty = "n", xaxt = "n", yaxt = "n")
+legend(
+  "bottom",
+  c("Data", "True Manifold", "LPME", "PME", "Principal Curve"),
+  col = c("black", "red", "blue", "green", "purple"),
+  # fill = c("black", "red", "blue", "green", "purple"),
+  lwd = 5,
+  xpd = TRUE,
+  horiz = TRUE,
+  cex = 1,
+  bty = "n"
+)
+dev.off()
+
+data_case5 <- list(
+  sim_example_case5$df,
+  sim_example_case5$true_vals,
+  sim_example_case5$lpme_vals,
+  sim_example_case5$pme_vals,
+  sim_example_case5$principal_curve_vals
+)
+
+for (df_idx in 1:length(data_case5)) {
+  df <- as.data.frame(data_case5[[df_idx]])
+  names(df) <- c("time", "x", "y", "z")
+  df$type <- df_labels[df_idx]
+  data_case5[[df_idx]] <- df
+}
+df_case5 <- reduce(data_case5, rbind)
+df_case5 <- df_case5 %>%
+  filter(mod(time, 1) == 0)
+
+time_vals <- sim_example_case5$times
+time_vals <- time_vals[mod(time_vals, 1) == 0]
+
+png("paper/figures/sim_case5.png")
+par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
+for (time_idx in 1:length(time_vals)) {
+  temp_data <- df_case5 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "Data"
+    ) %>%
+    arrange(x)
+  # temp_data <- temp_data[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_lpme <- sim_example_case1$lpme_vals[temp_data[, 1] == time_vals[time_idx], ]
+  temp_lpme <- df_case5 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "LPME"
+    ) %>%
+    arrange(x)
+  temp_pme <- df_case5 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "PME"
+    ) %>%
+    arrange(x)
+  temp_princurve <- df_case5 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "Principal Curve"
+    ) %>%
+    arrange(x)
+  temp_true <- df_case5 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "True"
+    ) %>%
+    arrange(x)
+  # temp_pme <- sim_example_case1$pme_vals[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_princurve <- sim_example_case1$principal_curve_vals[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_true <- sim_example_case1$true_vals[temp_data[, 1] == time_vals[time_idx], ]
+  points3D(
+    x = temp_data$x,
+    y = temp_data$y,
+    z = temp_data$z,
+    xlab = "x",
+    ylab = "y",
+    zlab = "z",
+    col = alpha("black", 0.4),
+    bg = alpha("black", 0.4),
+    pch = 21,
+    main = paste0("Time = ", time_vals[time_idx])
+  )
+  points3D(
+    x = temp_true$x,
+    y = temp_true$y,
+    z = temp_true$z,
+    col = "red",
+    bg = "red",
+    pch = 21
+  )
+  points3D(
+    x = temp_lpme$x,
+    y = temp_lpme$y,
+    z = temp_lpme$z,
+    col = "blue",
+    bg = "blue",
+    pch = 21
+  )
+  points(
+    x = temp_pme$x,
+    y = temp_pme$y,
+    col = "green",
+    bg = "green",
+    pch = 21
+  )
+  points(
+    x = temp_princurve$x,
+    y = temp_princurve$y,
+    col = "purple",
+    bg = "purple",
+    pch = 21
+  )
+}
+par(fig = c(0, 1, 0, 1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
+plot(0, 0, type = "l", bty = "n", xaxt = "n", yaxt = "n")
+legend(
+  "bottom",
+  c("Data", "True Manifold", "LPME", "PME", "Principal Curve"),
+  col = c("black", "red", "blue", "green", "purple"),
+  # fill = c("black", "red", "blue", "green", "purple"),
+  lwd = 5,
+  xpd = TRUE,
+  horiz = TRUE,
+  cex = 1,
+  bty = "n"
+)
+dev.off()
+
