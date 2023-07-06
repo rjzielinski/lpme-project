@@ -1,5 +1,6 @@
 library(plot3D)
 library(pracma)
+library(scatterplot3d)
 library(tidyverse)
 
 set.seed(1202)
@@ -237,27 +238,28 @@ for (time_idx in 1:length(time_vals)) {
   # temp_pme <- sim_example_case1$pme_vals[temp_data[, 1] == time_vals[time_idx], ]
   # temp_princurve <- sim_example_case1$principal_curve_vals[temp_data[, 1] == time_vals[time_idx], ]
   # temp_true <- sim_example_case1$true_vals[temp_data[, 1] == time_vals[time_idx], ]
-  points3D(
+
+  plt <- scatterplot3d(
     x = temp_data$x,
     y = temp_data$y,
     z = temp_data$z,
     xlab = "x",
     ylab = "y",
     zlab = "z",
-    col = alpha("black", 0.4),
-    bg = alpha("black", 0.4),
     pch = 21,
+    color = alpha("black", 0.5),
+    bg = alpha("black", 0.5),
     main = paste0("Time = ", time_vals[time_idx])
   )
-  points3D(
+  plt$points3d(
     x = temp_true$x,
     y = temp_true$y,
     z = temp_true$z,
-    col = "red",
-    bg = "red",
+    col = alpha("red", 0.5),
+    bg = alpha("red", 0.5),
     pch = 21
   )
-  points3D(
+  plt$points3d(
     x = temp_lpme$x,
     y = temp_lpme$y,
     z = temp_lpme$z,
@@ -265,16 +267,145 @@ for (time_idx in 1:length(time_vals)) {
     bg = "blue",
     pch = 21
   )
-  points(
+  plt$points3d(
     x = temp_pme$x,
     y = temp_pme$y,
+    z = temp_pme$z,
     col = "green",
     bg = "green",
     pch = 21
   )
-  points(
+  plt$points3d(
     x = temp_princurve$x,
     y = temp_princurve$y,
+    z = temp_princurve$z,
+    col = "purple",
+    bg = "purple",
+    pch = 21
+  )
+}
+par(fig = c(0, 1, 0, 1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
+plot(0, 0, type = "l", bty = "n", xaxt = "n", yaxt = "n")
+legend(
+  "bottom",
+  c("Data", "True Manifold", "LPME", "PME", "Principal Curve"),
+  col = c("black", "red", "blue", "green", "purple"),
+  # fill = c("black", "red", "blue", "green", "purple"),
+  lwd = 5,
+  xpd = TRUE,
+  horiz = TRUE,
+  cex = 1,
+  bty = "n"
+)
+dev.off()
+
+data_case8 <- list(
+  sim_example_case8$df,
+  sim_example_case8$true_vals,
+  sim_example_case8$lpme_vals,
+  sim_example_case8$pme_vals,
+  sim_example_case8$principal_curve_vals
+)
+
+for (df_idx in 1:length(data_case8)) {
+  df <- as.data.frame(data_case8[[df_idx]])
+  if (dim(df)[2] == 4) {
+    names(df) <- c("time", "x", "y", "z")
+  } else if (dim(df)[2] == 5) {
+    names(df) <- c("time", "x", "y", "z", "r")
+  }
+  df$type <- df_labels[df_idx]
+  if ("r" %in% names(df)) {
+    data_case8[[df_idx]] <- dplyr::select(df, -r)
+  } else {
+    data_case8[[df_idx]] <- df
+  }
+}
+df_case8 <- reduce(data_case8, rbind)
+df_case8 <- df_case8 %>%
+  filter(mod(time * 2, 1) == 0)
+
+time_vals <- unique(df_case8$time)
+
+png("paper/figures/sim_case8.png")
+par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
+for (time_idx in 1:length(time_vals)) {
+  temp_data <- df_case8 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "Data"
+    ) %>%
+    arrange(x)
+  # temp_data <- temp_data[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_lpme <- sim_example_case1$lpme_vals[temp_data[, 1] == time_vals[time_idx], ]
+  temp_lpme <- df_case8 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "LPME"
+    ) %>%
+    arrange(x)
+  temp_pme <- df_case8 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "PME"
+    ) %>%
+    arrange(x)
+  temp_princurve <- df_case8 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "Principal Curve"
+    ) %>%
+    arrange(x)
+  temp_true <- df_case8 %>%
+    filter(
+      time == time_vals[time_idx],
+      type == "True"
+    ) %>%
+    arrange(x)
+  # temp_pme <- sim_example_case1$pme_vals[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_princurve <- sim_example_case1$principal_curve_vals[temp_data[, 1] == time_vals[time_idx], ]
+  # temp_true <- sim_example_case1$true_vals[temp_data[, 1] == time_vals[time_idx], ]
+
+  plt <- scatterplot3d(
+    x = temp_data$x,
+    y = temp_data$y,
+    z = temp_data$z,
+    xlab = "x",
+    ylab = "y",
+    zlab = "z",
+    pch = 21,
+    color = alpha("black", 0.5),
+    bg = alpha("black", 0.5),
+    main = paste0("Time = ", time_vals[time_idx])
+  )
+  plt$points3d(
+    x = temp_true$x,
+    y = temp_true$y,
+    z = temp_true$z,
+    col = alpha("red", 0.5),
+    bg = alpha("red", 0.5),
+    pch = 21
+  )
+  plt$points3d(
+    x = temp_lpme$x,
+    y = temp_lpme$y,
+    z = temp_lpme$z,
+    col = "blue",
+    bg = "blue",
+    pch = 21
+  )
+  plt$points3d(
+    x = temp_pme$x,
+    y = temp_pme$y,
+    z = temp_pme$z,
+    col = "green",
+    bg = "green",
+    pch = 21
+  )
+  plt$points3d(
+    x = temp_princurve$x,
+    y = temp_princurve$y,
+    z = temp_princurve$z,
     col = "purple",
     bg = "purple",
     pch = 21
