@@ -18,6 +18,7 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -200,6 +201,7 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -382,6 +384,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -569,6 +572,7 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -769,6 +773,7 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -956,6 +961,7 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -1146,6 +1152,7 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -1324,6 +1331,7 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -1508,6 +1516,7 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -1691,6 +1700,7 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   require(tidyverse)
   require(pme)
   require(princurve)
+  require(plotly)
   source("code/functions/sim_data.R")
   source("code/functions/calc_pme_est.R")
   source("code/functions/calc_lpme_est.R")
@@ -2036,9 +2046,10 @@ registerDoParallel(cl)
 
 set.seed(10972)
 errors <- foreach(x = sample(1:nrow(param_grid), nrow(param_grid))) %dopar% {
+# errors <- foreach(x = 1:5) %dopar% {
       if (param_grid[x, 7] == 1) {
-        try(
-          sim_error_case1(
+        try({
+          simlist <- sim_error_case1(
             param_grid[x, 5],
             param_grid[x, 4],
             param_grid[x, 1],
@@ -2049,7 +2060,7 @@ errors <- foreach(x = sample(1:nrow(param_grid), nrow(param_grid))) %dopar% {
             param_grid[x, 6],
             print_plots = FALSE
           )
-        )
+        })
       } else if (param_grid[x, 7] == 2) {
         try(
           sim_error_case2(
