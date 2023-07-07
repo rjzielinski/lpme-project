@@ -11,17 +11,18 @@ library(princurve)
 source("code/functions/sim_data.R")
 source("code/functions/calc_pme_est.R")
 source("code/functions/calc_lpme_est.R")
+source("code/prinSurf_v3.R")
 
 ### Simulation Case 1
 
 sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -100,22 +101,33 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     z = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
-      z = pme_vals[, 1]
+      z = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
-      z = principal_curve_vals[, 1]
+      z = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
-      z = true_vals[, 1]
+      z = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
   pme_error <- map(
@@ -198,13 +210,13 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 2
 
 sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -311,22 +323,33 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     z = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
-      z = pme_vals[, 1]
+      z = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
-      z = principal_curve_vals[, 1]
+      z = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
-      z = true_vals[, 1]
+      z = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
   sim_case2 <- list(
@@ -381,13 +404,13 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 3
 
 sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -498,22 +521,33 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     z = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
-      z = pme_vals[, 1]
+      z = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
-      z = principal_curve_vals[, 1]
+      z = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
-      z = true_vals[, 1]
+      z = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
 
@@ -569,13 +603,13 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 4
 
 sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -699,24 +733,34 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     z = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
-      z = pme_vals[, 1]
+      z = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
-      z = principal_curve_vals[, 1]
+      z = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
-      z = true_vals[, 1]
+      z = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
-
 
   sim_case4 <- list(
     df = sim_df,
@@ -770,13 +814,13 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 5
 
 sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -885,25 +929,37 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     frame = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
       z = pme_vals[, 4],
-      frame = pme_vals[, 1]
+      frame = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
       z = principal_curve_vals[, 4],
-      frame = principal_curve_vals[, 1]
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
-      frame = true_vals[, 1]
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
   sim_case5 <- list(
@@ -958,13 +1014,13 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ## Simulation Case 6
 
 sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -1074,25 +1130,37 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     frame = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
       z = pme_vals[, 4],
-      frame = pme_vals[, 1]
+      frame = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
       z = principal_curve_vals[, 4],
-      frame = principal_curve_vals[, 1]
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
-      frame = true_vals[, 1]
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
   sim_case6 <- list(
@@ -1149,14 +1217,14 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 7
 
 sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
-  source("code/prinSurf_v3.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
+  # source("code/prinSurf_v3.R")
 
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
@@ -1255,25 +1323,37 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     frame = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
       z = pme_vals[, 4],
-      frame = pme_vals[, 1]
+      frame = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
       z = principal_curve_vals[, 4],
-      frame = principal_curve_vals[, 1]
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
-      frame = true_vals[, 1]
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
   sim_case7 <- list(
@@ -1328,14 +1408,14 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 8
 
 sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
-  source("code/prinSurf_v3.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
+  # source("code/prinSurf_v3.R")
 
 
   time_vals <- seq(0, max_time, interval)
@@ -1439,25 +1519,37 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     frame = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
       z = pme_vals[, 4],
-      frame = pme_vals[, 1]
+      frame = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
       z = principal_curve_vals[, 4],
-      frame = principal_curve_vals[, 1]
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
-      frame = true_vals[, 1]
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
 
@@ -1513,14 +1605,14 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 9
 
 sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
-  source("code/prinSurf_v3.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
+  # source("code/prinSurf_v3.R")
 
 
   time_vals <- seq(0, max_time, interval)
@@ -1624,25 +1716,37 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     frame = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
       z = pme_vals[, 4],
-      frame = pme_vals[, 1]
+      frame = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
       z = principal_curve_vals[, 4],
-      frame = principal_curve_vals[, 1]
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
-      frame = true_vals[, 1]
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
 
   sim_case9 <- list(
@@ -1697,14 +1801,14 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 10
 
 sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  require(tidyverse)
-  require(pme)
-  require(princurve)
-  require(plotly)
-  source("code/functions/sim_data.R")
-  source("code/functions/calc_pme_est.R")
-  source("code/functions/calc_lpme_est.R")
-  source("code/prinSurf_v3.R")
+  # require(tidyverse)
+  # require(pme)
+  # require(princurve)
+  # require(plotly)
+  # source("code/functions/sim_data.R")
+  # source("code/functions/calc_pme_est.R")
+  # source("code/functions/calc_lpme_est.R")
+  # source("code/prinSurf_v3.R")
 
 
   time_vals <- seq(0, max_time, interval)
@@ -1808,27 +1912,38 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     frame = lpme_vals[, 1],
     type = "scatter3d",
     mode = "markers",
-    marker = list(size = 3)
+    marker = list(size = 3),
+    name = "LPME"
   ) %>%
     add_markers(
       x = pme_vals[, 2],
       y = pme_vals[, 3],
       z = pme_vals[, 4],
-      frame = pme_vals[, 1]
+      frame = pme_vals[, 1],
+      name = "PME"
     ) %>%
     add_markers(
       x = principal_curve_vals[, 2],
       y = principal_curve_vals[, 3],
       z = principal_curve_vals[, 4],
-      frame = principal_curve_vals[, 1]
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
     ) %>%
     add_markers(
       x = true_vals[, 2],
       y = true_vals[, 3],
       z = true_vals[, 4],
-      frame = true_vals[, 1]
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
     )
-
 
   sim_case10 <- list(
     df = sim_df,
@@ -2045,131 +2160,146 @@ cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 
 set.seed(10972)
-errors <- foreach(x = sample(1:nrow(param_grid), nrow(param_grid))) %dopar% {
+errors <- foreach(
+  # x = sample(1:nrow(param_grid), nrow(param_grid)),
+  amp_noise = param_grid[, 1],
+  shape_noise = param_grid[, 2],
+  n = param_grid[, 3],
+  interval = param_grid[, 4],
+  duration = param_grid[, 5],
+  run = param_grid[, 6],
+  case = param_grid[, 7],
+  time_change = param_grid[, 8],
+  time_trend = param_grid[, 9],
+  .inorder = FALSE,
+  .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "prinSurf"),
+  .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel")
+) %dopar% {
 # errors <- foreach(x = 1:5) %dopar% {
-      if (param_grid[x, 7] == 1) {
+      # if (param_grid[x, 7] == 1) {
+  if (case == 1) {
         try({
           simlist <- sim_error_case1(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         })
-      } else if (param_grid[x, 7] == 2) {
+      } else if (case == 2) {
         try(
           sim_error_case2(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
-      } else if (param_grid[x, 7] == 3) {
+      } else if (case == 3) {
         try(
           sim_error_case3(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
-      } else if (param_grid[x, 7] == 5) {
+      } else if (case == 5) {
         try(
           sim_error_case5(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
-      } else if (param_grid[x, 7] == 6) {
+      } else if (case == 6) {
         try(
           sim_error_case6(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
-      } else if (param_grid[x, 7] == 7) {
+      } else if (case == 7) {
         try(
           sim_error_case7(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
-      } else if (param_grid[x, 7] == 8) {
+      } else if (case == 8) {
         try(
           sim_error_case8(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
-      } else if (param_grid[x, 7] == 9) {
+      } else if (case == 9) {
         try(
           sim_error_case9(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
-      } else if (param_grid[x, 7] == 10) {
+      } else if (case == 10) {
         try(
           sim_error_case10(
-            param_grid[x, 5],
-            param_grid[x, 4],
-            param_grid[x, 1],
-            param_grid[x, 2],
-            param_grid[x, 8],
-            param_grid[x, 9],
-            param_grid[x, 3],
-            param_grid[x, 6],
+            duration,
+            interval,
+            amp_noise,
+            shape_noise,
+            time_change,
+            time_trend,
+            n,
+            run,
             print_plots = FALSE
           )
         )
