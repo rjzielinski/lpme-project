@@ -16,13 +16,6 @@ source("code/prinSurf_v3.R")
 ### Simulation Case 1
 
 sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -151,6 +144,13 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
@@ -171,6 +171,7 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -210,14 +211,6 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 2
 
 sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -303,6 +296,13 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
@@ -365,6 +365,7 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -404,14 +405,6 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 3
 
 sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -501,6 +494,13 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:3])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:3])^2
@@ -564,6 +564,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -603,14 +604,6 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 4
 
 sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -713,6 +706,13 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
@@ -775,6 +775,7 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -814,14 +815,6 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 5
 
 sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -908,6 +901,13 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
@@ -975,6 +975,7 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -1014,14 +1015,6 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ## Simulation Case 6
 
 sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1109,6 +1102,13 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
@@ -1176,6 +1176,7 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -1217,15 +1218,6 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 7
 
 sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-  # source("code/prinSurf_v3.R")
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1302,6 +1294,13 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, ])^2
@@ -1369,6 +1368,7 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -1408,16 +1408,6 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 8
 
 sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-  # source("code/prinSurf_v3.R")
-
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1498,6 +1488,13 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
@@ -1566,6 +1563,7 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -1605,16 +1603,6 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 9
 
 sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-  # source("code/prinSurf_v3.R")
-
-
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1695,6 +1683,13 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
@@ -1762,6 +1757,7 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -1801,17 +1797,7 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 ### Simulation Case 10
 
 sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
-  # require(tidyverse)
-  # require(pme)
-  # require(princurve)
-  # require(plotly)
-  # source("code/functions/sim_data.R")
-  # source("code/functions/calc_pme_est.R")
-  # source("code/functions/calc_lpme_est.R")
-  # source("code/prinSurf_v3.R")
-
-
-  time_vals <- seq(0, max_time, interval)
+ time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
     sim_data,
@@ -1891,6 +1877,13 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     unlist() %>%
     mean()
 
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
   # lpme_error_gp <- map(
   #   1:nrow(true_vals),
   #   ~ dist_euclidean(true_vals[.x, ], lpme_vals_gp[.x, 1:4])^2
@@ -1958,6 +1951,7 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     lpme_error = lpme_error,
     # lpme_gp_error = lpme_error_gp,
     pme_error = pme_error,
+    data_error = data_error,
     principal_curve_error = principal_curve_error,
     true_vals = true_vals,
     lpme_vals = lpme_vals,
@@ -1994,29 +1988,29 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   return(0)
 }
 
-amp_noise_vals <- seq(0, 2, 0.5)
-shape_noise_vals <- seq(0, 2, 0.5)
+amp_noise_vals <- c(0, 0.1, 0.25, 0.5, 1, 2)
+shape_noise_vals <- c(0, 0.1, 0.25, 0.5, 1, 2)
 max_times <- c(1, 2, 5, 10)
 intervals <- c(0.1, 0.25, 0.5, 1)
 n_vals <- 10^(3:4)
 replicates <- 1
 case <- 1:10
-time_changes <- seq(0, 2, 0.5)
+time_changes <- c(0, 0.1, 0.25, 0.5, 1, 2)
 time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
 
 param_grid <- expand.grid(
+  case,
   amp_noise_vals,
   shape_noise_vals,
   n_vals,
   intervals,
   max_times,
   replicates,
-  case,
   time_changes,
   time_trends
 )
 
-param_grid <- param_grid[param_grid[, 7] != 4, ]
+param_grid <- param_grid[param_grid[, 1] != 4, ]
 
 # plan(multisession, workers = availableCores() - 2)
 # plan(multicore, workers = availableCores() - 4)
@@ -2162,13 +2156,13 @@ registerDoParallel(cl)
 set.seed(10972)
 errors <- foreach(
   # x = sample(1:nrow(param_grid), nrow(param_grid)),
-  amp_noise = param_grid[, 1],
-  shape_noise = param_grid[, 2],
-  n = param_grid[, 3],
-  interval = param_grid[, 4],
-  duration = param_grid[, 5],
-  run = param_grid[, 6],
-  case = param_grid[, 7],
+  case = param_grid[, 1],
+  amp_noise = param_grid[, 2],
+  shape_noise = param_grid[, 3],
+  n = param_grid[, 4],
+  interval = param_grid[, 5],
+  duration = param_grid[, 6],
+  run = param_grid[, 7],
   time_change = param_grid[, 8],
   time_trend = param_grid[, 9],
   .inorder = FALSE,
