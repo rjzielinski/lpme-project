@@ -152,11 +152,11 @@ sim_data <- function(time_val, case, noise, amp_noise, period_noise, time_change
   #   per_mean <- 1
   # }
 
-  amp_noise <- rnorm(D, mean = amp_mean, sd = amp_noise)
-  period_noise <- rnorm(D, mean = per_mean, sd = period_noise)
+  amp_noise <- abs(rnorm(D, mean = amp_mean, sd = amp_noise))
+  period_noise <- abs(rnorm(D, mean = per_mean, sd = period_noise))
 
-  amp_noise2 <- rnorm(D, mean = amp_mean, sd = 0)
-  period_noise2 <- rnorm(D, mean = per_mean, sd = 0)
+  amp_noise2 <- abs(rnorm(D, mean = amp_mean, sd = 0))
+  period_noise2 <- abs(rnorm(D, mean = per_mean, sd = 0))
 
   X <- map(
     1:nrow(t),
