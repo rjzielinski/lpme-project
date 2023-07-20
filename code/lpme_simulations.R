@@ -12,6 +12,7 @@ source("code/functions/sim_data.R")
 source("code/functions/calc_pme_est.R")
 source("code/functions/calc_lpme_est.R")
 source("code/prinSurf_v3.R")
+source("~/Documents/brown/research/Principal-Manifold-Estimation/Principal_Manifold_Estimation.R")
 
 ### Simulation Case 1
 
@@ -74,12 +75,7 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
         smoother = smoothing_options[smoother_idx]
       )
       curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
-      curve_error[smoother_idx] <- map(
-        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
-        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
-      ) %>%
-        unlist() %>%
-        mean()
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
     }
     opt_curve <- which.min(curve_error)
     principal_curve_result[[t]] <- curves[[opt_curve]]
@@ -257,7 +253,7 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 1)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -268,12 +264,7 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
         smoother = smoothing_options[smoother_idx]
       )
       curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
-      curve_error[smoother_idx] <- map(
-        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
-        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
-      ) %>%
-        unlist() %>%
-        mean()
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
     }
     opt_curve <- which.min(curve_error)
     principal_curve_result[[t]] <- curves[[opt_curve]]
@@ -455,7 +446,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 1)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -466,12 +457,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
         smoother = smoothing_options[smoother_idx]
       )
       curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
-      curve_error[smoother_idx] <- map(
-        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
-        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, 1:3])^2
-      ) %>%
-        unlist() %>%
-        mean()
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
     }
     opt_curve <- which.min(curve_error)
     principal_curve_result[[t]] <- curves[[opt_curve]]
@@ -667,7 +653,7 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 1)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -678,12 +664,7 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
         smoother = smoothing_options[smoother_idx]
       )
       curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
-      curve_error[smoother_idx] <- map(
-        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
-        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
-      ) %>%
-        unlist() %>%
-        mean()
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
     }
     opt_curve <- which.min(curve_error)
     principal_curve_result[[t]] <- curves[[opt_curve]]
@@ -862,7 +843,7 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 1)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -873,12 +854,7 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
         smoother = smoothing_options[smoother_idx]
       )
       curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
-      curve_error[smoother_idx] <- map(
-        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
-        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
-      ) %>%
-        unlist() %>%
-        mean()
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
     }
     opt_curve <- which.min(curve_error)
     principal_curve_result[[t]] <- curves[[opt_curve]]
@@ -1063,7 +1039,7 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 1)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -1074,12 +1050,7 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
         smoother = smoothing_options[smoother_idx]
       )
       curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
-      curve_error[smoother_idx] <- map(
-        1:nrow(true_vals[true_vals[, 1] == time_vals[t], ]),
-        ~ dist_euclidean(true_vals[true_vals[, 1] == time_vals[t], ][.x, ], curve_vals[[smoother_idx]][.x, ])^2
-      ) %>%
-        unlist() %>%
-        mean()
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
     }
     opt_curve <- which.min(curve_error)
     principal_curve_result[[t]] <- curves[[opt_curve]]
@@ -1265,7 +1236,7 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 2)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
@@ -1459,7 +1430,7 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 2)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
@@ -1654,7 +1625,7 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 2)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
@@ -1848,7 +1819,7 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2, verbose = "none")
+    pme_result[[t]] <- pme(temp_data, d = 2)
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
