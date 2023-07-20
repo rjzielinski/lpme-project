@@ -1,9 +1,15 @@
 calc_pme_est <- function(pme, df) {
-  clusters <- pme$knots$cluster
+  center_order <- order(pme$knots$centers[, 1])
+  centers <- pme$knots$centers[center_order, ]
+
+  nearest_clusters <- map(
+    1:nrow(df),
+    ~ which.min(as.vector(apply(centers, 1, dist_euclidean, y = df[.x, ])))
+  ) %>%
+    reduce(c)
+
   opt_run <- which.min(pme$MSD)
-  tnew_init <- pme$parameterization[[opt_run]][clusters, ] %>%
-    matrix(nrow = nrow(df), byrow = TRUE)
-  sol_init <- pme$coefs[[opt_run]][clusters, ] %>%
+  tnew_init <- pme$parameterization[[opt_run]][nearest_clusters, ] %>%
     matrix(nrow = nrow(df), byrow = TRUE)
 
   tnew <- map(
