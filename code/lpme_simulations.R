@@ -1959,12 +1959,12 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   return(0)
 }
 
-amp_noise_vals <- c(0, 0.1, 0.25, 0.5, 1, 2)
-shape_noise_vals <- c(0, 0.1, 0.25, 0.5, 1, 2)
+amp_noise_vals <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+shape_noise_vals <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 max_times <- c(1, 2, 5, 10)
 intervals <- c(0.1, 0.25, 0.5, 1)
 n_vals <- 10^(3:4)
-replicates <- 1
+replicates <- 1:4
 case <- 1:10
 time_changes <- c(0, 0.1, 0.25, 0.5, 1, 2)
 time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
@@ -1982,144 +1982,7 @@ param_grid <- expand.grid(
 )
 
 param_grid <- param_grid[param_grid[, 1] != 4, ]
-
-# plan(multisession, workers = availableCores() - 2)
-# plan(multicore, workers = availableCores() - 4)
-# plan(sequential)
-# pb <- progress_bar$new(total = nrow(param_grid))
-# errors <- map(
-#   sample(1:nrow(param_grid), nrow(param_grid)),
-#   # 1:nrow(param_grid),
-#   ~ {
-#       if (param_grid[.x, 7] == 1) {
-#         try(
-#           sim_error_case1(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 2) {
-#         try(
-#           sim_error_case2(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 3) {
-#         try(
-#           sim_error_case3(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 5) {
-#         try(
-#           sim_error_case5(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 6) {
-#         try(
-#           sim_error_case6(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 7) {
-#         try(
-#           sim_error_case7(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 8) {
-#         try(
-#           sim_error_case8(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 9) {
-#         try(
-#           sim_error_case9(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       } else if (param_grid[.x, 7] == 10) {
-#         try(
-#           sim_error_case10(
-#             param_grid[.x, 5],
-#             param_grid[.x, 4],
-#             param_grid[.x, 1],
-#             param_grid[.x, 2],
-#             param_grid[.x, 8],
-#             param_grid[.x, 9],
-#             param_grid[.x, 3],
-#             param_grid[.x, 6],
-#             print_plots = TRUE
-#           )
-#         )
-#       }
-#     }
-# )
+param_grid <- param_grid[(param_grid[, 5] != param_grid[, 6]), ]
 
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
