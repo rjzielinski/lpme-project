@@ -52,9 +52,9 @@ sim_data <- function(time_val, case, noise, amp_noise, period_noise, time_change
     },
     function(tau, amp_noise, period_noise) {
       c(
-        period_noise[1] * tau[1],
-        period_noise[2] * tau[2],
-        amp_noise[1] * (amp_noise[2] * norm_euclidean(period_noise[1:d] * tau) ^ 2)
+        (period_noise[1] / 4) * tau[1],
+        (period_noise[2] / 4) * tau[2],
+        (amp_noise[1] / 2) * ((amp_noise[2] / 2) * norm_euclidean(period_noise[1:d] * tau) ^ 2)
       ) +
       time_change_d3
     },
