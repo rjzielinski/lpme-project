@@ -12,7 +12,6 @@ source("code/functions/sim_data.R")
 source("code/functions/calc_pme_est.R")
 source("code/functions/calc_lpme_est.R")
 source("code/prinSurf_v3.R")
-source("~/Documents/brown/research/Principal-Manifold-Estimation/Principal_Manifold_Estimation.R")
 
 ### Simulation Case 1
 
@@ -44,7 +43,8 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     1,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -235,7 +235,8 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     1,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
   # lpme_result_gp <- lpme(
@@ -428,7 +429,8 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     1,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
   # lpme_result_gp <- lpme(
@@ -635,7 +637,8 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     1,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
   # lpme_result_gp <- lpme(
@@ -824,7 +827,8 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     1,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1019,7 +1023,8 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     1,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1194,7 +1199,7 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     time_vals,
     sim_data,
     case = 7,
-    noise = 0.15,
+    noise = 0.05,
     amp_noise = amp_noise,
     period_noise = shape_noise,
     N = n,
@@ -1217,7 +1222,8 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     2,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1411,7 +1417,8 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     2,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1579,9 +1586,9 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     time_vals,
     sim_data,
     case = 9,
-    noise = 0.15,
+    noise = 0.05,
     amp_noise = amp_noise,
-    period_noise = shape_noise,
+    period_noise = shape_noise / 5,
     N = n,
     time_change = time_change,
     time_trend = time_trend
@@ -1606,7 +1613,8 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     2,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1800,7 +1808,8 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     2,
     smoothing_method = "spline",
     print_plots = print_plots,
-    verbose = TRUE
+    verbose = TRUE,
+    init = "first"
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
