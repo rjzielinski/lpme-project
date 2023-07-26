@@ -450,17 +450,15 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
     \hline
-    Data & 0.758 (1.28) & 0.884 (0.726) & N/A & 198 (466) & 1.91 (1.76) & 13.4 (51.4) & N/A & N/A & N/A \\
-    LPME & 4.55 (33.4) & 0.483 (0.471) & N/A & 198 (843) & 1.45 (1.34) & 8.99 (31.7) & N/A & N/A & N/A \\
-    PME & 1.01 (2.01) & 3.38 (12.1) & N/A & 194 (461) & 4.49 (6.26) & 12.4 (41.9) & N/A & N/A & N/A \\
-    PC/PS & 0.688 (1.23) & 0.544 (0.276) & N/A & 143 (379) & 1.37 (1.26) & 5.58 (19.6) & N/A & N/A & N/A \\
+    Data & 0.240 (0.346) & 0.489 (0.399) & N/A & 19.2 (48.7) & 0.906 (0.735) & 1.20 (3.16) & N/A & N/A & N/A \\
+    LPME & 0.166 (0.668) & 0.324 (0.327) & N/A & 11.8 (31.1) & 0.633 (0.692) & 1.11 (2.61) & N/A & N/A & N/A \\
+    PME & 0.265 (0.430) & 0.615 (0.850) & N/A & 19.2 (48.7) & 0.918 (0.831) & 1.26 (3.17) & N/A & N/A & N/A \\
+    PC/PS & 0.209 (0.342) & 0.557 (0.319) & N/A & 19.2 (48.7) & 0.863 (0.670) & 0.965 (1.17) & N/A & N/A & N/A \\
     \hline
   \end{tabular}
-  \caption{MSD Comparison, Mean (SD).}
+  \caption{MSD Comparison to True Values, Mean (SD).}
   \label{table:simulation_results_mean}
 \end{table}
-
-\zielinski{With results still incomplete, it seems like the worst LPME performance is concentrated in cases where the structure of the manifold changes drastically between time points. I have included these cases in the simulations to test where the method breaks down. For reporting purposes, would it be worth it to limit ourselves to more realistic cases without quite so much noise? Also, would it be worthwhile to limit the number of simulation cases we are considering for a more focused assessment?}
 
 \begin{table}
   \centering
@@ -468,13 +466,13 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
     \hline
-    Data & 0.244 (0.576) & 0.784 (0.585) & N/A & 14.3 (84.0) & 1.63 (1.85) & 0.870 (4.49) & N/A & N/A & N/A \\
-    LPME & 0.135 (0.265) & 0.406 (0.337) & N/A & 8.30 (35.6) & 1.21 (1.18) & 0.802 (2.85) & N/A & N/A & N/A \\
-    PME & 0.351 (0.814) & 0.980 (1.61) & N/A & 12.3 (65.9) & 2.50 (3.56) & 0.883 (4.17) & N/A & N/A & N/A \\
-    PC/PS & 0.201 (0.554) & 0.529 (0.215) & N/A & 7.66 (41.2) & 1.15 (1.13) & 0.867 (1.90) & N/A & N/A & N/A \\
+    Data & 0.134 (0.232) & 0.382 (0.649) & N/A & 3.37 (15.7) & 0.729 (1.29) & 0.328 (0.742) & N/A & N/A & N/A \\
+    LPME & 0.0661 (0.119) & 0.236 (0.438) & N/A & 3.10 (9.54) & 0.370 (0.889) & 0.364 (0.671) & N/A & N/A & N/A \\
+    PME & 0.117 (0.281) & 0.463 (0.668) & N/A & 3.34 (15.6) & 0.675 (1.31) & 0.369 (0.680) & N/A & N/A & N/A \\
+    PC/PS & 0.110 (0.214) & 0.471 (0.467) & N/A & 3.33 (15.7) & 0.691 (1.18) & 0.607 (0.329) & N/A & N/A & N/A \\
     \hline
   \end{tabular}
-  \caption{MSD Comparison, Median (IQR).}
+  \caption{MSD Comparison to True Values, Median (IQR).}
   \label{table:simulation_results_median}
 \end{table}
 
@@ -499,7 +497,13 @@ Visualizations of the results from some of the simulation cases, truncated for c
   \label{fig:sim_case6}
 \end{figure}
 
-The mean, median, and standard deviation of the mean squared distance from the true underlying manifold values for the estimates of each approach, as well as for the data itself, are shown in Tables \ref{table:simulation_results_mean} and \ref{table:simulation_results_median}.
+The mean, median, and standard deviation of the mean squared distance from the true underlying manifold values for the estimates of each approach, as well as for the data itself, are shown in Tables \ref{table:simulation_results_mean} and \ref{table:simulation_results_median}. Because the PME, principal curve, and principal surface methods each attempt to estimate the manifold in question at each individual time point without allowing other time points to inform these estimates, they should result in similar deviations from the true underlying manifold, with differences in error resulting primarily from differing performances in fitting to the observed data. Meanwhile, because the LPME approach accounts for all time points simultaneously, this approach should result in lower mean squared distance values.
+
+The result summaries indicate that in most cases, LPME provides a substantial improvement in performance over the PME and principal curve approaches when estimating the underlying manifold. As seen clearly in Figure \ref{fig:sim_case1}, while the structure of the simulated data changes noticeably between time points, the LPME estimates, shown in blue, remain relatively stable over time. This contrasts to the estimates found by the PME and principal curve approaches, which are highly sensitive to the data observed at each given time point, as expected. This ultimately results in the LPME estimates remaining closer to the true underlying manifold, shown in red. Similar results hold in most of the other simulation cases.
+
+\zielinski{It is key to note here that the MSD values shown in these tables are comparing the various models' projections onto the estimated manifold to the true values underlying the data the models are fit on. This means that a model that performs well using this metric may not perform well when comparing the data to the model's projections onto the manifold. In fact, if there is a high level of inter-observation noise, then we should expect an estimated manifold that closely follows the true underlying manifold to show a relatively poor fit to the data at any given time point.
+
+This largely explains why PME does not usually show better performance than the PC/PS methods using this metric - both approaches are trying to estimate a curve or surface using the data available at a given time point, which may have noise introduced that increases the distance to the true manifold. When comparing the fit of the PME and PC methods to the simulated data, PME tends to show improvement in the median MSD, with elevated mean MSD levels compared to principal curves.}
 
 \section{Application}
 
