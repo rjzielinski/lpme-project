@@ -201,11 +201,11 @@ for (df_idx in 1:length(data_case5)) {
   data_case5[[df_idx]] <- df
 }
 df_case5 <- reduce(data_case5, rbind)
-# df_case5 <- df_case5 %>%
-#   filter(mod(time * 10, 2) == 0)
+df_case5 <- df_case5 %>%
+  filter(mod(time * 10, 2) == 0)
 
 time_vals <- sim_example_case5$times
-# time_vals <- time_vals[mod(time_vals * 10, 2) == 0]
+time_vals <- time_vals[mod(time_vals * 10, 2) == 0]
 
 png("paper/figures/sim_case5.png")
 par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
