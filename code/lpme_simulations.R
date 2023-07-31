@@ -1970,12 +1970,14 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
 
 amp_noise_vals <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 shape_noise_vals <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
-max_times <- c(1, 2, 5, 10)
-intervals <- c(0.1, 0.25, 0.5, 1)
-n_vals <- 10^(3:4)
-replicates <- 1:4
+max_times <- c(1, 2, 5)
+intervals <- c(0.1, 0.25, 0.5)
+# n_vals <- 10^(3:4)
+n_vals <- 1000
+# replicates <- 1:4
+replicates <- 1
 case <- 1:10
-time_changes <- c(0, 0.1, 0.25, 0.5, 1, 2)
+time_changes <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
 
 param_grid <- expand.grid(
