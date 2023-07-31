@@ -13,7 +13,7 @@ unit_df <- data.frame(theta, x, y) %>%
 angle <- cart2pol(as.matrix(unit_df[, 2:3], ncol = 2))
 
 
-png("paper/figures/unit_circle_augmentation.png")
+png("paper/figures/unit_circle_augmentation.png", res = 500, height = 2000, width = 2000)
 par(mfrow = c(1, 2))
 plot(
   x = unit_df$x,
@@ -36,7 +36,7 @@ plt2 <- lines3D(
 )
 dev.off()
 
-png("paper/figures/unit_circle_D2.png")
+png("paper/figures/unit_circle_D2.png", res = 500, height = 2000, width = 2000)
 plot(
   x = unit_df$x,
   y = unit_df$y,
@@ -48,7 +48,7 @@ plot(
 )
 dev.off()
 
-png("paper/figures/unit_circle_D3.png")
+png("paper/figures/unit_circle_D3.png", res = 500, height = 2000, width = 2000)
 lines3D(
   x = unit_df$x,
   y = unit_df$y,
@@ -87,7 +87,7 @@ df_case1 <- df_case1 %>%
 time_vals <- sim_example_case1$times
 time_vals <- time_vals[mod(time_vals * 10, 2) == 0]
 
-png("paper/figures/sim_case1.png")
+png("paper/figures/sim_case1.png", res = 500, height = 2000, width = 2000)
 par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
 for (time_idx in 1:length(time_vals)) {
   temp_data <- df_case1 %>%
@@ -130,13 +130,13 @@ for (time_idx in 1:length(time_vals)) {
     y = temp_data$y,
     xlab = "x",
     ylab = "y",
-    col = alpha("black", 0.4),
-    bg = alpha("black", 0.4),
+    col = alpha("black", 0.2),
+    bg = alpha("black", 0.2),
     xlim = c(-4, 4),
     ylim = c(-2, 2),
     pch = 21,
     main = paste0("Time = ", time_vals[time_idx]),
-    cex = 0.75
+    cex = 0.5
   )
   points(
     x = temp_true$x,
@@ -144,7 +144,9 @@ for (time_idx in 1:length(time_vals)) {
     col = "red",
     bg = "red",
     pch = 21,
-    cex = 0.5
+    # cex = 0.5
+    type = "l",
+    lwd = 1.25
   )
   points(
     x = temp_lpme$x,
@@ -152,7 +154,9 @@ for (time_idx in 1:length(time_vals)) {
     col = "blue",
     bg = "blue",
     pch = 21,
-    cex = 0.5
+    type = "l",
+    lty = "dashed",
+    lwd = 1.25
   )
   points(
     x = temp_pme$x,
@@ -160,7 +164,9 @@ for (time_idx in 1:length(time_vals)) {
     col = "green",
     bg = "green",
     pch = 21,
-    cex = 0.5
+    type = "l",
+    lty = "dotted",
+    lwd = 1.25
   )
   points(
     x = temp_princurve$x,
@@ -168,7 +174,9 @@ for (time_idx in 1:length(time_vals)) {
     col = "purple",
     bg = "purple",
     pch = 21,
-    cex = 0.5
+    type = "l",
+    lty = "dotdash",
+    lwd = 1.25
   )
 }
 par(fig = c(0, 1, 0, 1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
@@ -207,7 +215,7 @@ df_case5 <- df_case5 %>%
 time_vals <- sim_example_case5$times
 time_vals <- time_vals[mod(time_vals * 10, 2) == 0]
 
-png("paper/figures/sim_case5.png")
+png("paper/figures/sim_case5.png", res = 500, height = 2000, width = 2000)
 par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
 for (time_idx in 1:length(time_vals)) {
   temp_df <- df_case5 %>%
@@ -349,7 +357,7 @@ df_case7 <- df_case7 %>%
 
 time_vals <- unique(df_case7$time)
 
-png("paper/figures/sim_case7.png")
+png("paper/figures/sim_case7.png", res = 500, height = 2000, width = 2000)
 par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
 for (time_idx in 1:length(time_vals)) {
   temp_data <- df_case7 %>%
