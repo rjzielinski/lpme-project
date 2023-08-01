@@ -391,7 +391,7 @@ Note that alternative cross validation methods, such as $k$-fold cross validatio
 
 To assess the performance of the LPME algorithm, we compare its performance with that of two alternative approaches on simulated datasets. We consider settings in which $d = 1$ and $D = 2$, $d = 1$ and $D = 3$, and $d = 2$ and $D = 3$, with several manifolds being used to generate datasets in each setting. For each manifold, differing values for the time duration, interval between observations, noise levels within and between time points, and the type and magnitude of structural changes in the underlying manifold over time were considered. 
 
-The embedding functions used to define each manifold are given in Table \ref{table:simulation_embeddings}. In these functions, the value of $\zeta$ and the functional form of $g(\cdot)$ are varied between trials and represent structural change in the underlying manifold over time. The function $g(\cdot)$ may show change with respect to time that is constant, linear, quadratic, or sinusoidal, with $\zeta$ serving as a scalar multiplier. The values of $\iota$ represent within-image noise in the high-dimensional space, and are randomly sampled from a normal distribution with mean zero and variance that is varied between trials. Meanwhile, $\alpha$ and $\beta$ are vectors of length $d$ that are drawn from a normal distribution with mean equal to 1 and variance that is varied between trials. These values describe random fluctuations in the manifold between time points, reflecting noise introduced by different imaging sessions.
+The embedding functions used to define each manifold are given in Table \ref{table:simulation_embeddings}. In these functions, the value of $\zeta$ and the functional form of $g(\cdot)$ are varied between trials and represent structural changes in the underlying manifold over time. The function $g(\cdot)$ may show change with respect to time that is constant, linear, quadratic, or sinusoidal, with $\zeta$ serving as a scalar multiplier. The values of $\iota$ represent within-image noise in the high-dimensional space, and are randomly sampled from a normal distribution with mean zero and variance that is varied between trials. Meanwhile, $\alpha$ and $\beta$ are vectors of length $d$ that are drawn from a normal distribution with mean equal to 1 and variance that is varied between trials. These values describe random fluctuations in the manifold between time points, reflecting noise introduced by different imaging sessions.
 
 \begin{table}
   \centering
@@ -431,14 +431,13 @@ Notably, the manifolds estimated in the simulated datasets included several self
 
 A factorial design is used to run the simulation studies, with the factor levels set as follows:
 \begin{itemize}
-  \item $\alpha, \beta, \zeta \in \left\{0, 0.1, 0.25, 0.5, 1.0, 2.0\right\}$
-  \item Study duration: $\left\{1, 2, 5, 10\right\}$
-  \item Interval between images: $\left\{0.1, 0.25, 0.5, 1\right\}$
-  \item Sample size: $\left\{1000, 10000\right\}$
+  \item $\alpha, \beta, \zeta \in \left\{0, 0.05, 0.1, 0.25, 0.5, 1.0\right\}$
+  \item Study duration: $\left\{1, 2, 5\right\}$
+  \item Interval between images: $\left\{0.1, 0.25, 0.5\right\}$
   \item Longitudinal change model: Constant, Linear, Quadratic, Sinusoidal
 \end{itemize}
 
-Thus, each embedding map is simulated a total of 27,648 times. All code required to reproduce the simulation results and the associated figures is provided at \texttt{https://github.com/rjzielinski/lpme-project}.
+The sample size for each time point is set to 1,000 observations, so each embedding map is simulated a total of 7,776 times. All code required to reproduce the simulation results and the associated figures is provided at \texttt{https://github.com/rjzielinski/lpme-project}.
 
 Visualizations of the results from some of the simulation cases, truncated for concision to include only integer-valued time points, are shown in Figures \ref{fig:sim_case1}, \ref{fig:sim_case4} and \ref{fig:sim_case6}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
 
@@ -450,10 +449,10 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
     \hline
-    Data & 0.210 (0.228) & 0.490 (0.406) & N/A & 28.9 (80.2) & 0.932 (0.755) & 0.961 (2.93) & N/A & N/A & N/A \\
-    LPME & 0.126 (0.154) & 0.352 (0.411) & N/A & 21.5 (69.2) & 0.781 (0.800) & 0.978 (2.77) & N/A & N/A & N/A \\
-    PME & 0.253 (0.541) & 0.738 (2.41) & N/A & 28.8 (80.2) & 0.961 (1.04) & 1.13 (2.93) & N/A & N/A & N/A \\
-    PC/PS & 0.178 (0.217) & 0.557 (0.329) & N/A & 28.8 (80.2) & 0.888 (0.693) & 0.889 (1.10) & N/A & N/A & N/A \\
+    Data & 0.223 (0.311) & 0.524 (0.462) & N/A & 25.5 (75.3) & 0.984 (0.754) & 2.00 (9.29) & N/A & N/A & N/A \\
+    LPME & 0.138 (0.174) & 0.363 (0.342) & N/A & 19.8 (69.1) & 0.751 (0.660) & 1.83 (9.19) & N/A & N/A & N/A \\
+    PME & 0.231 (0.412) & 0.871 (1.76) & N/A & 25.5 (75.3) & 1.11 (1.36) & 2.02 (9.29) & N/A & N/A & N/A \\
+    PC/PS & 0.189 (0.296) & 0.615 (0.357) & N/A & 25.5 (75.3) & 0.928 (0.702) & 1.25 (3.69) & N/A & N/A & N/A \\
     \hline
   \end{tabular}
   \caption{MSD Comparison to True Values, Mean (SD).}
@@ -466,10 +465,10 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
     \hline
-    Data & 0.138 (0.228) & 0.417 (0.641) & N/A & 3.88 (16.3) & 0.753 (1.34) & 0.249 (0.816) & N/A & N/A & N/A \\
-    LPME & 0.0744 (0.124) & 0.247 (0.443) & N/A & 2.92 (11.2) & 0.524 (1.15) & 0.245 (0.665) & N/A & N/A & N/A \\
-    PME & 0.127 (0.243) & 0.432 (0.653) & N/A & 3.87 (16.3) & 0.713 (1.36) & 0.277 (0.800) & N/A & N/A & N/A \\
-    PC/PS & 0.118 (0.202) & 0.509 (0.425) & N/A & 3.83 (16.3) & 0.686 (1.20) & 0.557 (0.338) & N/A & N/A & N/A \\
+    Data & 0.124 (0.187) & 0.385 (0.640) & N/A & 4.11 (15.9) & 0.939 (1.26) & 0.272 (0.926) & N/A & N/A & N/A \\
+    LPME & 0.0707 (0.138) & 0.251 (0.511) & N/A & 3.23 (7.67) & 0.611 (1.05) & 0.290 (0.860) & N/A & N/A & N/A \\
+    PME & 0.105 (0.202) & 0.379 (0.708) & N/A & 4.06 (15.7) & 0.933 (1.32) & 0.295 (0.938) & N/A & N/A & N/A \\
+    PC/PS & 0.101 (0.177) & 0.504 (0.413) & N/A & 4.06 (15.9) & 0.830 (1.09) & 0.556 (0.317) & N/A & N/A & N/A \\
     \hline
   \end{tabular}
   \caption{MSD Comparison to True Values, Median (IQR).}

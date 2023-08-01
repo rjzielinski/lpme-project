@@ -60,7 +60,7 @@ lines3D(
 )
 dev.off()
 
-sim_example_case1 <- readRDS("simulations/case1/duration_01_interval_010_ampnoise_010_pernoise_050_n_1000_constant000_run_01.rds")
+sim_example_case1 <- readRDS("simulations/case1/duration_01_interval_010_ampnoise_025_pernoise_050_n_1000_constant000_run_01.rds")
 sim_example_case5 <- readRDS("simulations/case6/duration_01_interval_010_ampnoise_000_pernoise_005_n_1000_constant000_run_01.rds")
 sim_example_case7 <- readRDS("simulations/case7/duration_01_interval_010_ampnoise_010_pernoise_010_n_1000_constant000_run_01.rds")
 
