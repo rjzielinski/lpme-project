@@ -96,7 +96,7 @@ Previously introduced methods for manifold learning, such as Isomap (\cite{tenen
 
 Rather than include time as another dimension in a manifold learning method, we use a process that maintains the interpretability of the time dimension. Specifically, we use the method proposed in \cite{mengPrincipalManifoldEstimation2021} to estimate the appropriate principal manifold at each given time point. We then smooth over these approximated manifolds in the time dimension, yielding an estimate showing longitudinal changes in the underlying manifold. The regularization involved in this process mitigates the effects of variability between study visits.
 
-Some previous work has been conducted on longitudinal dimension reduction methods, but this research has primarily focused on linear methods, such as the longitudinal principal component analysis approach proposed by \cite{kinsonLongitudinalPrincipalComponent2020}. To our knowledge, the approach to longitudinal smoothing in the manifold learning setting taken in this article is novel.
+Some previous work has been conducted on longitudinal dimension reduction methods, but this research has primarily focused on linear methods, such as the longitudinal principal component analysis approach proposed by \cite{kinsonLongitudinalPrincipalComponent2020}. \cite{wolzManifoldLearningBiomarker2010a} used Laplacian eigenmaps to to incorporate longitudinal information when reducing neuroimaging information to lower dimensional spaces, but estimated parameterizations for baseline images and longitudinal image differences separately, where we seek to parameterize them simultaneously. \cite{louisRiemannianGeometryLearning2019} used a deep learning-based approach to learn Riemannian manifolds in the context of disease progression modeling. However, this approach relies on modeling assumptions specific to the application, and the deep learning methodology used imposes costs in terms of computational requirements and interpretability. To our knowledge, the approach to longitudinal smoothing in the general-purpose manifold learning setting taken in this article is novel.
 
 The remainder of this article is laid out as follows: In Section 2, we review the principal manifold framework proposed in \cite{mengPrincipalManifoldEstimation2021}. Section 3 discusses how this approach can be adapted for longitudinal settings, and shows the algorithm being used to accomplish this. Section 4 demonstrates the performance of this approach on simulated data. In Section 5, we apply this method to longitudinal data of the hippocampus in individuals with Alzheimer's disease. The article concludes with a discussion of the method's contributions in Section 6.
 
@@ -416,18 +416,18 @@ The embedding functions used to define each manifold are given in Table \ref{tab
 
 In the situations where $d = 1$, LPME is compared to the PME method naively run at each time point without smoothing over time, as well as the principal curve algorithm described in \cite{hastiePrincipalCurves1989}, also run naively. The principal curve algorithm is implemented using the \texttt{principal\_curve()} function in the \texttt{princurve} package, developed using \texttt{R} (\cite{rSoftware2023}). In this function, each of the three smoothing options, \texttt{smooth\_spline}, \texttt{lowess}, and \texttt{periodic\_lowess}, are tested, with the option resulting in the lowest error from the true values being chosen. Following \cite{mengPrincipalManifoldEstimation2021}, the inputs for the PME algorithm are set to $N_0 = 20 \times D$, $\alpha = 0.05$, and $\epsilon = 0.001$, with $\lambda_g = \exp(g)$ for $g = -15, \dots, 5$. In cases where $d = 2$, LPME is again compared to the naive PME approach described above, and the principal surface estimation algorithm developed by \cite{yueParameterizationWhiteMatter2016}.
 
-Notably, the manifolds estimated in the simulated datasets included several self-intersecting manifolds, which methods based on the principal curve framework, including the principal manifold approach used here, are typically unable to fit due to the self-consistency property discussed above. To avoid this issue, we augmented the simulated datasets with polar or spherical coordinates, depending on the value of $D$. As a simple example, the unit circle can be considered a self-intersecting manifold with $d = 1$ when viewed in two dimensions. However, by adding a third dimension equal to the angle of each observation from the origin, we the manifold can be considered as having $d = 1$ and $D = 3$, while avoiding any self-intersections. This enables the PME algorithm, and thus the LPME algorithm, to be fit under these circumstances. This process is illustrated graphically in Figure \ref{fig:unit_circle_augmentation}.
+Notably, the manifolds estimated in the simulated datasets included several self-intersecting manifolds, which methods based on the principal curve framework, including the principal manifold approach used here, are typically unable to fit due to the self-consistency property discussed above. To avoid this issue, we augmented the simulated datasets with polar or spherical coordinates, depending on the value of $D$. As a simple example, the unit circle can be considered a self-intersecting manifold with $d = 1$ when viewed in two dimensions. However, by adding a third dimension equal to the angle of each observation from the origin, the manifold can be considered as having $d = 1$ and $D = 3$, while avoiding any self-intersections. This enables the PME algorithm, and thus the LPME algorithm, to be fit under these circumstances. This process is illustrated graphically in Figure \ref{fig:unit_circle_augmentation}. 
+
+This approach to data augmentation offers an alternative to the method used in \cite{mengPrincipalManifoldEstimation2021} to fit the PME algorithm to self-intersecting manifolds, where the full dataset was manually partitioned to avoid intersections within each partition. Reaching a combined estimate after fitting PME to each partition individually requires "gluing" the estimated manifolds on each partition together, which may introduce error to the combined manifold estimate. This source of error is avoided using the data augmentation approach. Additionally, scaling the added dimensions by a constant value enables the modification of the level of curvature present in the manifold. This may encourage improved performance when estimating manifolds that have too much curvature for PME to reach an appropriate fit under normal circumstances. However, an in depth comparison of these approaches is beyond the scope of this article and is left for future work.
 
 \begin{figure}%
   \centering
-  \subfloat[\centering $D = 2$]{{\includegraphics[width=9cm]{unit_circle_D2}}}%
+  \subfloat[\centering Unaugmented Unit Circle]{{\includegraphics[width=9cm]{unit_circle_D2}}}%
   \hfill
-  \subfloat[\centering $D = 3$]{{\includegraphics[width=9cm]{unit_circle_D3}}}
+  \subfloat[\centering Augmented Unit Circle]{{\includegraphics[width=9cm]{unit_circle_D3}}}
   \caption{Augmenting the Unit Circle}
   \label{fig:unit_circle_augmentation}
 \end{figure}
-
-\zielinski{The simulation results shown below use partial results run on my computer.}
 
 A factorial design is used to run the simulation studies, with the factor levels set as follows:
 \begin{itemize}
@@ -449,10 +449,10 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
     \hline
-    Data & 0.222 (0.261) & 0.513 (0.411) & N/A & 27.3 (74.9) & 0.986 (0.787) & 1.51 (6.04) & N/A & N/A & N/A \\
-    LPME & 0.129 (0.161) & 0.417 (0.960) & N/A & 19.0 (63.0) & 0.776 (0.777) & 1.27 (5.71) & N/A & N/A & N/A \\
-    PME & 0.247 (0.435) & 0.854 (1.62) & N/A & 27.3 (74.9) & 1.04 (1.07) & 1.55 (6.04) & N/A & N/A & N/A \\
-    PC/PS & 0.188 (0.247) & 0.600 (0.303) & N/A & 27.3 (74.9) & 0.939 (0.730) & 1.04 (2.20) & N/A & N/A & N/A \\
+    Data & 0.222 (0.255) & 0.512 (0.409) & N/A & 30.5 (89.0) & 0.975 (0.770) & 1.43 (6.13) & N/A & N/A & N/A \\
+    LPME & 0.125 (0.161) & 0.384 (0.659) & N/A & 27.8 (266) & 0.788 (0.843) & 1.18 (5.71) & N/A & N/A & N/A \\
+    PME & 0.267 (0.862) & 0.839 (1.93) & N/A & 30.5 (89.2) & 1.03 (1.07) & 1.47 (6.14) & N/A & N/A & N/A \\
+    PC/PS & 0.188 (0.244) & 0.599 (0.297) & N/A & 30.4 (89.0) & 0.930 (0.713) & 1.00 (2.14) & N/A & N/A & N/A \\
     \hline
   \end{tabular}
   \caption{MSD Comparison to True Values, Mean (SD).}
@@ -465,10 +465,10 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 & Case 9 \\
     \hline
-    Data & 0.144 (0.222) & 0.466 (0.658) & N/A & 4.17 (19.4) & 0.890 (1.39) & 0.305 (1.07) & N/A & N/A & N/A \\
-    LPME & 0.0727 (0.129) & 0.250 (0.477) & N/A & 3.23 (11.3) & 0.575 (1.08) & 0.293 (0.907) & N/A & N/A & N/A \\
-    PME & 0.123 (0.249) & 0.516 (0.757) & N/A & 4.13 (19.2) & 0.897 (1.39) & 0.331 (1.04) & N/A & N/A & N/A \\
-    PC/PS & 0.112 (0.205) & 0.556 (0.427) & N/A & 4.12 (19.3) & 0.805 (1.26) & 0.567 (0.388) & N/A & N/A & N/A \\
+    Data & 0.145 (0.231) & 0.462 (0.661) & N/A & 4.21 (20.7) & 0.888 (1.33) & 0.279 (1.06) & N/A & N/A & N/A \\
+    LPME & 0.0733 (0.122) & 0.245 (0.460) & N/A & 3.27 (12.8) & 0.579 (1.08) & 0.269 (0.890) & N/A & N/A & N/A \\
+    PME & 0.129 (0.258) & 0.508 (0.747) & N/A & 4.19 (20.7) & 0.881 (1.36) & 0.313 (1.04) & N/A & N/A & N/A \\
+    PC/PS & 0.117 (0.205) & 0.560 (0.416) & N/A & 4.18 (20.7) & 0.817 (1.21) & 0.556 (0.386) & N/A & N/A & N/A \\
     \hline
   \end{tabular}
   \caption{MSD Comparison to True Values, Median (IQR).}
@@ -540,7 +540,7 @@ Figure \ref{fig:adni_cross_section} depicts cross sections of the observed hippo
 
 In this article, we propose an extension to the Principal Manifold Estimation algorithm introduced by \cite{mengPrincipalManifoldEstimation2021}, which may be used to model longitudinal changes in a low-dimensional manifold underlying high-dimensional data. To the best of our knowledge, this is the first time a nonlinear manifold learning method has been adapted to a longitudinal setting. In simulated datasets where spurious changes in the structure to be estimated were introduced between time points, the LPME algorithm showed improved performance in recovering the underlying manifold when compared to a naive approach of applying either the PME or principal curve algorithms at each time point. This improvement was seen across several manifold types. We also suggest a data augmentation approach that may allow for the circumvention of the inability to fit principal curve-based methods to some self-intersecting manifolds. 
 
-While the LPME algorithm demonstrated strong performance in a number of settings, it also has several limitations. First, because the method explicitly builds on the results of an estimate provided by the PME algorithm, the LPME algorithm will only fit properly in situations where PME fits properly. Because the output of PME is highly dependent on the success of its initial parameterization, in practice this limits the success of LPME to situations where Isomap performs well, which excludes nonconvex manifolds, manifolds that have holes, or manifolds that are too curvy. The option to use alternative methods, such as Locally Linear Embedding or Laplacian Eigenmaps, to generate the initial parameterization for the PME algorithm may help to alleviate this concern. There is also room to improve the tuning of the initialization method, which may result in better performance, especially when considering data with different levels of noise present.
+While the LPME algorithm demonstrated strong performance in a number of settings, it also has several limitations. First, because the method explicitly builds on the results of an estimate provided by the PME algorithm, the LPME algorithm will only fit properly in situations where PME fits properly. Because the output of PME is highly dependent on the success of its initial parameterization, in practice this limits the success of LPME to situations where Isomap performs well, which excludes nonconvex manifolds, manifolds that have holes, or manifolds that have too high a level of curvature. The option to use alternative methods, such as Locally Linear Embedding or Laplacian Eigenmaps, to generate the initial parameterization for the PME algorithm may help to alleviate this concern. There is also room to improve the tuning of the initialization method, which may result in better performance, especially when considering data with different levels of noise present.
 
 A second limitation is that the LPME method requires relative stability in the overall shape of the structure being fit over time. Thus, while this algorithm can be useful for separating meaningful changes in a manifold over time from inter-observation error, it will be unable to fit in situations where the error between observations is too substantial. How restrictive this requirement is depends largely on the area of application. When used to estimate subcortical surfaces as suggested here, this tends not to be overly restrictive, as changes in the shape and size of a subcortical structure, while clinically meaningful, tend to be relatively small in magnitude compared to their defining features.
 
