@@ -1994,6 +1994,7 @@ param_grid <- expand.grid(
 
 param_grid <- param_grid[param_grid[, 1] != 4, ]
 param_grid <- param_grid[(param_grid[, 5] != param_grid[, 6]), ]
+param_grid <- param_grid[param_grid[, 1] %in% c(3, 8, 9), ]
 
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
@@ -2012,7 +2013,7 @@ errors <- foreach(
   time_trend = param_grid[, 9],
   .inorder = FALSE,
   .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "prinSurf"),
-  .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel")
+  .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel", "pracma")
 ) %dopar% {
 # errors <- foreach(x = 1:5) %dopar% {
       # if (param_grid[x, 7] == 1) {
