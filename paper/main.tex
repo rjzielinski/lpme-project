@@ -195,7 +195,7 @@ referred to as the total squared curvature of a manifold. With this penalty term
 \end{definition}
 In this setting, we can see that $\pi_{f_{\lambda}^{*}}(\boldsymbol{X})$ maps the $D$-vector $\boldsymbol{X}$ to a $d$-dimensional parameterization, while $f_{\lambda}^{*}$ embeds the $d$-dimensional parameterization in the original $D$-dimensional space. Thus, the first segment of the functional $\mathcal{K}_{\lambda, \mathbb{P}}$ provides a measure of the expected distance between the provided $D$-vector $\mathbf{X}$ and the value of $\mathbf{X}$ when projected onto the manifold. Meanwhile the second segment of $\mathcal{K}_{\lambda, \mathbb{P}}$ penalizes the roughness of the function $f$, with the magnitude of the penalty dependent on the provided value of $\lambda$.
 
-To estimate principal manifolds under this definition, \cite{mengPrincipalManifoldEstimation2021} propose the Principal Manifold Estimation (PME) algorithm. This algorithm has three main steps: data reduction, fitting, and tuning (see Figure 2 of \cite{mengPrincipalManifoldEstimation2021}). \meng{I would suggest presenting Figure 2 of \cite{mengPrincipalManifoldEstimation2021} in the present paper.}
+To estimate principal manifolds under this definition, \cite{mengPrincipalManifoldEstimation2021} propose the Principal Manifold Estimation (PME) algorithm. This algorithm has three main steps: data reduction, fitting, and tuning (see Figure 2 of \cite{mengPrincipalManifoldEstimation2021}). 
 \begin{enumerate}
     \item In the data reduction step, the high-dimensional mixture density estimation (HDMDE) algorithm uses $k$-means clustering to summarize the data $\left\{x_i\right\}_{i=1}^{I}$ by cluster centers $\left\{\mu_j\right\}_{j=1}^{N}$ with $N \leq I$, and each $\mu_j$ associated with weight $\theta_j$. The number $N$ of clusters is chosen using an iterative hypothesis testing approach, and $N$ tends to be much smaller than $I$ (see the simulation study in Figure 3(c) of \cite{mengPrincipalManifoldEstimation2021}). 
     \item For each given value of $\lambda$, the fitting stage of the PME algorithm uses this reduced data set $\left\{\mu_j\right\}_{j=1}^{N}$ to find estimated function 
@@ -394,6 +394,7 @@ To assess the performance of the LPME algorithm, we compare its performance with
 The embedding functions used to define each manifold are given in Table \ref{table:simulation_embeddings}. In these functions, the value of $\zeta$ and the functional form of $g(\cdot)$ are varied between trials and represent structural changes in the underlying manifold over time. The function $g(\cdot)$ may show change with respect to time that is constant, linear, quadratic, or sinusoidal, with $\zeta$ serving as a scalar multiplier. The values of $\iota$ represent within-image noise in the high-dimensional space, and are randomly sampled from a normal distribution with mean zero and variance that is varied between trials. Meanwhile, $\alpha$ and $\beta$ are vectors of length $d$ that are drawn from a normal distribution with mean equal to 1 and variance that is varied between trials. These values describe random fluctuations in the manifold between time points, reflecting noise introduced by different imaging sessions.
 
 \begin{table}
+\small
   \centering
   \begin{tabular}{|c c c c c|}
     \hline
@@ -444,6 +445,7 @@ Visualizations of the results from some of the simulation cases, truncated for c
 \zielinski{It may be necessary to put some of the simulation figures in an appendix. Additionally, the figures are still very much a work in progress and are serving more of a placeholder status at the moment. Any suggestions regarding how to improve the clarity and depth perception of the figures would be greatly appreciated!}
 
 \begin{table}[h]
+\footnotesize
   \centering
   \begin{tabular}{|c c c c c c c c c c|}
     \hline
@@ -460,6 +462,7 @@ Visualizations of the results from some of the simulation cases, truncated for c
 \end{table}
 
 \begin{table}[h]
+\footnotesize
   \centering
   \begin{tabular}{|c c c c c c c c c c|}
     \hline
@@ -519,7 +522,7 @@ Results of fitting the PME and LPME algorithms on the surface of the left hippoc
 Figure \ref{fig:adni_cross_section} depicts cross sections of the observed hippocampus surface and the estimated surface obtained using LPME and PME at each individual time point. These cross sections illustrate the differences between the estimates reached by the PME and LPME algorithms, with the LPME-based estimate being generally less responsive to changes in the shape and orientation of the hippocampus between time points. This figure reiterates that both the PME and LPME algorithms are unable to capture the distinctive sharp curve in the structure at the upper-left corner of each of the plots. Additionally, we see that, along the upper-right edge of the surface, there is a spot where the estimated manifold intersects with itself. This is present for both the PME and LPME estimates, but appears to be more prevalent when using LPME.
 
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{adni_lhipp}
   \caption{Left Hippocampus, Cognitively Healthy ADNI Participant}
@@ -540,7 +543,7 @@ Figure \ref{fig:adni_cross_section} depicts cross sections of the observed hippo
 
 In this article, we propose an extension to the Principal Manifold Estimation algorithm introduced by \cite{mengPrincipalManifoldEstimation2021}, which may be used to model longitudinal changes in a low-dimensional manifold underlying high-dimensional data. To the best of our knowledge, this is the first time a nonlinear manifold learning method has been adapted to a longitudinal setting. In simulated datasets where spurious changes in the structure to be estimated were introduced between time points, the LPME algorithm showed improved performance in recovering the underlying manifold when compared to a naive approach of applying either the PME or principal curve algorithms at each time point. This improvement was seen across several manifold types. We also suggest a data augmentation approach that may allow for the circumvention of the inability to fit principal curve-based methods to some self-intersecting manifolds. 
 
-While the LPME algorithm demonstrated strong performance in a number of settings, it also has several limitations. First, because the method explicitly builds on the results of an estimate provided by the PME algorithm, the LPME algorithm will only fit properly in situations where PME fits properly. Because the output of PME is highly dependent on the success of its initial parameterization, in practice this limits the success of LPME to situations where Isomap performs well, which excludes nonconvex manifolds, manifolds that have holes, or manifolds that have too high a level of curvature. The option to use alternative methods, such as Locally Linear Embedding or Laplacian Eigenmaps, to generate the initial parameterization for the PME algorithm may help to alleviate this concern. There is also room to improve the tuning of the initialization method, which may result in better performance, especially when considering data with different levels of noise present.
+While the LPME algorithm demonstrated strong performance in a number of settings, it also has several limitations. First, because the method explicitly builds on the results of an estimate provided by the PME algorithm, the LPME algorithm will only fit properly in situations where PME fits properly. Because the output of PME is highly dependent on the success of its initial parameterization, in practice this limits the success of LPME to situations where Isomap performs well, which excludes nonconvex manifolds, manifolds that have holes, or manifolds that have too high a level of curvature. The option to use alternative methods, such as Locally Linear Embedding or Laplacian Eigenmaps, to generate the initial parameterization for the PME algorithm may help to alleviate this concern. There is also room to improve the tuning of the initialization method, which may result in better performance, especially when considering data with different levels of noise present. 
 
 A second limitation is that the LPME method requires relative stability in the overall shape of the structure being fit over time. Thus, while this algorithm can be useful for separating meaningful changes in a manifold over time from inter-observation error, it will be unable to fit in situations where the error between observations is too substantial. How restrictive this requirement is depends largely on the area of application. When used to estimate subcortical surfaces as suggested here, this tends not to be overly restrictive, as changes in the shape and size of a subcortical structure, while clinically meaningful, tend to be relatively small in magnitude compared to their defining features.
 
