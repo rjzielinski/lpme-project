@@ -105,104 +105,23 @@ The remainder of this article is laid out as follows: In Section \ref{s:PME}, we
 
 \section{Principal Manifolds and Estimation Algorithm}\label{s:PME}
 
-The framework for principal manifolds originated with the concept of principal curves (PS, \cite{hastiePrincipalCurves1989}), which are essentially curves that pass through the middle of a data cloud. However, as pointed out by \cite{duchamp1996extremal}, the PS framework in \cite{hastiePrincipalCurves1989} has limitations such as the model complexity selection. In addition, applying the methods in high-dimensional settings requires is problematic. Motivated by the penalization approaches presented by in \cite{kegl2000learning} and \cite{smolaRegularizedPrincipalManifolds2001}, \cite{mengPrincipalManifoldEstimation2021} proposed the principal manifold estimation (PME) framework. In order to present the longitudinal PME approach, we start by introducing notations used throughout this paper. We use $d$ and $D$ to denote the dimensions of the low-dimensional manifold and high-dimensional space, respectively. We assume that a data cloud is observed in the $D$ dimensional space. In the context of segmentation, we consider a collection of vertices on the surface of the brain region of interest as the $D-$dimensional data cloud, while the $d-$dimensional smooth surface of the region is the underlying manifold of interest. For any positive integer $q$ and point $\xi=(\xi_1,\ldots,\xi_q)\in\mathbb{R}^q$, we use the following norm $\Vert \xi\Vert_{\mathbb{R}^q}=\sqrt{\sum_{l=1}^q \xi_l^2}$. Since our interest in this work centers at continuous mappings, we denote the collection of continuous vector-valued functions from $\mathbb{R}^d$ to $\mathbb{R}^D$ as $\mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D})$. The $d$-dimensional manifold corresponding to a function $f \in C(\mathbb{R}^{d} \to \mathbb{R}^{D})$ is formally defined as $M_f^d=\{f(r):\,r\in\mathbb{R}^d\}$. Most manifold estimation methods are based on defining a projection index, i.e. $\pi_f(x)$, defined as the point in the $d$-dimensional space, where $f(\pi_f(x))$ is the projection of $x$ on the manifold $M_f^d$. The definitions of $\pi_f(x)$ given by \cite{hastiePrincipalCurves1989} and \cite{mengPrincipalManifoldEstimation2021} for $2$- and higher-dimensional spaces, respectively, guarantee the uniqueness of the projection. 
-\begin{itemize}
-%    \item  = \left\{f \in \mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D}): \lim_{\|r\|_{\mathbb{R}^{d}} \to \infty}\|f(r)\|_{\mathbb{R}^{D}} = \infty\right\}$, where  denotes the collection of continuous vector-valued functions mapping from $\mathbb{R}^d$ to $\mathbb{R}^D$; 
-
-    \item suppose $u(r_1,\ldots,r_d)$ is a scalar-valued function defined on $\mathbb{R}^d$; $\nabla^{\otimes 2}u=\left(\frac{\partial^2 u}{\partial r_i \partial r_j}\right)_{1\le i,j\le d}$ denotes the Hessian matrix of $u$, and $\|\nabla^{\otimes 2}u\|_{\mathbb{R}^{d \times d}}$ is the function $r \to \|\nabla^{\otimes 2} u(r)\|_{\mathbb{R}^{d \times d}} = \left(\sum_{i, j = 1}^{d}\left|\frac{\partial^2 u}{\partial r_i \partial r_j}(r)\right|^2\right)^{\frac{1}{2}}$; in addition, $\|\nabla^{\otimes 2} u\|_{L^2(\mathbb{R}^{d})}^2 = \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2 u}{\partial r_i \partial r_j}(r)\right|^2dr $, and 
-    \begin{align*}
-        \nabla^{-\otimes 2}L^2(\mathbb{R}^{d}) = \left\{u \in \mathcal{D}'(\mathbb{R}^{d}): \|\nabla^{\otimes 2} u\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})\right\},
-    \end{align*}
-    where $\mathcal{D}'$ denotes the collection of distributions (also known as generalized functions, see \cite{duchon1977splines} and Chapter 6 of \cite{rudin1991functional});
-    \item $\nabla^{-\otimes 2}L^2(\mathbb{R}^{d}\rightarrow\mathbb{R}^D)$ denotes the collection of vector-valued functions $f(r)=\left(f_1(r),\ldots,f_D(r)\right)^\T$ whose components are in $\nabla^{-\otimes 2}L^2(\mathbb{R}^{d})$; besides, $\mathcal{C}_\infty\bigcap\nabla^{-\otimes 2}L^2(\mathbb{R}^{d}\rightarrow\mathbb{R}^D)=\mathcal{C}_\infty(\mathbb{R}^{d}\rightarrow\mathbb{R}^D)\bigcap\nabla^{-\otimes 2}L^2(\mathbb{R}^{d}\rightarrow\mathbb{R}^D)$; the following functional of $f(r)=\left(f_1(r),\ldots,f_D(r)\right)^\T$ measures the curvature of the manifold $M_f^d$ and will be used throughout this paper
-    \begin{equation}
-  \|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D} \|\nabla^{\otimes 2}f_l\|_{L^2(\mathbb{R}^{d})}^2  = \sum_{l=1}^{D} \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f_l}{\partial r_i \partial r_j}(r)\right|^2dr, \label{eq:4}
-\end{equation}
-\end{itemize}
-With the preparations above, the definition of principal manifolds proposed in \cite{mengPrincipalManifoldEstimation2021} is presented as follows
-
-
-
-
-\cite{hastiePrincipalCurves1989} defines principal curves as follows:
-
-\begin{definition}
-  \label{def:principal_curves}
-
-  (Part I) Let $I \in \mathbb{R}^{1}$ be a closed and possibly infinite interval. Suppose a map $f:I \to \mathbb{R}^{D}$ satisfies the conditions:
-  \begin{enumerate}
-    \label{enum:hs_conditions}
-  
-    \item $f \in \mathcal{C}^{\infty}(I \to \mathbb{R}^{D})$
-    \item $\|f'(r)\|_{\mathbb{R}^{D}} = 1$ for all $r \in I$
-    \item $f$ does not self intersect, meaning $r_1 \neq r_2$ implies that $f(r_1) \neq f(r_2)$
-    \item $\int_{\left\{r: f(r) \in B\right\}}dt < \infty$ for any finite ball $B$ in $\mathbb{R}^{D}$
-  \end{enumerate}
-  Then the projection index with respect to $f$ is defined as 
-  \begin{equation}
-    \pi_f(x) = \sup\left\{r \in I: \|x - f(r)\|_{\mathbb{R}^{D}} = \inf_{r' \in I}\|x - f(r')\|_{\mathbb{R}^{D}} \right\}, \ \text{for all} \ x \in \mathbb{R}^{D}. \label{eq:1}
-  \end{equation}
-  
-
-  (Part II) Suppose $X$ is a continuous random $D$-vector with finite second moments. Principal curves of $X$ are all maps $f: I \to \mathbb{R}^{D}$ satisfying the conditions above and the Self-consistency defined as 
-    \begin{equation}
-      E(X | \pi_f(X) = t) = f(r). \label{eq:2}
-    \end{equation}
-\end{definition}
-
-Principal manifolds seek to extend this concept to higher dimensions. \cite{smolaRegularizedPrincipalManifolds2001} proposed a regularized principal manifold framework, where principal manifolds minimize 
-\begin{equation}
-  \argmin_{f \in \mathcal{F}}\left\{E\|X - f\left(\pi_f(X)\right)\|_{\mathbb{R}^D}^2 + \lambda\|Pf\|_{\mathcal{H}}^2\right\} \label{eq:3}
-\end{equation}
-with $\mathcal{F}$ being a collection of functions and $P$ being an operator that maps $f$ into inner product space $\mathcal{H}$. If $P = \frac{d}{dr}$, this framework minimizes the mean squared distance (MSD), $\mathcal{D}_X(f) = E\|X - f(\pi_f(X))\|_{\mathbb{R}^{D}}^2$, while penalizing the non-smoothness of the curve $f$. \cite{mengPrincipalManifoldEstimation2021} build on this framework to provide a more complete definition of principal manifolds, and proposes an algorithm to estimate these principal manifolds.
-
-To ensure that the upcoming definitions are well behaved, we introduce the following function spaces:
-\begin{itemize}
-  \item $\mathcal{C}_{\infty}(\mathbb{R}^{d} \to \mathbb{R}^{D}) = \left\{f \in \mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D}): \lim_{\|r\|_{\mathbb{R}^{d}} \to \infty}\|f(r)\|_{\mathbb{R}^{D}} = \infty\right\}$
-  \item $\nabla^{-\otimes 2}L^2(\mathbb{R}^{d}) = \left\{f \in \mathcal{D}'(\mathbb{R}^{d}): \|\nabla^{\otimes 2}f\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})\right\}$
-  \item $H^2(\mathbb{R}^{d}) = \left\{f \in L^2(\mathbb{R}^{d}): \|\nabla f\|_{\mathbb{R}^{d}}, \|\nabla^{\otimes 2}f\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})\right\}$
-  \item $\nabla^{-\otimes 2}L^2(\Omega) = \left\{f|_{\Omega}: f \in \nabla^{-\otimes 2}L^2(\mathbb{R}^{d})\right\}$
-  \item $H^2(\Omega) = \left\{f|_{\Omega}: f \in H^2(\mathbb{R}^{d})\right\}$
-\end{itemize}
-
-In these function spaces, we have the notation:
-\begin{itemize}
-  \item $\Omega$ is any open subset of $\mathbb{R}^{d}$ with a smooth boundary
-  \item $f|_{\Omega}$ denotes the restriction of $f$ to $\Omega$
-  \item $\nabla f$ denotes the gradient vector of $f$
-  \item $\nabla^{\otimes 2}f$ denotes the Hessian matrix of $f$
-  \item $\|\nabla^{\otimes 2}f\|_{\mathbb{R}^{d \times d}}$ is the function $r \to \|\nabla^{\otimes 2}f(r)\|_{\mathbb{R}^{d \times d}} = \left(\sum_{i, j = 1}^{d}\left|\frac{\partial^2f}{\partial t_i \partial t_j}(r)\right|^2\right)^{\frac{1}{2}}$
-  \item $\|\nabla f\|_{L^2(\mathbb{R}^{d})}^2 = \int_{\mathbb{R}^{d}}\sum_{i=1}^{d}\left|\frac{\partial f}{\partial r_i}(r)\right|^2dr $
-  \item $\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f}{\partial r_i \partial r_j}(r)\right|^2dr $
-\end{itemize}
-
-To completely define principal manifolds, \cite{mengPrincipalManifoldEstimation2021} let $\|Pf\|_{\mathcal{H}} = \|f''(r)\|_{\mathbb{R}^{D}}^2$, which provides a greater penalization of roughness than using the first derivative. To allow for manifolds with intrinsic dimension $d \geq 1$ and map $f(t) = \left(f_1(r), f_2(r), \dots, f_D(r)\right)^{T}$, they generalize this term as
-\begin{equation}
-  \|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D} \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f_l}{\partial r_i \partial r_j}(r)\right|^2dr, \label{eq:4}
-\end{equation}
-referred to as the total squared curvature of a manifold. With this penalty term set, principal manifolds are then defined as follows:
-
-
-
-
-
-
+The framework for principal manifolds originated with the concept of principal curves (PS, \cite{hastiePrincipalCurves1989}), which are essentially curves that pass through the middle of a data cloud. However, as pointed out by \cite{duchamp1996extremal}, the PS framework in \cite{hastiePrincipalCurves1989} has limitations such as the model complexity selection. In addition, applying the methods in high-dimensional settings requires is problematic. Motivated by the penalization approaches presented by in \cite{kegl2000learning} and \cite{smolaRegularizedPrincipalManifolds2001}, \cite{mengPrincipalManifoldEstimation2021} proposed the principal manifold estimation (PME) framework. In order to present the longitudinal PME approach, we start by introducing notations used throughout this paper. We use $d$ and $D$ to denote the dimensions of the low-dimensional manifold and high-dimensional space, respectively. We assume that a data cloud is observed in the $D$ dimensional space. In the context of segmentation, we consider a collection of vertices on the surface of the brain region of interest as the $D-$dimensional data cloud, while the $d-$dimensional smooth surface of the region is the underlying manifold of interest. For any positive integer $q$ and point $\xi=(\xi_1,\ldots,\xi_q)\in\mathbb{R}^q$, we use the following norm $\Vert \xi\Vert_{\mathbb{R}^q}=\sqrt{\sum_{l=1}^q \xi_l^2}$. Since our interest in this work centers at continuous mappings, we denote the collection of continuous vector-valued functions from $\mathbb{R}^d$ to $\mathbb{R}^D$ as $\mathcal{C}(\mathbb{R}^{d} \to \mathbb{R}^{D})$. The $d$-dimensional manifold corresponding to a function $f \in C(\mathbb{R}^{d} \to \mathbb{R}^{D})$ is formally defined as $M_f^d=\{f(r):\,r\in\mathbb{R}^d\}$. Most manifold estimation methods are based on defining a projection index, i.e. $\pi_f(x)$, defined as the point in the $d$-dimensional space, where $f(\pi_f(x))$ is the projection of $x$ on the manifold $M_f^d$. The definitions of $\pi_f(x)$ given by \cite{hastiePrincipalCurves1989} and \cite{mengPrincipalManifoldEstimation2021} for $2$- and higher-dimensional spaces, respectively, guarantee the uniqueness of the projection. The principal manifolds are then defined as follows. 
 \begin{definition}
   \label{def:principal_manifolds}
-  Let $\boldsymbol{X}$ be a random $D$-vector associated with the probability measure $\mathbb{P}$ such that $\boldsymbol{X}$ has compact support $\text{supp}(\mathbb{P})$ and finite second moments. Let $f, g \in \mathcal{C}_{\infty}\cap \nabla^{-\otimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D})$ and $\lambda \in [0, \infty]$, and define the following functionals:
+  Given a random $D$-vector $\boldsymbol{X}$ associated with the probability measure $\mathbb{P}$ such that $\boldsymbol{X}$ has compact support and finite second moments. Under some assumptions on limiting behavior and smoothness on functions $f$ and  $g$, given a $\lambda \in [0, \infty]$, and the following functionals:
   \begin{align}\label{eq:5}
 &\mathcal{K}_{\lambda, \mathbb{P}}(f, g) = \mathbb{E}\|\boldsymbol{X} - f(\pi_g(\boldsymbol{X}))\|_{\mathbb{R}^{D}}^2 + \lambda\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2, \\
 &\mathcal{K}_{\lambda, \mathbb{P}}(f) = \mathcal{K}_{\lambda, \mathbb{P}}(f, f). \nonumber
   \end{align}
-  A manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ is called a principal manifold for $\boldsymbol{X}$ with the tuning parameter $\lambda$ if 
-  \begin{equation}\label{eq:7}
+  The principal manifold of $\boldsymbol{X}$ with the tuning parameter $\lambda$ is the manifold $M_{f^{*}}^{d}$ determined by $f^{*}$ if 
+  \begin{equation}\nonumber
     \begin{aligned}
-        & f_{\lambda}^{*} = \argmin_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f), \\ 
-    &\text{where} \ \mathcal{F}(\mathbb{P}) = \left\{f \in \mathcal{C}_{\infty} \cap \nabla^{-\otimes 2}L^2(\mathbb{R}^{d} \to \mathbb{R}^{D}): \sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1\right\}. 
+        & f_{\lambda}^{*} = \argmin_{f \in \mathcal{F}(\mathbb{P})}\mathcal{K}_{\lambda, \mathbb{P}}(f),
     \end{aligned}
   \end{equation}
+where $\mathcal{F}(\mathbb{P})$ is the collection of functions $f \in C(\mathbb{R}^{d} \to \mathbb{R}^{D})$ such that $\lim_{\|r\|_{\mathbb{R}^{d}} \to \infty}\|f(r)\|_{\mathbb{R}^{D}} = \infty$, the components of the function $f$ are in $\nabla^{-\otimes 2}L^2(\mathbb{R}^{d}) = \left\{u \in \mathcal{D}'(\mathbb{R}^{d}): \|\nabla^{\otimes 2} u\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d})\right\}$, and the projection function of $f$ satisfies the following equality $\sup_{x \in \text{supp}(\mathbb{P})}\|\pi_f(x)\|_{\mathbb{R}^{d}} = 1$. 
 \end{definition}
-In this setting, we can see that $\pi_{f_{\lambda}^{*}}(\boldsymbol{X})$ maps the $D$-vector $\boldsymbol{X}$ to a $d$-dimensional parameterization, while $f_{\lambda}^{*}$ embeds the $d$-dimensional parameterization in the original $D$-dimensional space. Thus, the first segment of the functional $\mathcal{K}_{\lambda, \mathbb{P}}$ provides a measure of the expected distance between the provided $D$-vector $\mathbf{X}$ and the value of $\mathbf{X}$ when projected onto the manifold. Meanwhile the second segment of $\mathcal{K}_{\lambda, \mathbb{P}}$ penalizes the roughness of the function $f$, with the magnitude of the penalty dependent on the provided value of $\lambda$.
+The optimization function $\mathcal{K}_{\lambda, \mathbb{P}}$ in equation (\ref{eq:5}) consists of two elements. First is the expected distance from each point in the cloud to the fitted manifold. In our application, this would correspond to minimizing the distance between the fitted surface and the coordinates of the vertices on 3-dimensional brain region of interest. While the second element of the equation imposes the smoothness penalty on the estimated manifold. The choice of $\|f''(r)\|_{\mathbb{R}^{D}}^2$ provides a greater penalization of roughness than using the first derivative often implemented in this setting before. To allow for manifolds with intrinsic dimension $d \geq 1$ and map $f(t) = \left(f_1(r), f_2(r), \dots, f_D(r)\right)^{T}$, this term can be generalized using the total squared curvature of the manifold and defined as $\|\nabla^{\otimes 2}f\|_{L^2(\mathbb{R}^{d})}^2 = \sum_{l=1}^{D} \int_{\mathbb{R}^{d}}\sum_{i, j = 1}^{d}\left|\frac{\partial^2f_l}{\partial r_i \partial r_j}(r)\right|^2dr$. In this setting, we can see that $\pi_{f_{\lambda}^{*}}(\boldsymbol{X})$ maps the $D$-vector $\boldsymbol{X}$ to a $d$-dimensional parameterization, while $f_{\lambda}^{*}$ embeds the $d$-dimensional parameterization in the original $D$-dimensional space. It is important to note, that the  magnitude of the penalty on roughness in this framework depends on the given value of $\lambda$.
 
 
 
@@ -213,11 +132,11 @@ In this setting, we can see that $\pi_{f_{\lambda}^{*}}(\boldsymbol{X})$ maps th
 
 \section{Longitudinal Principal Manifold Estimation Algorithm}\label{s:LPME}
 
-We now propose longitudinal principal manifold estimation (LPME) algorithm, following a similar setting as \cite{mengPrincipalManifoldEstimation2021}. 
+The framework described above is an excellent approach for fitting a 2-dimensional principal surface that passes through the ``middle'' of a 3-dimensional cloud of vertices. We first heuristically explain the goal of our proposed model and its importance in segmentation of brain regions for longitudinal imaging studies. In other words, we consider the problem of reducing the dimension of the coordinates $(x_1, x_2, x_3)$, i.e. $D=3$ to $(y_1,y_2)$ with $d=2$, which are the projections of the original coordinates on the surface of the 3-dimensional shape of interest. Now consider that the data are observed longitudinally, during several visits by a study participant. Hence, the data of interest consists of the 4-dimensional cloud $(x_1, x_2, x_3,t_j)$, where $t_j$ denotes the time of the $j$th study visit. Assume that our goal is estimation of a smooth surface for the brain region of interest at each time point such that the changes of the surface over time are smooth. It is important for the resulting manifolds to be estimated at each time point in order to enable further inference, i.e. modeling trajectories of change in region volumes over time, identifying regions that are most affected in terms of atrophy, etc. The key reasons why the existing principal manifold estimation methods cannot be implemented in this setting are 1) if we implement the data reduction method above then the resulting principal manifold will not be a function of time $t_j$ which is necessary for the resulting segmentations to be useful in practice, 2) if the manifold is estimated separately at each time point, the results may not be smooth over time. In other words, the dimension reduction should be implemented to obtain the 2-dimensional coordinates $(y_1,y_2,t_j)$ while ensuring that the resulting manifold is also a function of $t_j$. In order to address the limitations of the existing approaches for the setting described above, we now propose longitudinal principal manifold estimation (LPME) algorithm to estimate $d$-dimensional representations of $D$-dimensional objects observed over time. 
 
-Let $\left\{x_i\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_t$ $D$-dimensional observations for each individual, where $I_t$ denotes the number of observations available at each time point, with $T$ total time points. As in the setting described above, at each time point $t$, these observations lie along a $d$-dimensional manifold and are corrupted by $D$-dimensional noise. However, in this updated case, the function determining the manifold may change over time.
+To give a more general representation of this problem, let $\left\{x_i\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_t$ $D$-dimensional observations for each individual, where $I_t$ denotes the number of observations available at each time point, with $T$ total time points. As in the setting described above, at each time point $t$, these observations lie along a $d$-dimensional manifold and are corrupted by $D$-dimensional noise. However, in this updated case, the function determining the manifold may change over time.
 
-\subsection{Definition of LPM}
+\subsection{The Longitudinal Principal Manifold Framework}
 
 Suppose the $d$-dimensional manifold of interest depends on time $t$, which can be represented by a function $F(r,t)$ defined on the ``spacetime" $\mathbb{R}^d\times\mathbb{R}$, where $\mathbb{R}^d$ and $\mathbb{R}$ correspond to ``space" and ``time," respectively. In addition, we assume $F\in\mathcal{C}_\infty\cap\nabla^{-\otimes2}L^2(\mathbb{R}^d\times\mathbb{R}\rightarrow\mathbb{R}^D)$. For each fixed time point $t$, the function $f_t(r):=F(r,t)$ of $r$ is the manifold at the time point. For given tuning parameters $\lambda=\{\lambda_t\}_{t\in\mathbb{R}}$ and $\gamma$, we plan to minimize the following functional
 \begin{align}
@@ -454,10 +373,10 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 \\
     \hline
-    Data & 0.223 (0.256) & 0.514 (0.408) & 0.454 (0.468) & 30.7 (88.1) & 0.980 (0.771) & 1.43 (6.04) & 0.571 (0.822) & 0.222 (0.268) \\
-    LPME & 0.125 (0.161) & 0.384 (0.648) & 0.414 (0.484) & 27.7 (260) & 0.791 (0.845) & 1.20 (5.66) & 3.87 (3.26) & 0.140 (0.177) \\
-    PME & 0.268 (0.850) & 0.843 (1.93) & 0.523 (0.648) & 30.7 (88.2) & 1.04 (1.07) & 1.47 (6.06) & 7.34 (1.14) & 0.238 (0.301) \\
-    PC/PS & 0.189 (0.245) & 0.600 (0.296) & 0.419 (0.444) & 30.6 (88.1) & 0.934 (0.713) & 1.01 (2.11) & 1.94 (0.786) & 0.271 (0.232) \\
+    Data & 0.223 (0.256) & 0.514 (0.408) & 0.446 (0.445) & 30.7 (88.1) & 0.980 (0.771) & 1.43 (6.04) & 0.580 (0.839) & 0.226 (0.275) \\
+    LPME & 0.125 (0.161) & 0.384 (0.648) & 0.401 (0.446) & 27.7 (260) & 0.791 (0.845) & 1.20 (5.66) & 4.07 (3.30) & 0.136 (0.169) \\
+    PME & 0.268 (0.850) & 0.843 (1.93) & 0.507 (0.594) & 30.7 (88.2) & 1.04 (1.07) & 1.47 (6.06) & 7.37 (1.14) & 0.242 (0.311) \\
+    PC/PS & 0.189 (0.245) & 0.600 (0.296) & 0.412 (0.423) & 30.6 (88.1) & 0.934 (0.713) & 1.01 (2.11) & 1.95 (0.800) & 0.274 (0.243) \\
     \hline
   \end{tabular}
   \caption{MSD Comparison to True Values, Mean (SD).}
@@ -471,10 +390,10 @@ Visualizations of the results from some of the simulation cases, truncated for c
     \hline
     Method & Case 1 & Case 2 & Case 3 & Case 4 & Case 5 & Case 6 & Case 7 & Case 8 \\
     \hline
-    Data & 0.146 (0.233) & 0.467 (0.665) & 0.266 (0.607) & 4.26 (21.2) & 0.895 (1.33) & 0.284 (1.06) & 0.151 (0.539) & 0.113 (0.327) \\
-    LPME & 0.074 (0.122) & 0.248 (0.461) & 0.218 (0.562) & 3.29 (13.0) & 0.584 (1.08) & 0.273 (0.891) & 2.70 (4.20) & 0.077 (0.207) \\
-    PME & 0.131 (0.258) & 0.516 (0.750) & 0.311 (0.638) & 4.23 (21.1) & 0.894 (1.36) & 0.316 (1.04) & 6.93 (1.19) & 0.117 (0.336) \\
-    PC/PS & 0.118 (0.206) & 0.564 (0.419) & 0.242 (0.600) & 4.22 (21.2) & 0.821 (1.22) & 0.557 (0.387) & 1.57 (0.51) & 0.178 (0.237) \\
+    Data & 0.146 (0.233) & 0.467 (0.665) & 0.291 (0.601) & 4.26 (21.2) & 0.895 (1.33) & 0.284 (1.06) & 0.145 (0.552) & 0.110 (0.325) \\
+    LPME & 0.074 (0.122) & 0.248 (0.461) & 0.239 (0.564) & 3.29 (13.0) & 0.584 (1.08) & 0.273 (0.891) & 2.96 (4.65) & 0.074 (0.208) \\
+    PME & 0.131 (0.258) & 0.516 (0.750) & 0.317 (0.640) & 4.23 (21.1) & 0.894 (1.36) & 0.316 (1.04) & 6.92 (1.17) & 0.115 (0.331) \\
+    PC/PS & 0.118 (0.206) & 0.564 (0.419) & 0.264 (0.584) & 4.22 (21.2) & 0.821 (1.22) & 0.557 (0.387) & 1.58 (0.514) & 0.172 (0.234) \\
     \hline
   \end{tabular}
   \caption{MSD Comparison to True Values, Median (IQR).}
