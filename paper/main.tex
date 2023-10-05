@@ -138,13 +138,16 @@ To give a more general representation of this problem, let $\left\{x_i\right\}_{
 
 \subsection{The Longitudinal Principal Manifold Framework}
 
-Suppose the $d$-dimensional manifold of interest depends on time $t$, which can be represented by a function $F(r,t)$ defined on the ``spacetime" $\mathbb{R}^d\times\mathbb{R}$, where $\mathbb{R}^d$ and $\mathbb{R}$ correspond to ``space" and ``time," respectively. For each fixed time point $t$, the function $f_t(r):=F(r,t)$ of $r$ is the manifold of interest, e.g. the surface of the 3D brain region, at time $t$. For given tuning parameters $\lambda=\{\lambda_t\}_{t\in\mathbb{R}}$ and $\gamma$, we define the following functional, by extending the 
+Suppose the $d$-dimensional manifold of interest depends on time $t$, which can be represented by a function $F(r,t)$ defined on the ``spacetime" $\mathbb{R}^d\times\mathbb{R}$, where $\mathbb{R}^d$ and $\mathbb{R}$ correspond to ``space" and ``time," respectively. For each fixed time point $t$, the function $f_t(r):=F(r,t)$ of $r$ is the manifold of interest, e.g. the surface of the 3D brain region, at time $t$. 
+\begin{definition}
+  \label{def:lpme} Given a random $D$-vector $\boldsymbol{X}_t$ observed over time, $\boldsymbol{X}$ denotes the collection of data clouds observed at all time points, such that the manifold $M_F^{d+1}$ is representative of $\boldsymbol{X}$ and for given tuning parameters $\lambda=\{\lambda_t\}_{t\in\mathbb{R}}$ and $\gamma$, let the functional $\mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F)$ be defined as follows. 
 \begin{align}
   \mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F) &= \int_\mathbb{R} \mathbb{E}\left\|\boldsymbol{X}_t - f_t\left(\pi_{f_t}(\boldsymbol{X}_t)\right)\right\|_{\mathbb{R}^{D}}^2 \, dt + \int_\mathbb{R} \lambda_t \cdot\|\nabla^{\otimes 2}f_t\|_{L^2(\mathbb{R}^{d})}^2 \, dt + \gamma\cdot \int_{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \, dt \label{eq:11} \\
   &= \int_{\mathbb{R}}\mathcal{K}_{\lambda_t, \mathbb{P}}(f_t) \, dt + \gamma \cdot \int_{\mathbb{R}}\left\|\frac{\partial^2}{\partial t^2}f_t\right\|_{L^2(\mathbb{R}^d)}^2 \, dt \nonumber
-.\end{align}
-where $F \in C(\mathbb{R}^{d}\times\mathbb{R} \to \mathbb{R}^{D})$, such that $\lim_{\|r\|_{\mathbb{R}^{d}} \to \infty, t \to \infty}\|F(r,t)\|_{\mathbb{R}^{D}} = \infty$ and the elements of the function $F$ are in $\nabla^{-\otimes 2}L^2(\mathbb{R}^{d}\times\mathbb{R}) = \left\{u \in \mathcal{D}'(\mathbb{R}^{d}): \|\nabla^{\otimes 2} u\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d}\times\mathbb{R})\right\}$. 
-
+.\label{eq:newKappa}
+\end{align}
+where $F \in C(\mathbb{R}^{d}\times\mathbb{R} \to \mathbb{R}^{D})$, such that $\lim_{\|r\|_{\mathbb{R}^{d}} \to \infty, t \to \infty}\|F(r,t)\|_{\mathbb{R}^{D}} = \infty$ and the elements of the function $F$ are in $\nabla^{-\otimes 2}L^2(\mathbb{R}^{d}\times\mathbb{R}) = \left\{u \in \mathcal{D}'(\mathbb{R}^{d}): \|\nabla^{\otimes 2} u\|_{\mathbb{R}^{d \times d}} \in L^2(\mathbb{R}^{d}\times\mathbb{R})\right\}$. Then the manifold $M_{F^{*}}^{d+1}$ is the longitudinal principal manifold of $\boldsymbol{X}$ if $F_{\lambda}^{*} = \argmin_{F}\mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F)$.
+\end{definition}
 By minimizing the functional above, we retain the goals of Eq.~\eqref{eq:5} while also penalizing the changes in $F$ over time. Thus, we seek to minimize the distance between the observations $\mathbf{X_t}$ and their projections to $f_t$ while separately discouraging roughness both over the manifolds at each time point and over the changes in manifolds in the time dimension. The ability to distinguish between smoothing at a fixed time point and smoothing over time differentiates this approach from a thin plate spline, which would smooth over both the manifold and time jointly. Using separate smoothing parameters provides additional flexibility in situations where a manifold with a high level of roughness shows minimal changes over time, or vice versa.
 
 
