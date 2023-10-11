@@ -1290,7 +1290,7 @@
 
 \newbox\absbox
 \def\abstract{\global\setbox\absbox\vbox\bgroup\hsize\textwidth\small\leftskip0pc\rightskip\leftskip\noindent{\sc
-Summary:\hskip1em}\ignorespaces}
+Abstract:\hskip1em}\ignorespaces}
 \def\endabstract{\egroup}
 
 \newbox\keywdbox
@@ -1435,9 +1435,9 @@ Key words:\hskip1em}\ignorespaces}
 \else
   \def\@printed{}
 \fi
-\gdef\@journal{\vbox{\fontsize{10}{10}\selectfont\vbox{\hsize\textwidth{\sc Biometrics}
-{\@volume},  \@pagerange\hfill\ifx\@doi\@empty\else{DOI:}\ \@doi\fi}\par
-\vbox{\@month\ \@pubyear}}}
+%\gdef\@journal{\vbox{\fontsize{10}{10}\selectfont\vbox{\hsize\textwidth{\sc Biometrics}
+%{\@volume},  \@pagerange\hfill\ifx\@doi\@empty\else{DOI:}\ \@doi\fi}\par
+%\vbox{\@month\ \@pubyear}}}
 % (\number\year) \@microfiche\@printed}
 %
 % \ps@empty and \ps@plain defined in LATEX.TEX
@@ -1450,8 +1450,10 @@ Key words:\hskip1em}\ignorespaces}
  \def\@oddhead{\Large\hfill{\small\it\@shorttitle}\hfill\hspace{1.5em}%
    \rm\@ddell\hbox to 0pt{\small\thepage}}
  \def\@oddfoot{}%\small\copyright\ \@pubyear\ RAS, MNRAS {\bf \@volume}, \@pagerange\hfil}
- \def\@evenhead{\Large\@ddell\hbox to
- 0pt{\small\thepage}\hspace{1.5em}\hfill\small{\it Biometrics, \@month}\ \@pubyear\hfill}
+ \def\@evenhead{\Large\hfill{\small\it\@shorttitle}\hfill\hspace{1.5em}%
+   \rm\@ddell\hbox to 0pt{\small\thepage}}
+ %\def\@evenhead{\Large\@ddell\hbox to
+ %0pt{\small\thepage}\hspace{1.5em}\hfill\small{\it Biometrics, \@month}\ \@pubyear\hfill}
  \def\@evenfoot{}%\hfil\small\copyright\ \@pubyear\ RAS, MNRAS {\bf \@volume}, \@pagerange}
  \def\sectionmark##1{\markboth{##1}{}}
  \def\subsectionmark##1{\markright{##1}}}
@@ -1469,7 +1471,7 @@ Key words:\hskip1em}\ignorespaces}
 to 7.75pt{\tiny C}}}
 \def\ps@titlepage{\let\@mkboth\@gobbletwo
  \def\@oddhead{\footnotesize\@journal\hfill}
- \def\@oddfoot{\hfill{\reset@font\ This paper has been submitted for consideration for publication in {\it Biometrics}}\hfill}
+ %\def\@oddfoot{\hfill{\reset@font\ This paper has been submitted for consideration for publication in {\it Biometrics}}\hfill}
 %\hfill{\reset@font\thepage}\hfill}
  \def\@evenhead{\footnotesize\@journal\hfill}
  %\def\@evenfoot{\hfil\small\copyright\ \@pubyear\ The Society for the Study
