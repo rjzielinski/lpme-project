@@ -38,6 +38,17 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+
   lpme_result <- lpme(
     sim_df,
     1,
@@ -229,6 +240,16 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
 
   lpme_result <- lpme(
     sim_df,
@@ -419,9 +440,26 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
 
   pol <- sim_df[, -1] %>%
     cart2pol()
+  # pol[, 1] <- pol[, 1] / max(abs(pol[, 1]))
+  # pol[, 2] <- pol[, 2] / max(abs(pol[, 2]))
+  pol <- scale(
+    pol,
+    center = FALSE,
+    scale = apply(pol, 2, function(x) max(abs(x)))
+  )
   sim_df <- cbind(sim_df, pol)[, -5]
 
   lpme_result <- lpme(
@@ -614,6 +652,16 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
 
   pol <- sim_df[, -1] %>%
     cart2pol()
@@ -821,6 +869,16 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
 
   lpme_result <- lpme(
     sim_df,
@@ -1017,6 +1075,16 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
 
   lpme_result <- lpme(
     sim_df,
@@ -1216,6 +1284,16 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
 
   lpme_result <- lpme(
     sim_df,
@@ -1407,8 +1485,24 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+
   pol <- sim_df[, -c(1, 4)] %>%
     cart2pol()
+  pol <- scale(
+    pol,
+    center = FALSE,
+    scale = apply(pol, 2, function(x) max(abs(x)))
+  )
   sim_df <- cbind(sim_df, pol)
   sim_df <- sim_df[, -5]
 
@@ -1603,8 +1697,24 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+
   sph <- sim_df[, -1] %>%
     cart2sph()
+  sph <- scale(
+    sph,
+    center = FALSE,
+    scale = apply(sph, 2, function(x) max(abs(x)))
+  )
   sim_df <- cbind(sim_df, sph)
 
 
@@ -1798,8 +1908,24 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+  sim_df <- scale(
+    sim_df,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+  true_vals <- scale(
+    true_vals,
+    center = FALSE,
+    scale = apply(sim_df, 2, function(x) max(abs(x)))
+  )
+
   sph <- sim_df[, -1] %>%
     cart2sph()
+  sph <- scale(
+    sph,
+    center = FALSE,
+    scale = apply(sph, 2, function(x) max(abs(x)))
+  )
   sim_df <- cbind(sim_df, sph)
 
 
@@ -2012,8 +2138,8 @@ errors <- foreach(
   time_change = param_grid[, 8],
   time_trend = param_grid[, 9],
   .inorder = FALSE,
-  .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "prinSurf"),
-  .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel", "pracma")
+  .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "prinSurf", "cart2sph", "cart2pol"),
+  .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel")
 ) %dopar% {
 # errors <- foreach(x = 1:5) %dopar% {
       # if (param_grid[x, 7] == 1) {
