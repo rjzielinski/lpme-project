@@ -152,7 +152,8 @@ lhipp_bl <- lhipp_surface %>%
   ) %>%
   mutate(duration = max_time - time_bl)
 
-overlap <- 0.05
+# overlap <- 0.05
+overlap <- 0
 
 lhipp_surface <- lhipp_surface %>%
   full_join(lhipp_surface_centers, by = c("patno", "scan_date")) %>%
@@ -194,23 +195,28 @@ lhipp_surface_spherical <- lhipp_surface %>%
   dplyr::select(x, y, z) %>%
   as.matrix() %>%
   cart2sph() %>%
-  as_tibble()
+  as_tibble() %>%
+  mutate(
+    theta = theta / max(abs(theta)),
+    phi = phi / max(abs(phi)),
+    r = r / max(abs(r))
+  )
 
-lhipp_surface <- bind_cols(
+lhipp_surface_full <- bind_cols(
   lhipp_surface,
   lhipp_surface_spherical
 )
 
-lhipp_test <- lhipp_surface %>%
+lhipp_test <- lhipp_surface_full %>%
   filter(patno == "002_S_0413")
 
-lhipp_test2 <- lhipp_surface %>%
+lhipp_test2 <- lhipp_surface_full %>%
   filter(patno == "002_S_0619")
 
-lhipp_test3 <- lhipp_surface %>%
+lhipp_test3 <- lhipp_surface_full %>%
   filter(patno == "002_S_0685")
 
-lhipp_test4 <- lhipp_surface %>%
+lhipp_test4 <- lhipp_surface_full %>%
   filter(patno == "002_S_0782")
 
 # lhipp_plot1 <- plot_ly(
@@ -298,35 +304,36 @@ lhipp_pt4_mat <- lhipp_test_pt4 %>%
 
 time_vals <- unique(lhipp_test_mat[, 1])
 # test_lpme <- lpme(lhipp_test_mat, d = 2, tuning.para.seq = exp(seq(-20, 5, 0.25)))
-lhipp_test_mat5 <- lhipp_test_mat
-lhipp_test_mat5[, 6] <- lhipp_test_mat5[, 6] * 2
-test_lpme5 <- lpme(lhipp_test_mat5, d = 2, print_plots = TRUE)
+# lhipp_test_mat5 <- lhipp_test_mat
+# lhipp_test_mat5[, 6] <- lhipp_test_mat5[, 6] * 2
+# test_lpme5 <- lpme(lhipp_test_mat5, d = 2, print_plots = TRUE)
+test_lpme <- lpme(lhipp_test_mat, d = 2, verbose = TRUE, print_plots = TRUE)
 lpme_vals <- calc_lpme_est(test_lpme, lhipp_test_mat)
 # lpme_vals[, 1] <- sim_df[, 1]
 pme_result <- list()
 pme_vals <- list()
 for (t in 1:length(time_vals)) {
-  temp_data <- lhipp_test_mat5[lhipp_test_mat5[, 1] == time_vals[t], -1]
+  temp_data <- lhipp_test_mat[lhipp_test_mat[, 1] == time_vals[t], -1]
   pme_result[[t]] <- pme(temp_data, d = 2, verbose = "MSD")
   pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
 }
 pme_vals <- reduce(pme_vals, rbind)
 
 plot_ly(
-  x = lpme_preds5[, 2],
-  y = lpme_preds5[, 3],
-  z = lpme_preds5[, 4],
-  frame = lpme_preds[, 1],
+  x = lpme_vals[, 2],
+  y = lpme_vals[, 3],
+  z = lpme_vals[, 4],
+  frame = lpme_vals[, 1],
   type = "scatter3d",
   mode = "markers",
   marker = list(size = 3),
   name = "LPME"
 ) %>%
   add_markers(
-    x = pme_preds[, 2],
-    y = pme_preds[, 3],
-    z = pme_preds[, 4],
-    frame = pme_preds[, 1],
+    x = pme_vals[, 2],
+    y = pme_vals[, 3],
+    z = pme_vals[, 4],
+    frame = pme_vals[, 1],
     name = "PME"
   ) %>%
   add_markers(
@@ -345,7 +352,7 @@ lpme_list <- list(
 )
 saveRDS(lpme_list, "lhipp_test_results.RDS")
 
-lpme_params <- test_lpme5$optimal_parameterization
+lpme_params <- test_lpme$optimal_parameterization
 lpme_param_extremes <- colMinsMaxs(lpme_params)
 lpme_params_dim1 <- seq(
   lpme_param_extremes[1, 2],
@@ -359,9 +366,9 @@ lpme_params_dim2 <- seq(
 )
 param_grid <- expand_grid(time_vals, lpme_params_dim1, lpme_params_dim2) %>%
   as.matrix()
-lpme_preds5 <- map(
+lpme_preds <- map(
   1:nrow(param_grid),
-  ~ test_lpme5$embedding_map(param_grid[.x, ])
+  ~ test_lpme$embedding_map(param_grid[.x, ])
 ) %>%
   reduce(rbind)
 
@@ -393,13 +400,18 @@ for (time_idx in 1:length(time_vals)) {
 }
 pme_preds <- reduce(pme_preds, rbind)
 
+lpme_val_mats <- list()
+for (time_val in 1:length(unique(lpme_vals[, 1]))) {
+  lpme_val_mats[[time_val]] <- lpme_vals[lpme_vals[, 1] == unique(lpme_vals[, 1])[time_val], ]
+}
+
 create_cross_section_matrix(lhipp_test_mat, 2, slice_width = 0.005, nrow = 2)
-create_cross_section_matrix(lpme_preds, 2, slice_width = 0.003, nrow = 2)
-create_cross_section_matrix(pme_preds, 2, slice_width = 0.003, nrow = 2)
+create_cross_section_matrix(lpme_vals, 2, slice_width = 0.003, nrow = 2)
+create_cross_section_matrix(pme_vals, 2, slice_width = 0.003, nrow = 2)
 
 ### Next step: glue estimated manifolds together to estimate full surface
 
-max_time <- lhipp_surface %>%
+max_time <- lhipp_surface_full %>%
   filter(patno == "002_S_0685") %>%
   select(duration) %>%
   unique() %>%
@@ -467,7 +479,7 @@ legend(
 )
 dev.off()
 
-lhipp_maxes <- lhipp_surface %>%
+lhipp_maxes <- lhipp_surface_full %>%
   filter(patno == "002_S_0685") %>%
   group_by(time_from_bl) %>%
   summarize(
