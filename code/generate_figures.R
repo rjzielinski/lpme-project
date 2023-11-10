@@ -1,5 +1,7 @@
 library(plot3D)
+library(plotly)
 library(pracma)
+library(RColorBrewer)
 library(scatterplot3d)
 library(tidyverse)
 
@@ -476,3 +478,139 @@ legend(
 )
 dev.off()
 
+### Following code follows from the sim_error_case1() function in lpme_simulations.R
+
+set.seed(500)
+source("code/functions/sim_data.R")
+max_time <- 2
+interval <- 0.1
+amp_noise <- 0.5
+shape_noise <- 0.25
+n <- 1000
+time_change <- 0
+time_trend <- "constant"
+
+time_vals <- seq(0, max_time, interval)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 1,
+  noise = 0.15,
+  amp_noise = amp_noise,
+  period_noise = shape_noise,
+  N = n,
+  time_change = time_change,
+  time_trend = time_trend
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+sim_df <- scale(
+  sim_df,
+  center = FALSE,
+  scale = apply(sim_df, 2, function(x) max(abs(x)))
+)
+true_vals <- scale(
+  true_vals,
+  center = FALSE,
+  scale = apply(sim_df, 2, function(x) max(abs(x)))
+)
+time_vals <- unique(sim_df[, 1])
+
+set.seed(10)
+pme_result <- list()
+pme_vals <- list()
+for (t in 1:length(time_vals)) {
+  print(t)
+  temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+  pme_result[[t]] <- pme(temp_data, d = 1, verbose = FALSE)
+}
+
+min_param <- min(
+  map(
+    1:length(time_vals),
+    ~ min(pme_result[[.x]]$parameterization[[which.min(pme_result[[.x]]$MSD)]])
+  ) %>%
+    reduce(c)
+)
+
+max_param <- max(
+  map(
+    1:length(time_vals),
+    ~ max(pme_result[[.x]]$parameterization[[which.min(pme_result[[.x]]$MSD)]])
+  ) %>%
+    reduce(c)
+)
+
+param_vals <- seq(min_param, max_param, length.out = 1000)
+
+output_vals <- list()
+for (i in 1:length(time_vals)) {
+  output_vals[[i]] <- map(param_vals, ~ pme_result[[i]]$embedding_map(.x)) %>%
+    reduce(rbind) %>%
+    cbind(param_vals) %>%
+    cbind(time_vals[i])
+}
+output_vals <- reduce(output_vals, rbind)
+
+ggplot() +
+  geom_line(
+    aes(
+      x = output_vals[, 1],
+      y = output_vals[, 2],
+      color = output_vals[, 3],
+      group = output_vals[, 4]
+    ),
+    lwd = 2
+  )
+
+col_palette <- brewer.pal()
+scatter3D(
+  x = output_vals[, 1],
+  z = output_vals[, 2],
+  y = output_vals[, 3],
+  colvar = output_vals[, 4],
+  colkey = FALSE,
+  theta = 0,
+  phi = 30
+)
+
+fig <- plot_ly(
+  x = output_vals[, 1],
+  y = output_vals[, 3],
+  z = output_vals[, 2],
+  color = output_vals[, 4],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 1.5)
+) %>%
+  layout(
+    scene = list(
+      camera = list(
+        eye = list(
+          x = 0,
+          y = 2.25,
+          z = 1
+        )
+      ),
+      xaxis = list(title = "X"),
+      yaxis = list(title = "R"),
+      zaxis = list(title = "Y")
+    ),
+    annotations = list(
+      x = 1.06,
+      y = 1.02,
+      text = "Time",
+      xref = "paper",
+      yref = "paper",
+      showarrow = FALSE
+    )
+  )
+save_image(fig, "inconsistent_parameterization.png")
