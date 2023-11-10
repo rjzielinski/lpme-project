@@ -178,6 +178,7 @@ Given the framework proposed in the previous Section, estimation of the longitud
   \vfill
   \subfloat[\centering Step 2: Initialization]{{\includegraphics[width=9cm]{lpme_initialization}}}
   \hfill
+  \subfloat[\centering Steps 3 and 4: Fitting and Tuning]{{\includegraphics[width=9cm]{lpme_fitting}}}
   \caption{LPME Algorithm Steps}
   \label{fig:lpme_steps}
 \end{figure}
@@ -189,7 +190,16 @@ Given that in most manifold learning tasks in practice data are often quite larg
 
 \subsection*{Initialization}
 
-The next step in developing the algorithm for estimation of the longitudinal principal manifold is initialization. Different algorithms use different approaches for this step. For example, the PME algorithm uses Isomap (\cite{tenenbaumGlobalGeometricFramework2000}) to develop an initial parameterization, which the algorithm proceeds to iteratively improve. However, implementation of commonly used approaches for initialization in our setting can be problematic. For instance, using ISOMAP to find parameterizations of similarly shaped structures (i.e. the brain region of interest at each time point) is likely to result in inconsistent parameterization directions (i.e. low values in the parameter space may be associated with low values in the embedding space for one run, while low values in the parameter space may be associated with high values in the embedding space in another). Reaching a successful fit in the LPME algorithm requires consistent parameterizations across time points, so a different approach to generating an initial parameterization is needed. 
+The next step in developing the algorithm for estimation of the longitudinal principal manifold is initialization. Different algorithms use different approaches for this step. For example, the PME algorithm uses Isomap (\cite{tenenbaumGlobalGeometricFramework2000}) to develop an initial parameterization, which the algorithm proceeds to iteratively improve. However, implementation of commonly used approaches for initialization in our setting can be problematic. For instance, using ISOMAP to find parameterizations of similarly shaped structures (i.e. the brain region of interest at each time point) is likely to result in inconsistent parameterization directions (i.e. low values in the parameter space may be associated with low values in the embedding space for one run, while low values in the parameter space may be associated with high values in the embedding space in another). This is demonstrated in Figure \ref{fig:inconsistent_parameterization}. Reaching a successful fit in the LPME algorithm requires consistent parameterizations across time points, so a different approach to generating an initial parameterization is needed. 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{inconsistent_parameterization}
+  \caption{Simulated Data with Inconsistent Parameterization}
+  \label{fig:inconsistent_parameterization}
+\end{figure}
+
+
 
 To obtain the same parameterization of the manifold over time, instead of using Isomap on the data for each time point separately, we propose collapsing the time dimension in the cluster centers of all time steps, then using one Isomap run to reach a parameterization for the centers across all time points simultaneously. This approach is based on the assumption that the shape of the structure, i.e. the brain region of interest, remains relatively stable over time. In Section \ref{s:simulations}, we consider some deviations from this assumption and their effect on the results and we show that this process ensures that the initial parameterization remains consistent over time under the assumption of relative stability of the shape of the structure. 
 
@@ -456,20 +466,26 @@ Results of fitting the PME and LPME algorithms on the surface of the left hippoc
 
 Figure \ref{fig:adni_cross_section} depicts cross sections of the observed hippocampus surface and the estimated surface obtained using LPME and PME at each individual time point. These cross sections illustrate the differences between the estimates reached by the PME and LPME algorithms, with the LPME-based estimate being generally less responsive to changes in the shape and orientation of the hippocampus between time points. This figure reiterates that both the PME and LPME algorithms are unable to capture the distinctive sharp curve in the structure at the upper-left corner of each of the plots. Additionally, we see that, along the upper-right edge of the surface, there is a spot where the estimated manifold intersects with itself. This is present for both the PME and LPME estimates, but appears to be more prevalent when using LPME.
 
-
-\begin{figure}[h]
+\begin{figure}%
   \centering
-  \includegraphics[width=\textwidth]{adni_lhipp}
-  \caption{Left Hippocampus, Cognitively Healthy ADNI Participant}
+  \subfloat[\centering Data]{{\includegraphics[height=22cm]{adni_plots/adni_data_plot}}}%
+  \hfill
+  \subfloat[\centering LPME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_lpme_plot}}}
+  \hfill
+  \subfloat[\centering PME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_pme_plot}}}
+
+  \caption{Left Hippocampus, Cognitive Healthy ADNI Participant}
   \label{fig:adni_result}
 \end{figure}
+
+
 
 \zielinski{Figure \ref{fig:adni_result} will continue to be improved, with the current version mainly serving as a placeholder.}
 
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\textwidth]{adni_lhipp_cross_section}
+  \includegraphics[width=\textwidth]{adni_plots/adni_cross_section}
   \caption{Left Hippocampus Cross Section}
   \label{fig:adni_cross_section}
 \end{figure}
