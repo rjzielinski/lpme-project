@@ -38,16 +38,12 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
 
   lpme_result <- lpme(
@@ -241,16 +237,12 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
 
   lpme_result <- lpme(
@@ -442,22 +434,20 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
+
   pol <- sim_df[, -1] %>%
     cart2pol()
-  # pol[, 1] <- pol[, 1] / max(abs(pol[, 1]))
-  # pol[, 2] <- pol[, 2] / max(abs(pol[, 2]))
+  true_pol <- true_vals[, -1] %>%
+    cart2pol()
   sim_df <- cbind(sim_df, pol)[, -5]
+  true_vals <- cbind(true_vals, true_pol)[, -5]
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
 
   lpme_result <- lpme(
@@ -506,21 +496,21 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:3])^2
+    ~ dist_euclidean(true_vals[.x, 1:3], pme_vals[.x, 1:3])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:3])^2
+    ~ dist_euclidean(true_vals[.x, 1:3], lpme_vals[.x, 1:3])^2
   ) %>%
     unlist() %>%
     mean()
 
   data_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:3])^2
+    ~ dist_euclidean(true_vals[.x, 1:3], sim_df[.x, 1:3])^2
   ) %>%
     unlist() %>%
     mean()
@@ -534,7 +524,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   principal_curve_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:3])^2
+    ~ dist_euclidean(true_vals[.x, 1:3], principal_curve_vals[.x, 1:3])^2
   ) %>%
     unlist() %>%
     mean()
@@ -573,7 +563,6 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
       name = "Data",
       opacity = 0.2
     )
-
 
   sim_case3 <- list(
     df = sim_df,
@@ -867,16 +856,12 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
 
   lpme_result <- lpme(
@@ -1074,16 +1059,12 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
 
   lpme_result <- lpme(
@@ -1284,16 +1265,12 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   sim_df <- sim_df[-1, ]
   true_vals <- true_vals[-1, ]
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
 
   lpme_result <- lpme(
@@ -1488,21 +1465,20 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   pol <- sim_df[, -c(1, 4)] %>%
     cart2pol()
+  true_pol <- true_vals[, -c(1, 4)] %>%
+    cart2pol()
   sim_df <- cbind(sim_df, pol)
   sim_df <- sim_df[, -5]
+  true_vals <- cbind(true_vals, true_pol)
+  true_vals <- true_vals[, -5]
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
-
 
   lpme_result <- lpme(
     sim_df,
@@ -1546,21 +1522,21 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   data_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], sim_df[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1574,7 +1550,7 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   principal_curve_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], principal_curve_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1696,20 +1672,18 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   true_vals <- true_vals[-1, ]
   sph <- sim_df[, -1] %>%
     cart2sph()
+  true_sph <- true_vals[, -1] %>%
+    cart2sph()
   sim_df <- cbind(sim_df, sph)
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  true_vals <- cbind(true_vals, true_sph)
+
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
-
-
 
   lpme_result <- lpme(
     sim_df,
@@ -1753,21 +1727,21 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   data_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], sim_df[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1781,7 +1755,7 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
   principal_curve_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], principal_curve_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1903,18 +1877,17 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
 
   sph <- sim_df[, -1] %>%
     cart2sph()
+  true_sph <- true_vals[, -1] %>%
+    cart2sph()
   sim_df <- cbind(sim_df, sph)
+  true_vals <- cbind(true_vals, true_sph)
 
-  sim_df <- scale(
-    sim_df,
-    center = FALSE,
-    scale = apply(sim_df, 2, function(x) max(abs(x)))
-  )
-  true_vals <- scale(
-    true_vals,
-    center = FALSE,
-    scale = apply(true_vals, 2, function(x) max(abs(x)))
-  )
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
   time_vals <- unique(sim_df[, 1])
 
   lpme_result <- lpme(
@@ -1959,21 +1932,21 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
 
   pme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], pme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   lpme_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], lpme_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
 
   data_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], sim_df[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -1987,7 +1960,7 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
 
   principal_curve_error <- map(
     1:nrow(true_vals),
-    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, 1:4])^2
+    ~ dist_euclidean(true_vals[.x, 1:4], principal_curve_vals[.x, 1:4])^2
   ) %>%
     unlist() %>%
     mean()
@@ -2092,7 +2065,9 @@ n_vals <- 1000
 replicates <- 1
 case <- 1:10
 time_changes <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
-time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
+# time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
+time_trends <- "constant"
+
 
 param_grid <- expand.grid(
   case,
