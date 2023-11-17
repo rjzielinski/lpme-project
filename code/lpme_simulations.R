@@ -2084,7 +2084,7 @@ param_grid <- expand.grid(
 param_grid <- param_grid[param_grid[, 1] != 4, ]
 param_grid <- param_grid[(param_grid[, 5] != param_grid[, 6]), ]
 
-cl <- makeCluster(detectCores() - 1)
+cl <- makeCluster(detectCores())
 registerDoParallel(cl)
 
 set.seed(10972)
