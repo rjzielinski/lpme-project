@@ -372,7 +372,7 @@ volumes <- foreach(
   missing_pct = param_grid[, 5],
   run = param_grid[, 6],
   .inorder = FALSE,
-  .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "cart2sph"),
+  .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "cart2sph", "estimate_volume"),
   .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel")
 ) %dopar% {
     est_sphere_vol(duration, interval, noise, r, missing_pct, run)
