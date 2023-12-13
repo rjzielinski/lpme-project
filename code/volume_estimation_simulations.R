@@ -25,7 +25,7 @@ est_sphere_vol <- function(max_time, interval, amp_noise, r, pct_missingness, ru
     noise = 0.05,
     amp_noise = amp_noise,
     period_noise = 0,
-    N = n,
+    N = 1000,
     time_change = 0,
     time_trend = "constant"
   )
@@ -374,7 +374,7 @@ volumes <- foreach(
   .inorder = FALSE,
   .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "cart2sph"),
   .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel")
-) %dopar% {
+) %do% {
     est_sphere_vol(duration, interval, noise, r, missing_pct, run)
   }
 
