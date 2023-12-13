@@ -75,13 +75,13 @@ est_sphere_vol <- function(max_time, interval, amp_noise, r, pct_missingness, ru
     sim_df,
     2,
     smoothing_method = "spline",
-    print_plots = TRUE,
+    print_plots = FALSE,
     verbose = TRUE,
     init = "first",
     initialization_algorithm = "isomap"
   )
 
-    lpme_dm <- lpme(
+  lpme_dm <- lpme(
     sim_df,
     2,
     smoothing_method = "spline",
@@ -112,8 +112,8 @@ est_sphere_vol <- function(max_time, interval, amp_noise, r, pct_missingness, ru
   pme_vals_dm <- list()
   pme_vals_le <- list()
 
-  # principal_curve_result <- list()
-  # principal_curve_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
 
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
@@ -210,9 +210,11 @@ est_sphere_vol <- function(max_time, interval, amp_noise, r, pct_missingness, ru
   for (col_idx in 2:ncol(sim_df)) {
     sim_data_rescaled[, col_idx] <- round(sim_data_rescaled[, col_idx] * col_maxs[col_idx])
     lpme_isomap_rescaled[, col_idx] <- round(lpme_isomap_rescaled[, col_idx] * col_maxs[col_idx])
+    pme_isomap_rescaled[, col_idx] <- round(pme_isomap_rescaled[, col_idx] * col_maxs[col_idx])
   }
   sim_data_rescaled <- sim_data_rescaled[, -(5:7)]
   lpme_isomap_rescaled <- lpme_isomap_rescaled[, -(5:7)]
+  pme_isomap_rescaled <- pme_isomap_rescaled[, -(5:7)]
 
   est_volume_data <- list()
   est_volume_lpme_isomap <- list()
@@ -270,7 +272,7 @@ est_sphere_vol <- function(max_time, interval, amp_noise, r, pct_missingness, ru
   est_volume_pme_le <- map(est_volume_pme_le, ~ .x[[1]]) %>%
     unlist()
 
-  volume_df <- data.frame(
+  volume_df <- tibble(
     time = time_vals,
     amp_noise = amp_noise,
     r = r,
@@ -374,7 +376,7 @@ volumes <- foreach(
   .inorder = FALSE,
   .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "cart2sph", "estimate_volume"),
   .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel")
-) %dopar% {
+) %do% {
     est_sphere_vol(duration, interval, noise, r, missing_pct, run)
   }
 
