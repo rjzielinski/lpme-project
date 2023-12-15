@@ -136,14 +136,7 @@ The optimization function $\mathcal{K}_{\lambda, \mathbb{P}}$ in equation (\ref{
 
 \section{Longitudinal Principal Manifold Estimation Algorithm}\label{s:LPME}
 
-The framework described above is an excellent approach for fitting a 2-dimensional principal surface that passes through the ``middle'' of a 3-dimensional cloud of vertices. We first heuristically explain the goal of our proposed model and its importance in segmentation of brain regions for longitudinal imaging studies. We consider the problem of reducing the dimension of the coordinates $(x_1, x_2, x_3)$, i.e. $D=3$ to $(y_1,y_2)$ with $d=2$, which are the projections of the original coordinates on the surface of the 3-dimensional shape of interest. Now consider that the data are observed longitudinally during several visits by a study participant. Hence, the data of interest consists of the 4-dimensional cloud $(x_1, x_2, x_3,t_j)$, where $t_j$ denotes the time of the $j$th study visit. Figure \ref{fig:sample_data} displays a simplified example of this setting using simulated data where $D = 2$. The goal is to fit a surface through the data that depends on time and is not affected by the random noise added at each time point and in space. 
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[scale=0.4]{sim_case1_plot2}
-  \caption{Longitudinal Simulated Data with $D = 2$. Data from the functions $x_1 = r$ and $x_2 = \alpha\sin(\beta r + \frac{\pi}{2})$ are simulated at 5 time points. Random noise is added both in time and space as $\zeta \mathbf{g}(t) + \iota$, where $\mathbf{g}(t)$ represents a normally distributed spatial translation applied to all points at each time point, and $\iota$ represents normally distributed noise applied to each point individually.}
-  \label{fig:sample_data}
-\end{figure}
+The framework described above is an excellent approach for fitting a 2-dimensional principal surface that passes through the ``middle'' of a 3-dimensional cloud of vertices. We first heuristically explain the goal of our proposed model and its importance in segmentation of brain regions for longitudinal imaging studies. We consider the problem of reducing the dimension of the coordinates $(x_1, x_2, x_3)$, i.e. $D=3$ to $(y_1,y_2)$ with $d=2$, which are the projections of the original coordinates on the surface of the 3-dimensional shape of interest. Now consider that the data are observed longitudinally during several visits by a study participant. Hence, the data of interest consists of the 4-dimensional cloud $(x_1, x_2, x_3,t_j)$, where $t_j$ denotes the time of the $j$th study visit. Figure \ref{fig:lpme_step1} displays a simplified example of this setting using simulated data where $D = 2$. In this case, data from the functions $x_1 = r$ and $x_2 = \alpha\sin(\beta r + \frac{\pi}{2})$ are simulated at 5 time points. Random noise is added both in time and space as $\zeta \mathbf{g}(t) + \iota$, where $\mathbf{g}(t)$ represents a normally distributed spatial translation applied to all points at each time point, and $\iota$ represents normally distributed noise applied to each point individually. The goal is to fit a surface through the data that depends on time and is not affected by the random noise added at each time point and in space. 
 
 Assume that our goal is estimation of a smooth surface for the brain region of interest at each time point such that the changes of the surface over time are smooth. It is important for the resulting manifolds to be estimated at each time point in order to enable further inference, i.e. modeling trajectories of change in region volumes over time, identifying regions that are most affected in terms of atrophy, etc. The key reasons why the existing principal manifold estimation methods cannot be implemented in this setting are 1) if we implement the data reduction method above then the resulting principal manifold will not be a function of time $t_j$, which is necessary for the resulting segmentations to be useful in practice, 2) if the manifold is estimated separately at each time point, the results may not be smooth over time. In other words, the dimension reduction should be implemented to obtain the 2-dimensional coordinates $(y_1,y_2,t_j)$ while ensuring that the resulting manifold is also a function of $t_j$. In order to address the limitations of the existing approaches for the setting described above, we now propose longitudinal principal manifold estimation (LPME) algorithm to estimate $d$-dimensional representations of $D$-dimensional objects observed over time. 
 
@@ -174,30 +167,30 @@ Given the framework proposed in the previous Section, estimation of the longitud
 
 \begin{figure}[ht]
   \centering
-  \subfloat[\centering Data]{{\includegraphics[width=6.5cm]{sim_case1_plot2}}}%
+  \subfloat[\centering Data]{\label{fig:lpme_step1} \includegraphics[width=6.5cm]{sim_case1_plot2}}%
   \hfill
-  \subfloat[\centering Step 1: Sample Size Reduction]{{\includegraphics[width=6.5cm]{lpme_data_reduction}}}
+  \subfloat[\centering Step 1: Sample Size Reduction]{\label{fig:lpme_step2} \includegraphics[width=6.5cm]{lpme_data_reduction}}
   \vfill
-  \subfloat[\centering Step 2: Initialization]{{\includegraphics[width=6.5cm]{lpme_initialization}}}
+  \subfloat[\centering Step 2: Initialization]{\label{fig:lpme_step3} \includegraphics[width=6.5cm]{lpme_initialization}}%
   \hfill
-  \subfloat[\centering Steps 3 and 4: Fitting and Tuning]{{\includegraphics[width=6.5cm]{lpme_fitting}}}
-  \caption{LPME Algorithm Steps. In (a) we show the original data cloud, in (b) we show the sample size reduction step, where the red points indicate the representative data to be used for the next steps of the algorithm, (c) shows the fitted time specific curves, the blue surface in (d) shows the estimated smooth surface. }
+  \subfloat[\centering Steps 3 and 4: Fitting and Tuning]{\label{fig:lpme_step4} \includegraphics[width=6.5cm]{lpme_fitting}}
+  \caption{LPME Algorithm. In (a) we show the original data cloud, in (b) we show the sample size reduction step, where the red points indicate the representative data to be used for the next steps of the algorithm, (c) shows the fitted time specific curves, the blue surface in (d) shows the estimated smooth surface. }
   \label{fig:lpme_steps}
 \end{figure}
 
 
 \subsection*{Sample Size Reduction}
 
-Given that in most manifold learning tasks in practice data are often quite large, we begin by implementing an approach for selecting a small number number of points in $D$-dimensional space that represent the structure of the data cloud. This approach is aimed at reducing the sample size of the original data, while maintaining the available information on the curvature of the underlying manifold of interest. Specifically, we consider $D$-dimensional observations $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$ where the sample size $I_t$ is assumed to be large. To reduce the sample size $I_t$, we use the HDMDE method (see \cite{mengPrincipalManifoldEstimation2021}, Section 5.3) to estimate a reduced set of points in the $D$-dimensional space that represent the shape of the data cloud $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$. Briefly, this approach is based on clustering of the original time points to obtain cluster centers, $\left\{\mu_{j, t}\right\}_{j=1, t=1}^{N_t, T}$, represented using red dots in Figure \ref{fig:lpme_steps} (b), along with their corresponding weights $\{\hat{\theta}_{j, t}\}_{j=1, t=1}^{N_t, T}$ that provide necessary information to characterize the shape of the original data. The number of clusters is estimated for each time point and is allowed to vary among time points to accommodate potential changes in the shape of the underlying structure. By implementing this approach, we reduce the size $\sum_{t=1}^T I_t$ of data $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$ from $I_t$ to $\sum_{t=1}^T N_t$, where each $N_t$ tends to be much smaller than the corresponding $I_t$ (see the simulation study presented in Figure 3(c) of \cite{mengPrincipalManifoldEstimation2021}). The centers estimated in this step are then used to reach an initial low-dimensional parameterization.
+Given that in most manifold learning tasks in practice data are often quite large, we begin by implementing an approach for selecting a small number number of points in $D$-dimensional space that represent the structure of the data cloud. This approach is aimed at reducing the sample size of the original data, while maintaining the available information on the curvature of the underlying manifold of interest. Specifically, we consider $D$-dimensional observations $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$ where the sample size $I_t$ is assumed to be large. To reduce the sample size $I_t$, we use the HDMDE method (see \cite{mengPrincipalManifoldEstimation2021}, Section 5.3) to estimate a reduced set of points in the $D$-dimensional space that represent the shape of the data cloud $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$. Briefly, this approach is based on clustering of the original time points to obtain cluster centers, $\left\{\mu_{j, t}\right\}_{j=1, t=1}^{N_t, T}$, represented using red dots in Figure \ref{fig:lpme_step2}, along with their corresponding weights $\{\hat{\theta}_{j, t}\}_{j=1, t=1}^{N_t, T}$ that provide necessary information to characterize the shape of the original data. The number of clusters is estimated for each time point and is allowed to vary among time points to accommodate potential changes in the shape of the underlying structure. By implementing this approach, we reduce the size $\sum_{t=1}^T I_t$ of data $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$ from $I_t$ to $\sum_{t=1}^T N_t$, where each $N_t$ tends to be much smaller than the corresponding $I_t$ (see the simulation study presented in Figure 3(c) of \cite{mengPrincipalManifoldEstimation2021}). The centers estimated in this step are then used to reach an initial low-dimensional parameterization.
 
 \subsection*{Initialization}
 
-The next step in developing the algorithm for estimation of the longitudinal principal manifold is initialization. Different algorithms use different approaches for this step. For example, the PME algorithm uses Isomap (\cite{tenenbaumGlobalGeometricFramework2000}) to develop an initial parameterization, which the algorithm proceeds to iteratively improve. However, implementation of commonly used approaches for initialization without considering the nuances posed by longitudinal data can be problematic. For instance, using ISOMAP to find parameterizations of similarly shaped structures (i.e. the brain region of interest at each time point) is likely to result in inconsistent parameterization directions across time points (i.e. low values in the parameter space may be associated with low values in the embedding space for one run, while low values in the parameter space may be associated with high values in the embedding space in another). This is demonstrated in Figure \ref{fig:inconsistent_parameterization}, which shows differences in parameterizations depending on the time points of the data cloud presented in Figure \ref{fig:sample_data}. Reaching a successful fit in the LPME algorithm requires consistent parameterizations across time points, so a different approach to generating an initial parameterization is needed. 
+The next step in developing the algorithm for estimation of the longitudinal principal manifold is initialization. Different algorithms use different approaches for this step. For example, the PME algorithm uses Isomap (\cite{tenenbaumGlobalGeometricFramework2000}) to develop an initial parameterization, which the algorithm proceeds to iteratively improve. However, implementation of commonly used approaches for initialization without considering the nuances posed by longitudinal data can be problematic. For instance, using ISOMAP to find parameterizations of similarly shaped structures (i.e. the brain region of interest at each time point) is likely to result in inconsistent parameterization directions across time points (i.e. low values in the parameter space may be associated with low values in the embedding space for one run, while low values in the parameter space may be associated with high values in the embedding space in another). This is demonstrated in Figure \ref{fig:inconsistent_parameterization}, which shows differences in parameterizations depending on the time points of the data cloud presented in Figure \ref{fig:lpme_step1}. Reaching a successful fit in the LPME algorithm requires consistent parameterizations across time points, so a different approach to generating an initial parameterization is needed. 
 
 \begin{figure}[h]
   \centering
-  \includegraphics[scale=0.6]{inconsistent_parameterization}
-  \caption{Simulated data with $D = 2$. The curves shown in this plot represents embedding maps estimated by PME for each time point, with time indicated by the color of the curve. The $X$ and $Y$ axes represent the coordinates of the curve in $D$-dimensional space, while $R$ represents the estimated parameters associated with these coordinates. Randomness in the initialization of the PME algorithm may result in misaligned parameterizations of the estimated embedding maps, as seen at two time points.}
+  \includegraphics[height=7cm]{inconsistent_parameterization}
+  \caption{Simulated data with $D = 2$. The curves in this plot represent embedding maps estimated by PME for each time point, with time indicated by the color of the curve. The $X$ and $Y$ axes represent the coordinates of the curve in $D$-dimensional space, while $R$ represents the estimated parameters associated with these coordinates. Randomness in the initialization of the PME algorithm may result in misaligned parameterizations of the estimated embedding maps, as seen at two time points.}
   \label{fig:inconsistent_parameterization}
 \end{figure}
 
@@ -205,7 +198,7 @@ To obtain the same parameterization of the manifold over time, instead of using 
 
 \subsection*{Fitting}
 
-Once the initial parameterization for each cluster center is obtained, the model fitting process begins by using the cluster centers, weights and parameterizations associated with each time point to initialize a PME run. This results in an estimated principal manifold $\widehat{f_t}$ for each time point $t$ and an optimal tuning parameter $\lambda_t^*$ corresponding to the first two terms of the $\mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F)$ defined in \eqref{eq:newKappa} and presented using multicolored lines in Figure \ref{fig:lpme_steps} (c). The fit of each $\hat{f}_t$ is measured using $\tau_t$, an estimate of the mean squared distance between the observed data points and their projections to the manifold defined by $\hat{f}_t$. At this stage, the time-specific manifolds require further smoothing considering the curvature in the time dimension corresponding to the third term of $\mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F)$. The principal manifold $\widehat{f_t}$ at time $t$ is characterized by spline coefficients. Hence, we estimate a spline function mapping from the time dimension to the coefficient space that smooths over the coefficients for these principal manifolds, given a tuning parameter $\gamma$.
+Once the initial parameterization for each cluster center is obtained, the model fitting process begins by using the cluster centers, weights and parameterizations associated with each time point to initialize a PME run. This results in an estimated principal manifold $\widehat{f_t}$ for each time point $t$ and an optimal tuning parameter $\lambda_t^*$ corresponding to the first two terms of the $\mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F)$ defined in \eqref{eq:newKappa} and presented using multicolored lines in Figure \ref{fig:lpme_step3}. The fit of each $\hat{f}_t$ is measured using $\tau_t$, an estimate of the mean squared distance between the observed data points and their projections to the manifold defined by $\hat{f}_t$. At this stage, the time-specific manifolds require further smoothing considering the curvature in the time dimension corresponding to the third term of $\mathcal{K}_{\lambda, \gamma, \mathbb{P}}(F)$. The principal manifold $\widehat{f_t}$ at time $t$ is characterized by spline coefficients. Hence, we estimate a spline function mapping from the time dimension to the coefficient space that smooths over the coefficients for these principal manifolds, given a tuning parameter $\gamma$.
 
 At each time point, the estimated principal manifold has a spline form. As detailed by \cite{greenSilverman1994}, smoothing splines can be considered to have knots at the points used to fit them. This means that, in order for the coefficients of the manifolds estimated at each time point to be comparable, the parameter values used as inputs when the functions were fitted must be identical. Hence, to obtain coefficients that can be compared across time points, a grid of values $\left\{\boldsymbol{r}_i\right\}_{i=1}^{N}$ ($\subset\mathbb{R}^d$) ranging from the minimum to the maximum of the parameters in each of the $d$ dimensions is input into the estimated embedding functions $\widehat{f_t}$ for each time point, with $N$ specified based on the maximum number of clusters identified in the data reduction step at any time point. This yields a set of outcomes, $\left\{Y_{i,t}\right\}_{i=1, t = 1}^{N, T}$, corresponding to same parameter values at each time point, i.e., $Y_{i,t}=\widehat{f_t}(\boldsymbol{r}_i)$ for all $i$ and $t$. Following the discussion in Chapter 7 of \cite{greenSilverman1994}, for each time point $t$, comparable spline coefficients $\boldsymbol{s}_t^*$ and $\boldsymbol{\alpha}_t^*$ can then be calculated by minimizing the following function.
 \begin{equation}\label{eq:splineL}
@@ -336,9 +329,9 @@ Notably, in many applications where manifold learning is implemented, the high-d
 
 \begin{figure}[ht]
   \centering
-  \subfloat[\centering Unaugmented Unit Circle]{{\includegraphics[width=9cm]{unit_circle_D2}}}%
+  \subfloat[\centering Unaugmented Unit Circle]{{\includegraphics[height=9cm]{unit_circle_D2}}}%
   \hfill
-  \subfloat[\centering Augmented Unit Circle]{{\includegraphics[width=9cm]{unit_circle_D3}}}
+  \subfloat[\centering Augmented Unit Circle]{{\includegraphics[height=9cm]{unit_circle_D3}}}
   \caption{Illustration of our proposed data augmentation approach using the Unit Circle. The left panel (a) shows the depiction of the circle with $d=1$ and $D=2$, while the right panel (b) shows how our proposed use of considering this same manifold in $D=3$ by using the spherical coordinates results in a manifold that is not self-intersecting.}
   \label{fig:unit_circle_augmentation}
 \end{figure}
@@ -378,7 +371,7 @@ In the situations where $d = 1$, LPME is compared to the PME method naively run 
 
 A factorial design is used to run the simulation studies, with the factor levels set as follows: 1) $\alpha, \beta, \zeta \in \left\{0, 0.05, 0.1, 0.25, 0.5, 1.0\right\}$, 2) study duration: $\left\{1, 2, 5\right\}$, 3) interval between images: $\left\{0.1, 0.25, 0.5\right\}$, 4) longitudinal change model: Constant, Linear, Quadratic, Sinusoidal. The sample size for each time point is set to 1,000 observations, so each embedding map is simulated a total of 7,776 times. All code required to reproduce the simulation results and the associated figures is provided at \href{https://github.com/rjzielinski/lpme-project}{\texttt{https://github.com/rjzielinski/lpme-project}}.
 
-Visualizations of the results from some of the simulation cases, truncated for concision, are shown in Figures \ref{fig:sim_case1} and \ref{fig:sim_case6}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
+Visualizations of the results from two of the simulation cases, truncated for concision, are shown in Figure \ref{fig:sim_case1}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
 
 \begin{table}[h]
   \centering
@@ -400,27 +393,6 @@ Visualizations of the results from some of the simulation cases, truncated for c
   \label{table:simulation_results_mean}
 \end{table}
 
-
-\begin{table}[h]
-  \centering
-  \begin{tabular}{|c c c c c|}
-    \hline
-    Case & Data & LPME & PME & PC/PS \\
-    \hline
-    1 & 0.146 (0.233) & {\bf 0.074 (0.122)} & 0.131 (0.258) & 0.118 (0.206) \\
-    2 & 0.467 (0.665) & {\bf 0.248 (0.516)} & 0.516 (0.750) & 0.564 (0.419) \\
-    3 & 0.291 (0.601) & {\bf 0.239 (0.564)} & 0.317 (0.640) & 0.264 (0.584) \\
-    4 & 4.26 (21.2) & {\bf 3.29 (13.0)} & 4.23 (21.1) & 4.22 (21.2) \\
-    5 & 0.895 (1.33) & {\bf 0.584 (1.08)} & 0.894 (1.36) & 0.821 (1.22) \\
-    6 & 0.284 (1.06) & {\bf 0.273 (0.891)} & 0.316 (1.04) & 0.557 (0.387) \\
-    7 & 0.145 (0.552) & 2.96 (4.65) & 6.92 (1.17) & {\bf 1.58 (0.514)} \\
-    8 & 0.110 (0.325) & {\bf 0.074 (0.208)} & 0.115 (0.331) & 0.172 (0.234) \\
-    \hline
-  \end{tabular}
-  \caption{MSD comparison to true values, Median (IQR). The lowest algorithm-specific median (IQR) are highlighted in bold.}
-  \label{table:simulation_results_median}
-\end{table}
-
 \begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{sim_case1}
@@ -429,14 +401,7 @@ Visualizations of the results from some of the simulation cases, truncated for c
   \label{fig:sim_case1}
 \end{figure}
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\textwidth]{sim_case7}
-  \caption{Simulation Case 6}
-  \label{fig:sim_case6}
-\end{figure}
-
-The mean, median, and standard deviation of the mean squared distance from the true underlying manifold values for the estimates of each approach, as well as for the data itself, are shown in Tables \ref{table:simulation_results_mean} and \ref{table:simulation_results_median}. Because the PME, principal curve, and principal surface methods each attempt to estimate the manifold in question at each individual time point without allowing other time points to inform these estimates, they should result in similar deviations from the true underlying manifold, with differences in error resulting primarily from differing performances in fitting to the observed data. Meanwhile, because the LPME approach accounts for all time points simultaneously, this approach should result in lower mean squared distance values.
+The mean and standard deviation of the mean squared distance from the true underlying manifold values for the estimates of each approach, as well as for the data itself, are shown in Table \ref{table:simulation_results_mean}. Because the PME, principal curve, and principal surface methods each attempt to estimate the manifold in question at each individual time point without allowing other time points to inform these estimates, they should result in similar deviations from the true underlying manifold, with differences in error resulting primarily from differing performances in fitting to the observed data. Meanwhile, because the LPME approach accounts for all time points simultaneously, this approach should result in lower mean squared distance values.
 
 The result summaries indicate that in most cases, LPME provides a substantial improvement in performance over the PME and principal curve approaches when estimating the underlying manifold. As seen clearly in Figure \ref{fig:sim_case1}, while the structure of the simulated data changes noticeably between time points, the LPME estimates, shown in blue, remain relatively stable over time. This contrasts to the estimates found by the PME and principal curve approaches, which are highly sensitive to the data observed at each given time point, as expected. This ultimately results in the LPME estimates remaining closer to the true underlying manifold, shown in red. Similar results hold in most of the other simulation cases.
 
@@ -458,7 +423,7 @@ Figure \ref{fig:adni_cross_section} depicts cross sections of the observed hippo
 
 The hippocampus is a region with a relatively irregular shape, which may account for the differences in performance between the LPME algorithm when applied to simulated data and when applied to the hippocampus data. To understand how the approach performs when used with a more regularly shaped brain region, we also applied the PME and LPME algorithms to the surface of the left thalamus of the same healthy individuals described previously. Estimates of the surface of the thalamus were obtained from the MRI images using the same preprocessing and segmentation steps detailed above for the hippocampus data.
 
-Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{fig:adni_cross_section}, results of fitting the PME and LPME algorithms to the surface of the left thalamus are shown in Figures \ref{fig:adni_lthal_result} and \ref{fig:adni_lthal_cross_section}. While the segmentation estimates of the thalamus do not show the same sort of deviations that are clearly visible for the hippocampus, the cross section plots shown in Figure \ref{fig:adni_lthal_cross_section} indicate that both the PME and LPME algorithms show a closer fit to the more regularly shaped thalamus surface than was achieved for the hippocampus.
+Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{fig:adni_cross_section}, results of fitting the PME and LPME algorithms to the surface of the left thalamus are shown in Figure \ref{fig:adni_lthal_cross_section}. While the segmentation estimates of the thalamus do not show the same sort of deviations that are clearly visible for the hippocampus, Figure \ref{fig:adni_lthal_cross_section} indicates that both the PME and LPME algorithms show a closer fit to the more regularly shaped thalamus surface than was achieved for the hippocampus.
 
 \begin{figure}%
   \centering
@@ -479,29 +444,31 @@ Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\textwidth]{adni_plots/adni_cross_section}
+  \subfloat[\centering Left Hippocampus Cross Section]{\includegraphics[height=10cm]{results/adni_plots/adni_cross_section}}%
+  \hfill
+  \subfloat[\centering Estimated Volumes]{\includegraphics[height=10cm]{}}
+  \includegraphics[height=10cm]{adni_plots/adni_cross_section}
   \caption{Left Hippocampus Cross Section}
   \label{fig:adni_cross_section}
 \end{figure}
 
-\begin{figure}%
-  \centering
-  \subfloat[\centering Data]{{\includegraphics[height=22cm]{adni_plots/adni_lthal_data_plot}}}%
-  \hfill
-  \subfloat[\centering LPME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_lthal_lpme_isomap_plot}}}
-  \hfill
-  \subfloat[\centering PME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_lthal_pme_plot}}}
-
-  \caption{Left Thalamus, Cognitive Healthy ADNI Participant}
-  \label{fig:adni_lthal_result}
-\end{figure}
-
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{adni_plots/adni_lthal_cross_section.png}
+    \includegraphics[height=10cm]{adni_plots/adni_lthal_cross_section.png}
     \caption{Left Thalamus Cross Section}
     \label{fig:adni_lthal_cross_section}
 \end{figure}
+
+\begin{figure}%
+  \centering
+  \subfloat[\centering Data]{{\includegraphics[height=22cm]{adni_plots/adni_data_plot}}}%
+  \hfill
+  \subfloat[\centering LPME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_lpme_plot}}}
+
+  \caption{Left Hippocampus, Cognitive Healthy ADNI Participant}
+  \label{fig:adni_result}
+\end{figure}
+
 
 \section{Discussion}\label{s:discussion}
 
@@ -521,7 +488,7 @@ Additional work will be necessary to more thoroughly explore the data augmentati
 %\meng{FYI, we may also apply Gaussian process regression (GPR) to smooth the time direction. The smoothness can be represented by the covariance kernel we use in the GPR. For example, we may apply the Gaussian or \href{https://en.wikipedia.org/wiki/Matern_covariance_function}{Matérn} kernels. The taste of the GPR is similar to \cite{dunsonInferringManifoldsNoisy2022}, and we may cite \cite{dunsonInferringManifoldsNoisy2022}.}
 \newpage
 
-\nocite{*}
+%\nocite{*}
 %\bibliographystyle{plain}
 %\bibliography{references}
 \printbibliography
