@@ -81,7 +81,7 @@ isbn=false
 \author[*]{for the Alzheimer’s Disease Neuroimaging Initiative}
 \affil[1]{Department of Biostatistics, Brown University}
 \affil[2]{Division of Applied Mathematics, Brown University}
-
+\date{December 15, 2023}
 
 
 \maketitle
@@ -447,7 +447,7 @@ Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{
   \subfloat[\centering Left Hippocampus Cross Section]{\label{fig:lhipp_cross_sections} \includegraphics[width=8.5cm]{adni_plots/adni_cross_section}}%
   \hfill
   \subfloat[\centering Estimated Volumes]{\label{fig:lhipp_volumes} \includegraphics[width=8.5cm]{adni_plots/lhipp_volume}}
-  \caption{Left Hippocampus Cross Section}
+  \caption{Left Hippocampus Cross Section and Volume Estimates. In (a), we can see that the LPME-approximated embedding function, shown in blue, routinely falls inside the boundaries of surface in the observed data. In the fifth observation with $t=3.04$, the LPME-estimated surface has a gap in it, corresponding to an unexpectedly high volume estimate seen in (b). Volume estimates derived from the observed data are consistently higher than those obtained from the embedding functions of PME and LPME estimates, respectively.}
   \label{fig:adni_cross_section}
 \end{figure}
 
@@ -456,7 +456,7 @@ Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{
   \subfloat[\centering Left Thalamus Cross Section]{\label{fig:lthal_cross_sections} \includegraphics[width=8.5cm]{adni_plots/adni_lthal_cross_section}}%
   \hfill
   \subfloat[\centering Estimated Volumes]{\label{fig:lthal_volumes} \includegraphics[width=8.5cm]{adni_plots/lthal_volume}}
-  \caption{Left Thalamus Cross Section}
+  \caption{Left Thalamus Cross Section and Volume Estimates. In (a), the cross sectional plots indicate that the PME and LPME algorithms fit much more closely to the regularly shaped thalamus surface. The volume estimates in (b) show similar general trends to the hippocampus estimates, with the estimates reached using the observed data being higher than the PME- and LPME-based estimates. However, the differences between the estimates taken from the PME and LPME results are more comparable.}
   \label{fig:adni_lthal_cross_section}
 \end{figure}
 
