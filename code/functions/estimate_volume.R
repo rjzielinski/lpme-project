@@ -173,8 +173,6 @@ estimate_volume <- function(data, voxel_volume) {
       missing_present <- TRUE
     }
 
-    print(paste("Number of Missing Values:", n_missing))
-    print(paste("Number of Missing Values (Previous):", n_missing_prev))
     if (!(n_missing < n_missing_prev)) {
       if (threshold_idx < length(missingness_thresholds)) {
         threshold_idx <- threshold_idx + 1
@@ -187,35 +185,21 @@ estimate_volume <- function(data, voxel_volume) {
     for (y_idx in 1:length(y_seq)) {
       for (z_idx in 1:length(z_seq)) {
         if (missing_mins[y_idx, z_idx] == TRUE) {
-          print(paste("y_idx", y_idx))
-          print(paste("z_idx", z_idx))
           x_min_vals <- get_surrounding_vals(x_mins, y_idx, z_idx)
-          print("Surrounding Minimum Values")
-          print(x_min_vals)
-          print(paste("Missingness Threshold:", missingness_thresholds[threshold_idx]))
           if (sum(is.na(x_min_vals)) / length(x_min_vals) <= missingness_thresholds[threshold_idx]) {
           # if (sum(!is.na(x_min_vals)) > 1) {
             # x_mins[y_idx, z_idx] <- min(x_min_vals, na.rm = TRUE)
             x_mins[y_idx, z_idx] <- round(mean(x_min_vals, na.rm = TRUE))
-            print(paste("Estimated minimum:", x_mins[y_idx, z_idx]))
             missing_mins[y_idx, z_idx] <- FALSE
             # n_missing <- n_missing - 1
-          } else {
-            print("No minimum value found")
           }
         }
         if (missing_maxs[y_idx, z_idx] == TRUE) {
-          print(paste("y_idx", y_idx))
-          print(paste("z_idx", z_idx))
           x_max_vals <- get_surrounding_vals(x_maxs, y_idx, z_idx)
-          print("Surrounding Maximum Values")
-          print(x_max_vals)
-          print(paste("Missingness Threshold:", missingness_thresholds[threshold_idx]))
           if (sum(!is.na(x_max_vals)) / length(x_max_vals) <= missingness_thresholds[threshold_idx]) {
           # if (sum(!is.na(x_max_vals)) > 1) {
             # x_maxs[y_idx, z_idx] <- max(x_max_vals, na.rm = TRUE)
             x_maxs[y_idx, z_idx] <- round(mean(x_max_vals, na.rm = TRUE))
-            print(paste("Estimated maximum:", x_maxs[y_idx, z_idx]))
             missing_maxs[y_idx, z_idx] <- FALSE
             # n_missing <- n_missing - 1
           }
