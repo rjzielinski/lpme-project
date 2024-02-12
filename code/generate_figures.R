@@ -34,8 +34,9 @@ plt2 <- lines3D(
   main = "Unit Circle, D = 3",
   xlab = "x",
   ylab = "y",
-  zlab = "theta"
+  zlab = ""
 )
+text3D(-2, -0.8, -2.25, labels = expression(theta), add = TRUE)
 dev.off()
 
 png("paper/figures/unit_circle_D2.png", res = 500, height = 2000, width = 2000)
@@ -58,8 +59,9 @@ lines3D(
   main = "Unit Circle, D = 3",
   xlab = "x",
   ylab = "y",
-  zlab = "theta"
+  zlab = ""
 )
+text3D(-2.25, -0.85, -2.25, labels = expression(theta), add = TRUE)
 dev.off()
 
 sim_example_case1 <- readRDS("simulations/case1/duration_01_interval_010_ampnoise_025_pernoise_050_n_1000_constant000_run_01.rds")
@@ -480,9 +482,9 @@ dev.off()
 
 ### Following code follows from the sim_error_case1() function in lpme_simulations.R
 
-set.seed(500)
+set.seed(71927)
 source("code/functions/sim_data.R")
-max_time <- 2
+max_time <- 3
 interval <- 0.1
 amp_noise <- 0.5
 shape_noise <- 0.25
@@ -524,7 +526,7 @@ true_vals <- scale(
 )
 time_vals <- unique(sim_df[, 1])
 
-set.seed(10)
+set.seed(81752)
 pme_result <- list()
 pme_vals <- list()
 for (t in 1:length(time_vals)) {
@@ -600,12 +602,12 @@ fig <- plot_ly(
           z = 1
         )
       ),
-      xaxis = list(title = "X"),
+      xaxis = list(title = "X<sub>1</sub>"),
       yaxis = list(title = "R"),
-      zaxis = list(title = "Y")
+      zaxis = list(title = "X<sub>2</sub>")
     ),
     annotations = list(
-      x = 1.06,
+      x = 1.075,
       y = 1.02,
       text = "Time",
       xref = "paper",
