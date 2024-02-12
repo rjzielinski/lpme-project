@@ -14,9 +14,7 @@ style=authoryear,
 url=false,
 isbn=false,
 date=year,
-doi=false,
-pmid=false,
-urldate=false
+doi=false
 ]{biblatex}
 
 \addbibresource{references.bib}
@@ -186,13 +184,13 @@ Given the framework proposed in the previous section, estimation of the longitud
 
 \begin{figure}[ht]
   \centering
-  \subfloat[\centering Data]{{\label{fig:lpme_step1} \includegraphics[width=8cm]{sim_case1_plot2}}}%
+  \subfloat[\centering Data]{\label{fig:lpme_step1} \includegraphics[width=8cm]{sim_case1_plot2}}%
   \hfill
-  \subfloat[\centering Step 1: Sample Size Reduction]{{\label{fig:lpme_step2} \includegraphics[width=8cm]{lpme_data_reduction}}}
+  \subfloat[\centering Step 1: Sample Size Reduction]{\label{fig:lpme_step2} \includegraphics[width=8cm]{lpme_data_reduction}}
   \vfill
-  \subfloat[\centering Step 2: Initialization]{{\label{fig:lpme_step3} \includegraphics[width=8cm]{lpme_initialization}}}
+  \subfloat[\centering Step 2: Initialization]{\label{fig:lpme_step3} \includegraphics[width=8cm]{lpme_initialization}}
   \hfill
-  \subfloat[\centering Steps 3 and 4: Fitting and Tuning]{{\label{fig:lpme_step4} \includegraphics[width=8cm]{lpme_fitting}}}
+  \subfloat[\centering Steps 3 and 4: Fitting and Tuning]{\label{fig:lpme_step4} \includegraphics[width=8cm]{lpme_fitting}}
   \caption{LPME Algorithm Steps. In (a) we show the original data cloud, in (b) we show the sample size reduction step, where the red points indicate the representative data to be used for the next steps of the algorithm, (c) shows the fitted time specific curves, the blue surface in (d) shows the estimated smooth surface. }
   \label{fig:lpme_steps}
 \end{figure}
@@ -466,7 +464,7 @@ Images were processed using FSL and ANTs via the \texttt{fslr} and \texttt{ANTsR
 
 Results of fitting the PME and LPME algorithms on the surface of the left hippocampus of a single participant are shown in Figure \ref{fig:adni_result}. Visual inspection indicates that while there are slight differences between the shape shown in the data and the shape estimated by the LPME algorithm, the surface estimated by LPME appears to fit reasonably to the data. There are two main sources of discrepancies between the data and the LPME estimate. First, at time points where the observed surface changes orientation, as is visible between the first two time points, for example, the LPME estimates maintain a consistent orientation, reflecting the goal of encouraging stability in the structural estimates between time points. The second difference between the LPME estimates and the observed data can be seen at the sharper corners of the hippocampus, where the LPME estimates do not fully capture the severity of the curves seen in the observed data.
 
-Figure \ref{fig:lhipp_cross_section} depicts cross sections of the observed hippocampus surface and the estimated surface obtained using LPME and PME at each individual time point. These cross sections illustrate the differences between the estimates reached by the PME and LPME algorithms, with the LPME-based estimate being generally less responsive to changes in the shape and orientation of the hippocampus between time points. This figure reiterates that both the PME and LPME algorithms are unable to capture the distinctive sharp curve in the structure at the upper-left corner of each of the plots. Additionally, we see that, along the upper-right edge of the surface, there is a spot where the estimated manifold intersects with itself. This is present for both the PME and LPME estimates, but appears to be more prevalent when using LPME. Notably, it also appears that the boundaries of the LPME-estimated surface tend to fall inside the boundaries of the PME-estimated surface, particularly at locations with the highest levels of curvature.
+Figure \ref{fig:lhipp_cross_sections} depicts cross sections of the observed hippocampus surface and the estimated surface obtained using LPME and PME at each individual time point. These cross sections illustrate the differences between the estimates reached by the PME and LPME algorithms, with the LPME-based estimate being generally less responsive to changes in the shape and orientation of the hippocampus between time points. This figure reiterates that both the PME and LPME algorithms are unable to capture the distinctive sharp curve in the structure at the upper-left corner of each of the plots. Additionally, we see that, along the upper-right edge of the surface, there is a spot where the estimated manifold intersects with itself. This is present for both the PME and LPME estimates, but appears to be more prevalent when using LPME. Notably, it also appears that the boundaries of the LPME-estimated surface tend to fall inside the boundaries of the PME-estimated surface, particularly at locations with the highest levels of curvature.
 
 The hippocampus is a region with a relatively irregular shape, which may account for the differences in performance between the LPME algorithm when applied to simulated data and when applied to the hippocampus data. To understand how the approach performs when used with a more regularly shaped brain region, we also applied the PME and LPME algorithms to the surface of the left thalamus of the same healthy individuals described previously. Estimates of the surface of the thalamus were obtained from the MRI images using the same preprocessing and segmentation steps detailed above for the hippocampus data.
 
