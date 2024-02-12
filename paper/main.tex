@@ -247,7 +247,7 @@ The solution to Eq.~\eqref{eq:13} , denoted by $\boldsymbol{\alpha}^*_t=(\alpha^
   f_t^*(r) = \sum_{j=1}^{N}s_{j,t}^* \cdot  \eta_{d}\left(\|r - r_j^*\|\right) + \sum_{k=1}^{d + 1}\alpha_{k,t}^* \cdot \phi_k(r). 
 \end{equation}
 
-We denote the manifold coefficients at each time point $t$ as $\boldsymbol{\omega}_t = (\boldsymbol{s}_t^{*\T}, \boldsymbol{\alpha}_t^{*\T})^\T$. To limit the ability of a poorly-fitting PME estimate to greatly influence the results of the LPME model, we fit a weighted spline model to smooth over the manifold coefficients, where the weights for each time point $t$ are equal to 
+We denote the manifold coefficients at each time point $t$ as $\boldsymbol{\omega}_t = (\boldsymbol{s}_t^{*\T}, \boldsymbol{\alpha}_t^{*\T})^\T$. To limit the ability of a poorly-fitting PME estimate to greatly influence the results of the LPME model, we fit a weighted spline model to smooth over the manifold coefficients $\boldsymbol{\omega}_t$, where the weights for each time point $t$ are equal to 
 $$w_t = \frac{1}{\tau_t\sum_{i=1}^{T}\frac{1}{\tau_i}}.$$ 
 
 With a given tuning parameter value $\gamma$, we then fit a weighted cubic spline function using $\left\{t_i\right\}_{i=1}^T$ as predictors and $\left\{\mathbf{\omega}_t\right\}_t$ as the response values, with weights $\left\{w_t\right\}_t$ resulting in a function taking the form
