@@ -302,25 +302,25 @@ The optimal tuning value $\gamma^*$ is then found to be the value of $\gamma$ th
 
 \begin{algorithm}
 \caption{Longitudinal Principal Manifold Estimation}\label{alg:lpme}
-  \KwData{Data points $\left\{Y_{i, t}\right\}_{i=1, t=1}^{I_t, T}$, positive integer $d$, positive integer $N_0 < \min{I_t} - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\left\{\lambda_k\right\}_{k=1}^K$, $\left\{\gamma_l\right\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
+  \KwData{Data points $\left\{X_{i, t}\right\}_{i=1, t=1}^{I_t, T}$, positive integer $d$, positive integer $N_0 < \min{I_t} - 1$, $\alpha$, $\epsilon$, $\epsilon^* \in (0, 1)$, candidate tuning parameters $\left\{\lambda_k\right\}_{k=1}^K$, $\left\{\gamma_l\right\}_{l=1}^L$, $itr \geq 1$, which is the maximum number of iterations allowed.}
 \KwResult{Analytic formula of $\hat{f}^*: \mathbb{R}^{d + 1} \to \mathbb{R}^{D + 1}$, optimal tuning parameter $\gamma^*$.}
 \For{$t = 1, 2, \dots, T$} {
-  Apply HDMDE algorithm with input $\left(\left\{Y_{i, t}\right\}_{i = 1}^{I_t}, N_0, \epsilon, \alpha\right)$ and obtain $N_t$, $\left\{\mu_{j, t}\right\}_{j = 1}^{N_t}$, and $\left\{\theta_{j, t}\right\}_{j = 1}^{N_t}$\;
+  Apply HDMDE algorithm with input $\left(\left\{X_{i, t}\right\}_{i = 1}^{I_t}, N_0, \epsilon, \alpha\right)$ and obtain $N_t$, $\left\{\mu_{j, t}\right\}_{j = 1}^{N_t}$, and $\left\{\theta_{j, t}\right\}_{j = 1}^{N_t}$\;
 }
 
   Apply PME to parameterize $\left\{\mu_{j, 1}\right\}_{j = 1}^{N_1}$ by the $d$-dimensional parameters $\left\{r_{j, t}\right\}_{j = 1}^{N_1}$ and use $\pi_{f_1(0)}$ to parameterize $\left\{\mu_{j, t}\right\}_{j=1, t = 1}^{N_t, T}$ by $\left\{r_{j, t}\right\}_{j=1, t=2}^{N_t, T}$. Formally set $\pi_{f_1(0)}(\mu_{j, 1}) \gets r_{j, 1}$ for $j = 1, 2, \dots, N_1$, and $\pi_{f_{t}(0)}(\mu_{j, t}) \gets \pi_{f_1(0)}(\mu_{j, t})$ for $j = 1, 2, \dots, N_t$, $t = 2, \dots, T$\;
 
 \For{t = 1, 2, \dots, T} {
   Apply modified PME algorithm with $\pi_{f_t(0)}(\mu_{j, N_t, t}) \gets \left\{r_{j, t}\right\}_{j = 1}^{N_t}$ and obtain $f_t$, $\lambda_t^*$, and $\tau_t$\;
-  $\left\{r_{j, t}\right\} \gets \pi_{f_t}(\mu_{j, t})$ for $j = 1, \dots, N_t$ and $X_{j, t} \gets f_t(r_{j, t})$ for $j = 1, \dots, N_t$\;
+  $\left\{r_{j, t}\right\} \gets \pi_{f_t}(\mu_{j, t})$ for $j = 1, \dots, N_t$ and $Y_{j, t} \gets f_t(r_{j, t})$ for $j = 1, \dots, N_t$\;
 }
 
   Let $N = \max(N_t)$, $\left\{r_i^*\right\}_{i=1}^{N}$ be a grid spanning the range of estimated values of $\left\{r_{i, j}\right\}_{i=1, t=1}^{N_t, T}$\; 
 
 \For{t = 1, 2, \dots, T} {
-  Set $X_{i, t} = f_t(r_{i}^*)$ for $i = 1, \dots, N$\;
+  Set $Y_{i, t} = f_t(r_{i}^*)$ for $i = 1, \dots, N$\;
   Compute $f_t^*(r)$ by solving \eqref{eq:13}\;
-  Set $w_t = \frac{\frac{1}{\tau_t}}{\sum_{i=1}^{T}\frac{1}{\tau_i}}$\;
+  Set $w_t = \frac{1}{\tau_t \sum_{i=1}^{T}\frac{1}{\tau_i}}$\;
 }
 
   Define $\boldsymbol{\omega}$ by setting $\boldsymbol{\omega}_t = \left[\boldsymbol{s}_t, \boldsymbol{\alpha}_t\right]$\;
@@ -382,7 +382,7 @@ To assess the performance of the LPME algorithm, we compare its performance with
 
 In the situations where $d = 1$, LPME is compared to the PME method naively run at each time point without smoothing over time, as well as the principal curve algorithm described in \cite{hastiePrincipalCurves1989}, also run independently at each time point. The principal curve algorithm is implemented using the \texttt{principal\_curve()} function in the \texttt{princurve} package, developed using \texttt{R} (\cite{rSoftware2023}). In this function, each of the three smoothing options, \texttt{smooth\_spline}, \texttt{lowess}, and \texttt{periodic\_lowess}, are tested, with the option resulting in the lowest error from the true values being chosen. Following \cite{mengPrincipalManifoldEstimation2021}, the inputs for the PME algorithm are set to $N_0 = 20 \times D$, $\alpha = 0.05$, and $\epsilon = 0.001$, with $\lambda_g = \exp(g)$ for $g = -15, \dots, 5$. In cases where $d = 2$, LPME is again compared to the naive PME approach described above, and the principal surface estimation algorithm developed by \cite{yueParameterizationWhiteMatter2016}.
 
-A factorial design is used to run the simulation studies, with the factor levels set as follows: 1) $\alpha, \beta, \zeta \in \left\{0, 0.05, 0.1, 0.25, 0.5, 1.0\right\}$, 2) study duration: $\left\{1, 2, 5\right\}$, 3) interval between images: $\left\{0.1, 0.25, 0.5\right\}$, 4) longitudinal change model: Constant, Linear, Quadratic, Sinusoidal. The sample size for each time point is set to 1,000 observations, so each embedding map is simulated a total of 7,776 times. All code required to reproduce the simulation results and the associated figures is provided at \href{https://github.com/rjzielinski/lpme-project}{\texttt{https://github.com/rjzielinski/lpme-project}}.
+A factorial design is used to run the simulation studies, with the factor levels set as follows: 1) $\alpha, \beta, \zeta \in \left\{0, 0.05, 0.1, 0.25, 0.5, 1.0\right\}$; 2) study duration: $\left\{1, 2, 5\right\}$; 3) interval between images: $\left\{0.1, 0.25, 0.5\right\}$; 4) longitudinal change model: Constant, Linear, Quadratic, Sinusoidal. The sample size for each time point is set to 1,000 observations, so each embedding map is simulated a total of 7,776 times. All code required to reproduce the simulation results and the associated figures is provided at \href{https://github.com/rjzielinski/lpme-project}{\texttt{https://github.com/rjzielinski/lpme-project}}.
 
 Visualizations of the results from some of the simulation cases, truncated for concision, are shown in Figures \ref{fig:sim_case1} and \ref{fig:sim_case6}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
 
@@ -442,7 +442,7 @@ Visualizations of the results from some of the simulation cases, truncated for c
   \label{fig:sim_case6}
 \end{figure}
 
-The mean, median, and standard deviation of the mean squared distance from the true underlying manifold values for the estimates of each approach, as well as for the data itself, are shown in Tables \ref{table:simulation_results_mean} and \ref{table:simulation_results_median}. Because the PME, principal curve, and principal surface methods each attempt to estimate the manifold in question at each individual time point without allowing other time points to inform these estimates, they should result in similar deviations from the true underlying manifold, with differences in error resulting primarily from differing performances in fitting to the observed data. Meanwhile, because the LPME approach accounts for all time points simultaneously, this approach should result in lower mean squared distance values.
+The mean, median, standard deviation and interquartile range of the mean squared distance from the true underlying manifold values for the estimates of each approach, as well as for the data itself, are shown in Tables \ref{table:simulation_results_mean} and \ref{table:simulation_results_median}. Because the PME, principal curve, and principal surface methods each attempt to estimate the manifold in question at each individual time point without allowing other time points to inform these estimates, they should result in similar deviations from the true underlying manifold, with differences in error resulting primarily from differing performances in fitting to the observed data. Meanwhile, because the LPME approach accounts for all time points simultaneously, this approach should result in lower mean squared distance values.
 
 The result summaries indicate that in most cases, LPME provides a substantial improvement in performance over the PME and principal curve approaches when estimating the underlying manifold. As seen clearly in Figure \ref{fig:sim_case1}, while the structure of the simulated data changes noticeably between time points, the LPME estimates, shown in blue, remain relatively stable over time. This contrasts to the estimates found by the PME and principal curve approaches, which are highly sensitive to the data observed at each given time point, as expected. This ultimately results in the LPME estimates remaining closer to the true underlying manifold, shown in red. Similar results hold in most of the other simulation cases.
 
