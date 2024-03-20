@@ -300,6 +300,7 @@ patnos <- lhipp_surface$patno %>%
 
 set.seed(10283)
 foreach (patno_val = patnos) %do% {
+  print(patno_val)
   lhipp <- lhipp_surface %>% 
     filter(patno == patno_val)
   lthal <- lthal_surface %>% 
@@ -362,6 +363,8 @@ foreach (patno_val = patnos) %do% {
   
   time_vals <- unique(lhipp_mat[, 1])
   
+  print("Fitting LHIPP Models")
+  
   lhipp_lpme_result_isomap <- lpme(
     lhipp_mat,
     d = 2,
@@ -395,10 +398,14 @@ foreach (patno_val = patnos) %do% {
   write.csv(lhipp_lpme_isomap_vals, paste0(patno_path, "/adni_lhipp_lpme_isomap_vals.csv"))
   write.csv(lhipp_pme_vals, paste0(patno_path, "/adni_lhipp_pme_vals.csv"))
   
+  print("Files saved")
+  
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
   # Voxel volume: 1.054688 mm^3
+  
+  print("LHIPP Volume Estimation 1")
   
   lhipp_rescaled <- lhipp %>%
     mutate(
@@ -418,7 +425,6 @@ foreach (patno_val = patnos) %do% {
   lhipp_lpme_interior_plots <- list()
   
   for (time_idx in 1:length(time_vals)) {
-    print(time_idx)
     temp_max_x <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_z)
@@ -482,6 +488,8 @@ foreach (patno_val = patnos) %do% {
   }
     
   ### VOLUME ESTIMATION 2 
+  
+  print("LHIPP Volume Estimation 2")
   
   lhipp_lpme_vals <- lhipp_lpme_isomap_vals
 
@@ -592,6 +600,8 @@ foreach (patno_val = patnos) %do% {
   ) %>%
     reduce(rbind)
   
+  print("Fitting LTHAL Models")
+  
   lthal_lpme_result_isomap <- lpme(
     lthal_mat,
     d = 2,
@@ -621,6 +631,10 @@ foreach (patno_val = patnos) %do% {
   write.csv(lthal_lpme_isomap_vals, paste0(patno_path, "/adni_lthal_lpme_isomap_vals.csv"))
   write.csv(lthal_pme_vals, paste0(patno_path, "/adni_lthal_pme_vals.csv"))
   
+  print("LTHAL Files Saved")
+  
+  
+  print("LTHAL Volume Estimation 1")
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
@@ -707,6 +721,8 @@ foreach (patno_val = patnos) %do% {
   }
     
   ### VOLUME ESTIMATION 2 
+  
+  print("LTHAL Volume Estimation 2")
   
   lthal_lpme_vals <- lthal_lpme_isomap_vals
 
@@ -817,6 +833,8 @@ foreach (patno_val = patnos) %do% {
   ) %>%
     reduce(rbind)
   
+  print("Fitting RHIPP Models")
+  
   rhipp_lpme_result_isomap <- lpme(
     rhipp_mat,
     d = 2,
@@ -846,10 +864,14 @@ foreach (patno_val = patnos) %do% {
   write.csv(rhipp_lpme_isomap_vals, paste0(patno_path, "/adni_rhipp_lpme_isomap_vals.csv"))
   write.csv(rhipp_pme_vals, paste0(patno_path, "/adni_rhipp_pme_vals.csv"))
   
+  print("RHIPP Files Saved")
+  
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
   # Voxel volume: 1.054688 mm^3
+  
+  print("RHIPP Volume Estimation 1")
   
   rhipp_rescaled <- rhipp %>%
     mutate(
@@ -931,6 +953,7 @@ foreach (patno_val = patnos) %do% {
     
   }
     
+  print("RHIPP Volume Estimation 2")
   ### VOLUME ESTIMATION 2 
   
   rhipp_lpme_vals <- rhipp_lpme_isomap_vals
@@ -1042,6 +1065,7 @@ foreach (patno_val = patnos) %do% {
   ) %>%
     reduce(rbind)
   
+  print("Fitting RTHAL Models")
   rthal_lpme_result_isomap <- lpme(
     rthal_mat,
     d = 2,
@@ -1071,10 +1095,14 @@ foreach (patno_val = patnos) %do% {
   write.csv(rthal_lpme_isomap_vals, paste0(patno_path, "/adni_rthal_lpme_isomap_vals.csv"))
   write.csv(rthal_pme_vals, paste0(patno_path, "/adni_rthal_pme_vals.csv"))
   
+  print("RTHAL Files Saved")
+  
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
   # Voxel volume: 1.054688 mm^3
+  
+  print("RTHAL Volume Estimation 1")
   
   rthal_rescaled <- rthal %>%
     mutate(
@@ -1158,6 +1186,7 @@ foreach (patno_val = patnos) %do% {
     
   ### VOLUME ESTIMATION 2 
   
+  print("RTHAL Volume Estimation 2")
   rthal_lpme_vals <- rthal_lpme_isomap_vals
 
   rthal_data_rescaled <- list()
@@ -1210,7 +1239,7 @@ foreach (patno_val = patnos) %do% {
     ~ .x[[2]]
   )
   
-  rthal_data_volume2 <- map(
+  rthal_data_volumes2 <- map(
     rthal_data_volumes2,
     ~ .x[[1]]
   ) %>%
@@ -1269,7 +1298,9 @@ foreach (patno_val = patnos) %do% {
   
   dates <- unique(lhipp$time_bl) + time_vals
   
-  temp_hipp_info <- data.frame(
+  print("Creating Temporary Files...")
+  
+  temp_hipp_info <- tibble(
     patno = patno_val,
     date = dates,
     lhipp_data_vol2 = lhipp_data_volumes2,
@@ -1284,7 +1315,7 @@ foreach (patno_val = patnos) %do% {
     rhipp_vol_pme2 = rhipp_pme_volumes2
   )
   
-  temp_thal_info <- data.frame(
+  temp_thal_info <- tibble(
     patno = patno_val,
     date = dates,
     lthal_data_vol2 = lthal_data_volumes2,
@@ -1298,12 +1329,14 @@ foreach (patno_val = patnos) %do% {
     rthal_vol_pme1 = rthal_pme_volumes,
     rthal_vol_pme2 = rthal_pme_volumes2
   )
-  
+
   est_hipp_info <- bind_rows(est_hipp_info, temp_hipp_info)
   est_thal_info <- bind_rows(est_thal_info, temp_thal_info)
   
   write.csv(temp_hipp_info, file = paste0(patno_path, "/hipp_info.csv"))
   write.csv(temp_thal_info, file = paste0(patno_path, "/thal_info.csv"))
+  
+  print("Temporary Files Saved")
   
   p <- plot_ly(
     x = lhipp_mat[, 2],
@@ -1806,7 +1839,7 @@ foreach (patno_val = patnos) %do% {
   )
 }
 
-# parallel::stopCluster(cl)
+parallel::stopCluster(cl)
 
 write.csv(est_hipp_info, "results/est_hipp_info.csv")
 write.csv(est_thal_info, "results/est_thal_info.csv")
