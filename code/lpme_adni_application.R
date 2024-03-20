@@ -294,12 +294,12 @@ rthal_surface <- bind_cols(rthal_surface, rthal_surface_spherical)
 patnos <- lhipp_surface$patno %>%
   unique()
 
-# ncores <- parallel::detectCores()
-# cl <- parallel::makeCluster(ncores / 2, type = "FORK")
-# doParallel::registerDoParallel(cl)
+ncores <- parallel::detectCores()
+cl <- parallel::makeCluster(ncores, type = "FORK")
+doParallel::registerDoParallel(cl)
 
 set.seed(10283)
-foreach (patno_val = patnos) %do% {
+foreach (patno_val = patnos) %dopar% {
   print(patno_val)
   lhipp <- lhipp_surface %>% 
     filter(patno == patno_val)
