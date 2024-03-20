@@ -2,10 +2,11 @@ library(oro.dicom)
 library(oro.nifti)
 library(neurobase)
 library(fslr)
-library(extrantsr)
+# library(extrantsr)
 library(stringr)
 library(foreach)
 library(tidyverse)
+library(ANTsRCore)
 
 sub_dirs <- list.dirs("data/adni", recursive = FALSE)
 
@@ -25,8 +26,8 @@ ncores <- parallel::detectCores() / 2
 cl <- parallel::makeCluster(ncores, type = "FORK")
 doParallel::registerDoParallel(cl = cl)
 
-# foreach (dir_idx = 1:length(sub_dirs)) %dopar% {
-foreach(dir_idx = 1:8) %dopar% {
+foreach (dir_idx = 1:length(sub_dirs)) %dopar% {
+# foreach(dir_idx = 1:8) %dopar% {
   img_dirs <- list.files(sub_dirs[dir_idx], recursive = TRUE, full.names = TRUE) %>%
     gsub(pattern = "([^/]+$)", replacement = "") %>%
     unique()
@@ -34,8 +35,8 @@ foreach(dir_idx = 1:8) %dopar% {
   nii_scans[[dir_idx]] <- list()
 
   for (img_idx in 1:length(img_dirs)) {
-    proc_dir <- paste0("data/adni_processed_fsl_red", gsub(pattern = "data/adni", replacement = "", img_dirs[img_idx]))
-    if (file.exists(paste0(proc_dir, "/-L_Hipp_first.nii.gz"))) {
+    proc_dir <- paste0("data/adni_processed_fsl", gsub(pattern = "data/adni", replacement = "", img_dirs[img_idx]))
+    if (file.exists(paste0(proc_dir, "/_all_fast_origsegs.nii.gz"))) {
       next
     } else {
       all_slices <- readDICOM(img_dirs[img_idx])
@@ -50,12 +51,18 @@ foreach(dir_idx = 1:8) %dopar% {
 
       nii <- fslreorient2std(nii, verbose = FALSE) # orient nii to mni space
       # inhomogeneity correction
-      nii <- bias_correct(
-        nii,
-        correction = "N4",
-        verbose = FALSE
-      ) # N4 bias correction using ANTs
+      # nii <- bias_correct(
+      #   nii,
+      #   correction = "N4",
+      #   verbose = FALSE
+      # ) # N4 bias correction using ANTs
       # nii_bc <- fast(nii, bias_correct = TRUE)
+
+      # nii <- fast(nii, bias_correct = TRUE)
+      # nii <- n4BiasFieldCorrection(
+      #   nii,
+      #   verbose = FALSE
+      # )
 
       # brain extraction
       # if brain extraction shows signs of issues in some images,
@@ -77,7 +84,8 @@ foreach(dir_idx = 1:8) %dopar% {
       run_first_all(
         nii,
         oprefix = proc_dir,
-        verbose = FALSE
+        verbose = FALSE,
+        opts = "-d"
       )
     }
   }
@@ -89,8 +97,8 @@ test_dicom <- readDICOM(
   list.files(sub_dirs[1], recursive = TRUE, full.names = TRUE)[1]
 )
 
-patnos <- list.dirs("data/adni_processed_fsl_red", recursive = FALSE, full.names = FALSE)
-processed_dirs <- list.dirs("data/adni_processed_fsl_red", recursive = FALSE)
+patnos <- list.dirs("data/adni_processed_fsl", recursive = FALSE, full.names = FALSE)
+processed_dirs <- list.dirs("data/adni_processed_fsl", recursive = FALSE)
 
 lhipp <- matrix(ncol = 6)
 rhipp <- matrix(ncol = 6)
@@ -128,28 +136,18 @@ for (dir_idx in 1:length(processed_dirs)) {
     gsub(pattern = "([^/]+$)", replacement = "") %>%
     unique()
   for (scan_idx in 1:length(scan_dirs)) {
-    img_id <- c(img_id, patnos[dir_idx])
-    img_date <- c(img_date, scan_dates[scan_idx])
     print(scan_dates[scan_idx])
-    if (file.exists(paste0(scan_dirs[scan_idx], "-L_Hipp_first.nii.gz"))) {
-      temp_lhipp <- readnii(paste0(scan_dirs[scan_idx], "-L_Hipp_first.nii.gz"))
-      # temp_lhipp_vol <- fslstats(
-      #   paste0(scan_dirs[scan_idx], "_all_fast_firstseg.nii.gz"),
-      #   opts = "-l 16.5 -u 17.5 -V"
-      # ) %>%
-      #   str_replace(
-      #     pattern = "([^\\s]+)",
-      #     replacement = ""
-      #   ) %>%
-      #   gsub(
-      #     pattern = " ",
-      #     replacement = ""
-      #   ) %>%
-      #   as.numeric()
-      temp_lhipp_vol <- fslstats(
-        paste0(scan_dirs[scan_idx], "-L_Hipp_first.nii.gz"),
-        opts = "-V"
-      ) %>%
+    if (file.exists(paste0(scan_dirs[scan_idx], "_all_fast_origsegs.nii.gz"))) {
+      img_id <- c(img_id, patnos[dir_idx])
+      img_date <- c(img_date, scan_dates[scan_idx])
+      temp_segs <- readnii(paste0(scan_dirs[scan_idx], "_all_fast_origsegs.nii.gz"))
+      seg_vols <- fslstats(
+        paste0(scan_dirs[scan_idx], "_all_fast_origsegs.nii.gz"),
+        opts = "-V",
+        ts = TRUE
+      )
+      temp_lhipp <- temp_segs[, , , 6]
+      temp_lhipp_vol <- seg_vols[6] %>%
         str_replace(
           pattern = "([^\\s]+)",
           replacement = ""
@@ -191,37 +189,20 @@ for (dir_idx in 1:length(processed_dirs)) {
       lhipp_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        lhipp_idx %*% diag(pixdim(temp_lhipp)[2:4]),
+        lhipp_idx %*% diag(pixdim(as.nifti(temp_lhipp))[2:4]),
         temp_lhipp[lhipp_idx]
       )
       lhipp_surface_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        lhipp_idx[surface, ] %*% diag(pixdim(temp_lhipp)[2:4]),
+        lhipp_idx[surface, ] %*% diag(pixdim(as.nifti(temp_lhipp))[2:4]),
         temp_lhipp[lhipp_idx[surface, ]]
       )
       lhipp <- rbind(lhipp, lhipp_temp)
       lhipp_surface <- rbind(lhipp_surface, lhipp_surface_temp)
-    }
-    if (file.exists(paste0(scan_dirs[scan_idx], "-R_Hipp_first.nii.gz"))) {
-      temp_rhipp <- readnii(paste0(scan_dirs[scan_idx], "-R_Hipp_first.nii.gz"))
-      # temp_rhipp_vol <- fslstats(
-      #   paste0(scan_dirs[scan_idx], "_all_fast_firstseg.nii.gz"),
-      #   opts = "-l 52.5 -u 53.5 -V"
-      # ) %>%
-      #   str_replace(
-      #     pattern = "([^\\s]+)",
-      #     replacement = ""
-      #   ) %>%
-      #   gsub(
-      #     pattern = " ",
-      #     replacement = ""
-      #   ) %>%
-      #   as.numeric()
-      temp_rhipp_vol <- fslstats(
-        paste0(scan_dirs[scan_idx], "-R_Hipp_first.nii.gz"),
-        opts = "-V"
-      ) %>%
+      temp_rhipp <- temp_segs[, , , 13]
+      
+      temp_rhipp_vol <- seg_vols[13] %>%
         str_replace(
           pattern = "([^\\s]+)",
           replacement = ""
@@ -263,38 +244,20 @@ for (dir_idx in 1:length(processed_dirs)) {
       rhipp_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        rhipp_idx %*% diag(pixdim(temp_rhipp)[2:4]),
+        rhipp_idx %*% diag(pixdim(as.nifti(temp_rhipp))[2:4]),
         temp_rhipp[rhipp_idx]
       )
       rhipp_surface_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        rhipp_idx[surface, ] %*% diag(pixdim(temp_rhipp)[2:4]),
+        rhipp_idx[surface, ] %*% diag(pixdim(as.nifti(temp_rhipp))[2:4]),
         temp_rhipp[rhipp_idx[surface, ]]
       )
       rhipp <- rbind(rhipp, rhipp_temp)
       rhipp_surface <- rbind(rhipp_surface, rhipp_surface_temp)
-    }
 
-    if (file.exists(paste0(scan_dirs[scan_idx], "-L_Thal_first.nii.gz"))) {
-      temp_lthal <- readnii(paste0(scan_dirs[scan_idx], "-L_Thal_first.nii.gz"))
-      # temp_lthal_vol <- fslstats(
-      #   paste0(scan_dirs[scan_idx], "_all_fast_firstseg.nii.gz"),
-      #   opts = "-l 52.5 -u 53.5 -V"
-      # ) %>%
-      #   str_replace(
-      #     pattern = "([^\\s]+)",
-      #     replacement = ""
-      #   ) %>%
-      #   gsub(
-      #     pattern = " ",
-      #     replacement = ""
-      #   ) %>%
-      #   as.numeric()
-      temp_lthal_vol <- fslstats(
-        paste0(scan_dirs[scan_idx], "-L_Thal_first.nii.gz"),
-        opts = "-V"
-      ) %>%
+      temp_lthal <- temp_segs[, , , 1]
+      temp_lthal_vol <- seg_vols[1] %>%
         str_replace(
           pattern = "([^\\s]+)",
           replacement = ""
@@ -336,37 +299,19 @@ for (dir_idx in 1:length(processed_dirs)) {
       lthal_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        lthal_idx %*% diag(pixdim(temp_lthal)[2:4]),
+        lthal_idx %*% diag(pixdim(as.nifti(temp_lthal))[2:4]),
         temp_lthal[lthal_idx]
       )
       lthal_surface_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        lthal_idx[surface, ] %*% diag(pixdim(temp_lthal)[2:4]),
+        lthal_idx[surface, ] %*% diag(pixdim(as.nifti(temp_lthal))[2:4]),
         temp_lthal[lthal_idx[surface, ]]
       )
       lthal <- rbind(lthal, lthal_temp)
       lthal_surface <- rbind(lthal_surface, lthal_surface_temp)
-    }
-    if (file.exists(paste0(scan_dirs[scan_idx], "-R_Thal_first.nii.gz"))) {
-      temp_rthal <- readnii(paste0(scan_dirs[scan_idx], "-R_Thal_first.nii.gz"))
-      # temp_rthal_vol <- fslstats(
-      #   paste0(scan_dirs[scan_idx], "_all_fast_firstseg.nii.gz"),
-      #   opts = "-l 52.5 -u 53.5 -V"
-      # ) %>%
-      #   str_replace(
-      #     pattern = "([^\\s]+)",
-      #     replacement = ""
-      #   ) %>%
-      #   gsub(
-      #     pattern = " ",
-      #     replacement = ""
-      #   ) %>%
-      #   as.numeric()
-      temp_rthal_vol <- fslstats(
-        paste0(scan_dirs[scan_idx], "-R_Thal_first.nii.gz"),
-        opts = "-V"
-      ) %>%
+      temp_rthal <- temp_segs[, , , 9]
+      temp_rthal_vol <- seg_vols[9] %>%
         str_replace(
           pattern = "([^\\s]+)",
           replacement = ""
@@ -408,13 +353,13 @@ for (dir_idx in 1:length(processed_dirs)) {
       rthal_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        rthal_idx %*% diag(pixdim(temp_rthal)[2:4]),
+        rthal_idx %*% diag(pixdim(as.nifti(temp_rthal))[2:4]),
         temp_rthal[rthal_idx]
       )
       rthal_surface_temp <- cbind(
         patnos[dir_idx],
         scan_dates[scan_idx],
-        rthal_idx[surface, ] %*% diag(pixdim(temp_rthal)[2:4]),
+        rthal_idx[surface, ] %*% diag(pixdim(as.nifti(temp_rthal))[2:4]),
         temp_rthal[rthal_idx[surface, ]]
       )
       rthal <- rbind(rthal, rthal_temp)
@@ -566,8 +511,8 @@ names(hipp_info) <- c("patno", "date", "lhipp_vol", "rhipp_vol")
 thal_info <- data.frame(img_id, img_date, lthal_vol, rthal_vol)
 names(thal_info) <- c("patno", "date", "lthal_vol", "rthal_vol")
 
-write_csv(hipp_info, "data/adni_fsl_hipp_red_info.csv")
-write_csv(thal_info, "data/adni_fsl_thal_red_info.csv")
+write_csv(hipp_info, "data/adni_fsl_hipp_info.csv")
+write_csv(thal_info, "data/adni_fsl_thal_info.csv")
 
 write_csv(lhipp, "data/adni_fsl_lhipp.csv")
 write_csv(rhipp, "data/adni_fsl_rhipp.csv")
