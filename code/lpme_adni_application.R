@@ -78,13 +78,13 @@ rthal_surface <- rthal_surface %>%
     scan_date = decimal_date(scan_date)
   )
 
-hipp_info <- hipp_info %>% 
+hipp_info <- hipp_info %>%
   mutate(
     date = gsub("\\.0", "", date),
     date = ymd_hms(date),
     date = decimal_date(date)
   )
-thal_info <- thal_info %>% 
+thal_info <- thal_info %>%
   mutate(
     date = gsub("\\.0", "", date),
     date = ymd_hms(date),
@@ -93,25 +93,25 @@ thal_info <- thal_info %>%
 
 
 
-lhipp_patnos <- lhipp_surface %>% 
-  dplyr::select(patno, scan_date) %>% 
-  distinct() %>% 
-  group_by(patno) %>% 
-  tally() %>% 
-  filter(n >= 3) %>% 
-  select(patno) %>% 
+lhipp_patnos <- lhipp_surface %>%
+  dplyr::select(patno, scan_date) %>%
+  distinct() %>%
+  group_by(patno) %>%
+  tally() %>%
+  filter(n >= 3) %>%
+  select(patno) %>%
   unlist()
 
-lhipp_surface <- lhipp_surface %>% 
+lhipp_surface <- lhipp_surface %>%
   filter(patno %in% lhipp_patnos)
 
-lthal_surface <- lthal_surface %>% 
+lthal_surface <- lthal_surface %>%
   filter(patno %in% lhipp_patnos)
 
-rhipp_surface <- rhipp_surface %>% 
+rhipp_surface <- rhipp_surface %>%
   filter(patno %in% lhipp_patnos)
 
-rthal_surface <- rthal_surface %>% 
+rthal_surface <- rthal_surface %>%
   filter(patno %in% lhipp_patnos)
 
 lhipp_surface_centers <- lhipp_surface %>%
@@ -294,22 +294,40 @@ rthal_surface <- bind_cols(rthal_surface, rthal_surface_spherical)
 patnos <- lhipp_surface$patno %>%
   unique()
 
-ncores <- parallel::detectCores()
-cl <- parallel::makeCluster(ncores, type = "FORK")
-doParallel::registerDoParallel(cl)
+# ncores <- parallel::detectCores()
+# cl <- parallel::makeCluster(ncores - 2, type = "FORK")
+# doParallel::registerDoParallel(cl)
 
 set.seed(10283)
-foreach (patno_val = patnos) %dopar% {
+foreach(
+  patno_val = patnos,
+  .packages = c(
+    "pme", 
+    "plotly", 
+    "plot3D", 
+    "pracma", 
+    "RColorBrewer", 
+    "Rfast", 
+    "tidyverse"
+  ),
+  .export = c(
+    "calc_pme_est", 
+    "calc_lpme_est_params", 
+    "estimate_volume", 
+    "interior_identification", 
+    "create_cross_section_matrix"
+  )
+) %do% {
   print(patno_val)
-  lhipp <- lhipp_surface %>% 
+  lhipp <- lhipp_surface %>%
     filter(patno == patno_val)
-  lthal <- lthal_surface %>% 
+  lthal <- lthal_surface %>%
     filter(patno == patno_val)
   rhipp <- rhipp_surface %>%
     filter(patno == patno_val)
   rthal <- rthal_surface %>%
     filter(patno == patno_val)
-  
+
   lhipp_mat <- lhipp %>%
     dplyr::select(
       time_from_bl,
@@ -334,7 +352,7 @@ foreach (patno_val = patnos) %dopar% {
       r
     ) %>%
     as.matrix()
-  
+
   rhipp_mat <- rhipp %>%
     filter(patno == patno_val) %>%
     dplyr::select(
@@ -359,12 +377,12 @@ foreach (patno_val = patnos) %dopar% {
       r
     ) %>%
     as.matrix()
-     
-  
+
+
   time_vals <- unique(lhipp_mat[, 1])
-  
+
   print("Fitting LHIPP Models")
-  
+
   lhipp_lpme_result_isomap <- lpme(
     lhipp_mat,
     d = 2,
@@ -378,7 +396,7 @@ foreach (patno_val = patnos) %dopar% {
   lhipp_lpme_isomap_est <- calc_lpme_est_params(lhipp_lpme_result_isomap, lhipp_mat)
   lhipp_lpme_isomap_vals <- lhipp_lpme_isomap_est$results
   lhipp_lpme_isomap_params <- lhipp_lpme_isomap_est$params
-  
+
   lhipp_pme_result <- list()
   lhipp_pme_vals <- list()
   for (t in 1:length(time_vals)) {
@@ -387,7 +405,7 @@ foreach (patno_val = patnos) %dopar% {
     lhipp_pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(lhipp_pme_result[[t]], temp_data))
   }
   lhipp_pme_vals <- reduce(lhipp_pme_vals, rbind)
-  
+
   patno_path <- paste0("results/", patno_val)
   if (!dir.exists(patno_path)) {
     dir.create(patno_path)
@@ -397,16 +415,16 @@ foreach (patno_val = patnos) %dopar% {
   write.csv(lhipp_mat, paste0(patno_path, "/adni_lhipp_mat.csv"))
   write.csv(lhipp_lpme_isomap_vals, paste0(patno_path, "/adni_lhipp_lpme_isomap_vals.csv"))
   write.csv(lhipp_pme_vals, paste0(patno_path, "/adni_lhipp_pme_vals.csv"))
-  
+
   print("Files saved")
-  
+
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
   # Voxel volume: 1.054688 mm^3
-  
+
   print("LHIPP Volume Estimation 1")
-  
+
   lhipp_rescaled <- lhipp %>%
     mutate(
       x_rescaled = round((x * max_x)),
@@ -416,32 +434,32 @@ foreach (patno_val = patnos) %dopar% {
   candidate_x <- seq(min(lhipp_rescaled$x_rescaled), max(lhipp_rescaled$x_rescaled), 1)
   candidate_y <- seq(min(lhipp_rescaled$y_rescaled), max(lhipp_rescaled$y_rescaled), 1)
   candidate_z <- seq(min(lhipp_rescaled$z_rescaled), max(lhipp_rescaled$z_rescaled), 1)
-  
+
   candidate_voxels <- expand_grid(candidate_x, candidate_y, candidate_z)
-  
+
   lhipp_pme_volumes <- vector(mode = "numeric", length = length(time_vals))
   lhipp_lpme_volumes <- vector(mode = "numeric", length = length(time_vals))
-  lhipp_pme_interior_plots <- list()
-  lhipp_lpme_interior_plots <- list()
-  
+  # lhipp_pme_interior_plots <- list()
+  # lhipp_lpme_interior_plots <- list()
+
   for (time_idx in 1:length(time_vals)) {
     temp_max_x <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_candidates <- candidate_voxels %>%
       mutate(
         x_scaled = candidate_x / temp_max_x,
         y_scaled = candidate_y / temp_max_y,
         z_scaled = candidate_z / temp_max_z
       )
-  
+
     temp_pme <- lhipp_pme_result[[time_idx]]
-  
+
     temp_pme_embedding <- temp_pme$embedding_map
     temp_pme_coefs <- temp_pme$coefs[[which.min(temp_pme$MSD)]]
     temp_pme_params <- temp_pme$parameterization[[which.min(temp_pme$MSD)]]
-  
+
     temp_lpme_coefs <- lhipp_lpme_result_isomap$sol_coef_functions[[which.min(lhipp_lpme_result_isomap$msd)]](time_vals[time_idx])
     temp_lpme_params <- lhipp_lpme_result_isomap$parameterization_list[[which.min(lhipp_lpme_result_isomap$msd)]]
     temp_lpme_params <- temp_lpme_params[temp_lpme_params[, 1] == time_vals[time_idx], -1]
@@ -452,12 +470,12 @@ foreach (patno_val = patnos) %dopar% {
       lpme_n_knots + d + 1,
       byrow = TRUE
     )
-  
+
     temp_lpme_embedding <- function(r) {
       t(coef_mat[1:lpme_n_knots, ]) %*% pme::etaFunc(r, temp_lpme_params, 4 - d) +
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
-  
+
     lhipp_interior_voxel_pme <- vector(length = nrow(temp_candidates))
     lhipp_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
     for (row_idx in 1:nrow(temp_candidates)) {
@@ -476,132 +494,131 @@ foreach (patno_val = patnos) %dopar% {
         c(0, 0, 0)
       )
     }
-  
+
     lhipp_interior_points_pme <- temp_candidates[lhipp_interior_voxel_pme, ]
     lhipp_interior_points_lpme <- temp_candidates[lhipp_interior_voxel_lpme, ]
-  
-    lhipp_pme_interior_plots[[time_idx]] <- p
-    lhipp_lpme_interior_plots[[time_idx]] <- p_lpme
+
+    # lhipp_pme_interior_plots[[time_idx]] <- p
+    # lhipp_lpme_interior_plots[[time_idx]] <- p_lpme
     lhipp_pme_volumes[time_idx] <- 1.054688 * nrow(lhipp_interior_points_pme)
     lhipp_lpme_volumes[time_idx] <- 1.054688 * nrow(lhipp_interior_points_lpme)
-    
   }
-    
-  ### VOLUME ESTIMATION 2 
-  
+
+  ### VOLUME ESTIMATION 2
+
   print("LHIPP Volume Estimation 2")
-  
+
   lhipp_lpme_vals <- lhipp_lpme_isomap_vals
 
   lhipp_data_rescaled <- list()
   lhipp_lpme_rescaled <- list()
   lhipp_pme_rescaled <- list()
-  
+
   for (time_idx in 1:length(time_vals)) {
     temp_data <- lhipp_mat[lhipp_mat[, 1] == time_vals[time_idx], ]
     temp_lpme <- lhipp_lpme_vals[lhipp_lpme_vals[, 1] == time_vals[time_idx], ]
     temp_pme <- lhipp_pme_vals[lhipp_pme_vals[, 1] == time_vals[time_idx], ]
-  
+
     temp_max_x <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(lhipp[lhipp$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_data_rescaled <- temp_data[, -(5:7)]
     temp_lpme_rescaled <- temp_lpme[, -(5:7)]
     temp_pme_rescaled <- temp_pme[, -(5:7)]
-  
+
     temp_data_rescaled[, 2] <- round((temp_data_rescaled[, 2] * temp_max_x) / 1.2)
     temp_data_rescaled[, 3] <- round((temp_data_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_data_rescaled[, 4] <- round((temp_data_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_lpme_rescaled[, 2] <- round((temp_lpme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_lpme_rescaled[, 3] <- round((temp_lpme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_lpme_rescaled[, 4] <- round((temp_lpme_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_pme_rescaled[, 2] <- round((temp_pme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_pme_rescaled[, 3] <- round((temp_pme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_pme_rescaled[, 4] <- round((temp_pme_rescaled[, 4] * temp_max_z) / 0.9375)
-    
+
     lhipp_data_rescaled[[time_idx]] <- temp_data_rescaled
     lhipp_lpme_rescaled[[time_idx]] <- temp_lpme_rescaled
     lhipp_pme_rescaled[[time_idx]] <- temp_pme_rescaled
   }
-  
+
   lhipp_data_rescaled_full <- reduce(lhipp_data_rescaled, rbind)
   lhipp_lpme_rescaled_full <- reduce(lhipp_lpme_rescaled, rbind)
   lhipp_pme_rescaled_full <- reduce(lhipp_pme_rescaled, rbind)
-  
+
   voxel_vol <- 1.2 * 0.9375 * 0.9375
-  
+
   lhipp_data_volumes2 <- map(
     lhipp_data_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   lhipp_data_volume_points2 <- map(
     lhipp_data_volumes2,
     ~ .x[[2]]
   )
-  
+
   lhipp_data_volumes2 <- map(
     lhipp_data_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   lhipp_lpme_volumes2 <- map(
     lhipp_lpme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   lhipp_lpme_volume_points2 <- map(
     lhipp_lpme_volumes2,
     ~ .x[[2]]
   )
-  
+
   lhipp_lpme_volumes2 <- map(
     lhipp_lpme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   lhipp_pme_volumes2 <- map(
     lhipp_pme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   lhipp_pme_volume_points2 <- map(
     lhipp_pme_volumes2,
     ~ .x[[2]]
   )
-  
+
   lhipp_pme_volumes2 <- map(
     lhipp_pme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   lhipp_data_volume_points_full <- map(
     1:length(lhipp_data_volume_points2),
     ~ cbind(time_vals[.x], lhipp_data_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
-  
+
+
   lhipp_lpme_volume_points_full <- map(
     1:length(lhipp_lpme_volume_points2),
     ~ cbind(time_vals[.x], lhipp_lpme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   lhipp_pme_volume_points_full <- map(
     1:length(lhipp_pme_volume_points2),
     ~ cbind(time_vals[.x], lhipp_pme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   print("Fitting LTHAL Models")
-  
+
   lthal_lpme_result_isomap <- lpme(
     lthal_mat,
     d = 2,
@@ -615,7 +632,7 @@ foreach (patno_val = patnos) %dopar% {
   lthal_lpme_isomap_est <- calc_lpme_est_params(lthal_lpme_result_isomap, lthal_mat)
   lthal_lpme_isomap_vals <- lthal_lpme_isomap_est$results
   lthal_lpme_isomap_params <- lthal_lpme_isomap_est$params
-  
+
   lthal_pme_result <- list()
   lthal_pme_vals <- list()
   for (t in 1:length(time_vals)) {
@@ -624,22 +641,22 @@ foreach (patno_val = patnos) %dopar% {
     lthal_pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(lthal_pme_result[[t]], temp_data))
   }
   lthal_pme_vals <- reduce(lthal_pme_vals, rbind)
-  
+
   saveRDS(lthal_lpme_result_isomap, paste0(patno_path, "/adni_lthal_lpme_isomap.rds"))
   saveRDS(lthal_pme_result, paste0(patno_path, "/adni_lthal_pme.rds"))
   write.csv(lthal_mat, paste0(patno_path, "/adni_lthal_mat.csv"))
   write.csv(lthal_lpme_isomap_vals, paste0(patno_path, "/adni_lthal_lpme_isomap_vals.csv"))
   write.csv(lthal_pme_vals, paste0(patno_path, "/adni_lthal_pme_vals.csv"))
-  
+
   print("LTHAL Files Saved")
-  
-  
+
+
   print("LTHAL Volume Estimation 1")
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
   # Voxel volume: 1.054688 mm^3
-  
+
   lthal_rescaled <- lthal %>%
     mutate(
       x_rescaled = round((x * max_x)),
@@ -649,32 +666,32 @@ foreach (patno_val = patnos) %dopar% {
   candidate_x <- seq(min(lthal_rescaled$x_rescaled), max(lthal_rescaled$x_rescaled), 1)
   candidate_y <- seq(min(lthal_rescaled$y_rescaled), max(lthal_rescaled$y_rescaled), 1)
   candidate_z <- seq(min(lthal_rescaled$z_rescaled), max(lthal_rescaled$z_rescaled), 1)
-  
+
   candidate_voxels <- expand_grid(candidate_x, candidate_y, candidate_z)
-  
+
   lthal_pme_volumes <- vector(mode = "numeric", length = length(time_vals))
   lthal_lpme_volumes <- vector(mode = "numeric", length = length(time_vals))
-  lthal_pme_interior_plots <- list()
-  lthal_lpme_interior_plots <- list()
-  
+  # lthal_pme_interior_plots <- list()
+  # lthal_lpme_interior_plots <- list()
+
   for (time_idx in 1:length(time_vals)) {
     temp_max_x <- unique(lthal[lthal$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(lthal[lthal$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(lthal[lthal$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_candidates <- candidate_voxels %>%
       mutate(
         x_scaled = candidate_x / temp_max_x,
         y_scaled = candidate_y / temp_max_y,
         z_scaled = candidate_z / temp_max_z
       )
-  
+
     temp_pme <- lthal_pme_result[[time_idx]]
-  
+
     temp_pme_embedding <- temp_pme$embedding_map
     temp_pme_coefs <- temp_pme$coefs[[which.min(temp_pme$MSD)]]
     temp_pme_params <- temp_pme$parameterization[[which.min(temp_pme$MSD)]]
-  
+
     temp_lpme_coefs <- lthal_lpme_result_isomap$sol_coef_functions[[which.min(lthal_lpme_result_isomap$msd)]](time_vals[time_idx])
     temp_lpme_params <- lthal_lpme_result_isomap$parameterization_list[[which.min(lthal_lpme_result_isomap$msd)]]
     temp_lpme_params <- temp_lpme_params[temp_lpme_params[, 1] == time_vals[time_idx], -1]
@@ -685,12 +702,12 @@ foreach (patno_val = patnos) %dopar% {
       lpme_n_knots + d + 1,
       byrow = TRUE
     )
-  
+
     temp_lpme_embedding <- function(r) {
       t(coef_mat[1:lpme_n_knots, ]) %*% pme::etaFunc(r, temp_lpme_params, 4 - d) +
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
-  
+
     lthal_interior_voxel_pme <- vector(length = nrow(temp_candidates))
     lthal_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
     for (row_idx in 1:nrow(temp_candidates)) {
@@ -709,132 +726,131 @@ foreach (patno_val = patnos) %dopar% {
         c(0, 0, 0)
       )
     }
-  
+
     lthal_interior_points_pme <- temp_candidates[lthal_interior_voxel_pme, ]
     lthal_interior_points_lpme <- temp_candidates[lthal_interior_voxel_lpme, ]
-  
-    lthal_pme_interior_plots[[time_idx]] <- p
-    lthal_lpme_interior_plots[[time_idx]] <- p_lpme
+
+    # lthal_pme_interior_plots[[time_idx]] <- p
+    # lthal_lpme_interior_plots[[time_idx]] <- p_lpme
     lthal_pme_volumes[time_idx] <- 1.054688 * nrow(lthal_interior_points_pme)
     lthal_lpme_volumes[time_idx] <- 1.054688 * nrow(lthal_interior_points_lpme)
-    
   }
-    
-  ### VOLUME ESTIMATION 2 
-  
+
+  ### VOLUME ESTIMATION 2
+
   print("LTHAL Volume Estimation 2")
-  
+
   lthal_lpme_vals <- lthal_lpme_isomap_vals
 
   lthal_data_rescaled <- list()
   lthal_lpme_rescaled <- list()
   lthal_pme_rescaled <- list()
-  
+
   for (time_idx in 1:length(time_vals)) {
     temp_data <- lthal_mat[lthal_mat[, 1] == time_vals[time_idx], ]
     temp_lpme <- lthal_lpme_vals[lthal_lpme_vals[, 1] == time_vals[time_idx], ]
     temp_pme <- lthal_pme_vals[lthal_pme_vals[, 1] == time_vals[time_idx], ]
-  
+
     temp_max_x <- unique(lthal[lthal$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(lthal[lthal$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(lthal[lthal$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_data_rescaled <- temp_data[, -(5:7)]
     temp_lpme_rescaled <- temp_lpme[, -(5:7)]
     temp_pme_rescaled <- temp_pme[, -(5:7)]
-  
+
     temp_data_rescaled[, 2] <- round((temp_data_rescaled[, 2] * temp_max_x) / 1.2)
     temp_data_rescaled[, 3] <- round((temp_data_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_data_rescaled[, 4] <- round((temp_data_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_lpme_rescaled[, 2] <- round((temp_lpme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_lpme_rescaled[, 3] <- round((temp_lpme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_lpme_rescaled[, 4] <- round((temp_lpme_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_pme_rescaled[, 2] <- round((temp_pme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_pme_rescaled[, 3] <- round((temp_pme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_pme_rescaled[, 4] <- round((temp_pme_rescaled[, 4] * temp_max_z) / 0.9375)
-    
+
     lthal_data_rescaled[[time_idx]] <- temp_data_rescaled
     lthal_lpme_rescaled[[time_idx]] <- temp_lpme_rescaled
     lthal_pme_rescaled[[time_idx]] <- temp_pme_rescaled
   }
-  
+
   lthal_data_rescaled_full <- reduce(lthal_data_rescaled, rbind)
   lthal_lpme_rescaled_full <- reduce(lthal_lpme_rescaled, rbind)
   lthal_pme_rescaled_full <- reduce(lthal_pme_rescaled, rbind)
-  
+
   voxel_vol <- 1.2 * 0.9375 * 0.9375
-  
+
   lthal_data_volumes2 <- map(
     lthal_data_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   lthal_data_volume_points2 <- map(
     lthal_data_volumes2,
     ~ .x[[2]]
   )
-  
+
   lthal_data_volumes2 <- map(
     lthal_data_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   lthal_lpme_volumes2 <- map(
     lthal_lpme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   lthal_lpme_volume_points2 <- map(
     lthal_lpme_volumes2,
     ~ .x[[2]]
   )
-  
+
   lthal_lpme_volumes2 <- map(
     lthal_lpme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   lthal_pme_volumes2 <- map(
     lthal_pme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   lthal_pme_volume_points2 <- map(
     lthal_pme_volumes2,
     ~ .x[[2]]
   )
-  
+
   lthal_pme_volumes2 <- map(
     lthal_pme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   lthal_data_volume_points_full <- map(
     1:length(lthal_data_volume_points2),
     ~ cbind(time_vals[.x], lthal_data_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
-  
+
+
   lthal_lpme_volume_points_full <- map(
     1:length(lthal_lpme_volume_points2),
     ~ cbind(time_vals[.x], lthal_lpme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   lthal_pme_volume_points_full <- map(
     1:length(lthal_pme_volume_points2),
     ~ cbind(time_vals[.x], lthal_pme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   print("Fitting RHIPP Models")
-  
+
   rhipp_lpme_result_isomap <- lpme(
     rhipp_mat,
     d = 2,
@@ -848,7 +864,7 @@ foreach (patno_val = patnos) %dopar% {
   rhipp_lpme_isomap_est <- calc_lpme_est_params(rhipp_lpme_result_isomap, rhipp_mat)
   rhipp_lpme_isomap_vals <- rhipp_lpme_isomap_est$results
   rhipp_lpme_isomap_params <- rhipp_lpme_isomap_est$params
-  
+
   rhipp_pme_result <- list()
   rhipp_pme_vals <- list()
   for (t in 1:length(time_vals)) {
@@ -857,22 +873,22 @@ foreach (patno_val = patnos) %dopar% {
     rhipp_pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(rhipp_pme_result[[t]], temp_data))
   }
   rhipp_pme_vals <- reduce(rhipp_pme_vals, rbind)
-  
+
   saveRDS(rhipp_lpme_result_isomap, paste0(patno_path, "/adni_rhipp_lpme_isomap.rds"))
   saveRDS(rhipp_pme_result, paste0(patno_path, "/adni_rhipp_pme.rds"))
   write.csv(rhipp_mat, paste0(patno_path, "/adni_rhipp_mat.csv"))
   write.csv(rhipp_lpme_isomap_vals, paste0(patno_path, "/adni_rhipp_lpme_isomap_vals.csv"))
   write.csv(rhipp_pme_vals, paste0(patno_path, "/adni_rhipp_pme_vals.csv"))
-  
+
   print("RHIPP Files Saved")
-  
+
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
   # Voxel volume: 1.054688 mm^3
-  
+
   print("RHIPP Volume Estimation 1")
-  
+
   rhipp_rescaled <- rhipp %>%
     mutate(
       x_rescaled = round((x * max_x)),
@@ -882,32 +898,32 @@ foreach (patno_val = patnos) %dopar% {
   candidate_x <- seq(min(rhipp_rescaled$x_rescaled), max(rhipp_rescaled$x_rescaled), 1)
   candidate_y <- seq(min(rhipp_rescaled$y_rescaled), max(rhipp_rescaled$y_rescaled), 1)
   candidate_z <- seq(min(rhipp_rescaled$z_rescaled), max(rhipp_rescaled$z_rescaled), 1)
-  
+
   candidate_voxels <- expand_grid(candidate_x, candidate_y, candidate_z)
-  
+
   rhipp_pme_volumes <- vector(mode = "numeric", length = length(time_vals))
   rhipp_lpme_volumes <- vector(mode = "numeric", length = length(time_vals))
-  rhipp_pme_interior_plots <- list()
-  rhipp_lpme_interior_plots <- list()
-  
+  # rhipp_pme_interior_plots <- list()
+  # rhipp_lpme_interior_plots <- list()
+
   for (time_idx in 1:length(time_vals)) {
     temp_max_x <- unique(rhipp[rhipp$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(rhipp[rhipp$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(rhipp[rhipp$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_candidates <- candidate_voxels %>%
       mutate(
         x_scaled = candidate_x / temp_max_x,
         y_scaled = candidate_y / temp_max_y,
         z_scaled = candidate_z / temp_max_z
       )
-  
+
     temp_pme <- rhipp_pme_result[[time_idx]]
-  
+
     temp_pme_embedding <- temp_pme$embedding_map
     temp_pme_coefs <- temp_pme$coefs[[which.min(temp_pme$MSD)]]
     temp_pme_params <- temp_pme$parameterization[[which.min(temp_pme$MSD)]]
-  
+
     temp_lpme_coefs <- rhipp_lpme_result_isomap$sol_coef_functions[[which.min(rhipp_lpme_result_isomap$msd)]](time_vals[time_idx])
     temp_lpme_params <- rhipp_lpme_result_isomap$parameterization_list[[which.min(rhipp_lpme_result_isomap$msd)]]
     temp_lpme_params <- temp_lpme_params[temp_lpme_params[, 1] == time_vals[time_idx], -1]
@@ -918,12 +934,12 @@ foreach (patno_val = patnos) %dopar% {
       lpme_n_knots + d + 1,
       byrow = TRUE
     )
-  
+
     temp_lpme_embedding <- function(r) {
       t(coef_mat[1:lpme_n_knots, ]) %*% pme::etaFunc(r, temp_lpme_params, 4 - d) +
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
-  
+
     rhipp_interior_voxel_pme <- vector(length = nrow(temp_candidates))
     rhipp_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
     for (row_idx in 1:nrow(temp_candidates)) {
@@ -942,129 +958,128 @@ foreach (patno_val = patnos) %dopar% {
         c(0, 0, 0)
       )
     }
-  
+
     rhipp_interior_points_pme <- temp_candidates[rhipp_interior_voxel_pme, ]
     rhipp_interior_points_lpme <- temp_candidates[rhipp_interior_voxel_lpme, ]
-  
-    rhipp_pme_interior_plots[[time_idx]] <- p
-    rhipp_lpme_interior_plots[[time_idx]] <- p_lpme
+
+    # rhipp_pme_interior_plots[[time_idx]] <- p
+    # rhipp_lpme_interior_plots[[time_idx]] <- p_lpme
     rhipp_pme_volumes[time_idx] <- 1.054688 * nrow(rhipp_interior_points_pme)
     rhipp_lpme_volumes[time_idx] <- 1.054688 * nrow(rhipp_interior_points_lpme)
-    
   }
-    
+
   print("RHIPP Volume Estimation 2")
-  ### VOLUME ESTIMATION 2 
-  
+  ### VOLUME ESTIMATION 2
+
   rhipp_lpme_vals <- rhipp_lpme_isomap_vals
 
   rhipp_data_rescaled <- list()
   rhipp_lpme_rescaled <- list()
   rhipp_pme_rescaled <- list()
-  
+
   for (time_idx in 1:length(time_vals)) {
     temp_data <- rhipp_mat[rhipp_mat[, 1] == time_vals[time_idx], ]
     temp_lpme <- rhipp_lpme_vals[rhipp_lpme_vals[, 1] == time_vals[time_idx], ]
     temp_pme <- rhipp_pme_vals[rhipp_pme_vals[, 1] == time_vals[time_idx], ]
-  
+
     temp_max_x <- unique(rhipp[rhipp$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(rhipp[rhipp$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(rhipp[rhipp$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_data_rescaled <- temp_data[, -(5:7)]
     temp_lpme_rescaled <- temp_lpme[, -(5:7)]
     temp_pme_rescaled <- temp_pme[, -(5:7)]
-  
+
     temp_data_rescaled[, 2] <- round((temp_data_rescaled[, 2] * temp_max_x) / 1.2)
     temp_data_rescaled[, 3] <- round((temp_data_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_data_rescaled[, 4] <- round((temp_data_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_lpme_rescaled[, 2] <- round((temp_lpme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_lpme_rescaled[, 3] <- round((temp_lpme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_lpme_rescaled[, 4] <- round((temp_lpme_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_pme_rescaled[, 2] <- round((temp_pme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_pme_rescaled[, 3] <- round((temp_pme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_pme_rescaled[, 4] <- round((temp_pme_rescaled[, 4] * temp_max_z) / 0.9375)
-    
+
     rhipp_data_rescaled[[time_idx]] <- temp_data_rescaled
     rhipp_lpme_rescaled[[time_idx]] <- temp_lpme_rescaled
     rhipp_pme_rescaled[[time_idx]] <- temp_pme_rescaled
   }
-  
+
   rhipp_data_rescaled_full <- reduce(rhipp_data_rescaled, rbind)
   rhipp_lpme_rescaled_full <- reduce(rhipp_lpme_rescaled, rbind)
   rhipp_pme_rescaled_full <- reduce(rhipp_pme_rescaled, rbind)
-  
+
   voxel_vol <- 1.2 * 0.9375 * 0.9375
-  
+
   rhipp_data_volumes2 <- map(
     rhipp_data_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   rhipp_data_volume_points2 <- map(
     rhipp_data_volumes2,
     ~ .x[[2]]
   )
-  
+
   rhipp_data_volumes2 <- map(
     rhipp_data_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   rhipp_lpme_volumes2 <- map(
     rhipp_lpme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   rhipp_lpme_volume_points2 <- map(
     rhipp_lpme_volumes2,
     ~ .x[[2]]
   )
-  
+
   rhipp_lpme_volumes2 <- map(
     rhipp_lpme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   rhipp_pme_volumes2 <- map(
     rhipp_pme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   rhipp_pme_volume_points2 <- map(
     rhipp_pme_volumes2,
     ~ .x[[2]]
   )
-  
+
   rhipp_pme_volumes2 <- map(
     rhipp_pme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   rhipp_data_volume_points_full <- map(
     1:length(rhipp_data_volume_points2),
     ~ cbind(time_vals[.x], rhipp_data_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
-  
+
+
   rhipp_lpme_volume_points_full <- map(
     1:length(rhipp_lpme_volume_points2),
     ~ cbind(time_vals[.x], rhipp_lpme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   rhipp_pme_volume_points_full <- map(
     1:length(rhipp_pme_volume_points2),
     ~ cbind(time_vals[.x], rhipp_pme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   print("Fitting RTHAL Models")
   rthal_lpme_result_isomap <- lpme(
     rthal_mat,
@@ -1074,12 +1089,12 @@ foreach (patno_val = patnos) %dopar% {
     initialization_algorithm = "isomap",
     init_type = "subsampling",
     verbose = FALSE,
-    print_plots = FALSE 
+    print_plots = FALSE
   )
   rthal_lpme_isomap_est <- calc_lpme_est_params(rthal_lpme_result_isomap, rthal_mat)
   rthal_lpme_isomap_vals <- rthal_lpme_isomap_est$results
   rthal_lpme_isomap_params <- rthal_lpme_isomap_est$params
-  
+
   rthal_pme_result <- list()
   rthal_pme_vals <- list()
   for (t in 1:length(time_vals)) {
@@ -1088,22 +1103,22 @@ foreach (patno_val = patnos) %dopar% {
     rthal_pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(rthal_pme_result[[t]], temp_data))
   }
   rthal_pme_vals <- reduce(rthal_pme_vals, rbind)
-  
+
   saveRDS(rthal_lpme_result_isomap, paste0(patno_path, "/adni_rthal_lpme_isomap.rds"))
   saveRDS(rthal_pme_result, paste0(patno_path, "/adni_rthal_pme.rds"))
   write.csv(rthal_mat, paste0(patno_path, "/adni_rthal_mat.csv"))
   write.csv(rthal_lpme_isomap_vals, paste0(patno_path, "/adni_rthal_lpme_isomap_vals.csv"))
   write.csv(rthal_pme_vals, paste0(patno_path, "/adni_rthal_pme_vals.csv"))
-  
+
   print("RTHAL Files Saved")
-  
+
   #### VOLUME ESTIMATION
 
   # Voxel dimension: 1.2mm x 0.9375mm x 0.9375mm
   # Voxel volume: 1.054688 mm^3
-  
+
   print("RTHAL Volume Estimation 1")
-  
+
   rthal_rescaled <- rthal %>%
     mutate(
       x_rescaled = round((x * max_x)),
@@ -1113,32 +1128,32 @@ foreach (patno_val = patnos) %dopar% {
   candidate_x <- seq(min(rthal_rescaled$x_rescaled), max(rthal_rescaled$x_rescaled), 1)
   candidate_y <- seq(min(rthal_rescaled$y_rescaled), max(rthal_rescaled$y_rescaled), 1)
   candidate_z <- seq(min(rthal_rescaled$z_rescaled), max(rthal_rescaled$z_rescaled), 1)
-  
+
   candidate_voxels <- expand_grid(candidate_x, candidate_y, candidate_z)
-  
+
   rthal_pme_volumes <- vector(mode = "numeric", length = length(time_vals))
   rthal_lpme_volumes <- vector(mode = "numeric", length = length(time_vals))
-  rthal_pme_interior_plots <- list()
-  rthal_lpme_interior_plots <- list()
-  
+  # rthal_pme_interior_plots <- list()
+  # rthal_lpme_interior_plots <- list()
+
   for (time_idx in 1:length(time_vals)) {
     temp_max_x <- unique(rthal[rthal$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(rthal[rthal$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(rthal[rthal$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_candidates <- candidate_voxels %>%
       mutate(
         x_scaled = candidate_x / temp_max_x,
         y_scaled = candidate_y / temp_max_y,
         z_scaled = candidate_z / temp_max_z
       )
-  
+
     temp_pme <- rthal_pme_result[[time_idx]]
-  
+
     temp_pme_embedding <- temp_pme$embedding_map
     temp_pme_coefs <- temp_pme$coefs[[which.min(temp_pme$MSD)]]
     temp_pme_params <- temp_pme$parameterization[[which.min(temp_pme$MSD)]]
-  
+
     temp_lpme_coefs <- rthal_lpme_result_isomap$sol_coef_functions[[which.min(rthal_lpme_result_isomap$msd)]](time_vals[time_idx])
     temp_lpme_params <- rthal_lpme_result_isomap$parameterization_list[[which.min(rthal_lpme_result_isomap$msd)]]
     temp_lpme_params <- temp_lpme_params[temp_lpme_params[, 1] == time_vals[time_idx], -1]
@@ -1149,12 +1164,12 @@ foreach (patno_val = patnos) %dopar% {
       lpme_n_knots + d + 1,
       byrow = TRUE
     )
-  
+
     temp_lpme_embedding <- function(r) {
       t(coef_mat[1:lpme_n_knots, ]) %*% pme::etaFunc(r, temp_lpme_params, 4 - d) +
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
-  
+
     rthal_interior_voxel_pme <- vector(length = nrow(temp_candidates))
     rthal_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
     for (row_idx in 1:nrow(temp_candidates)) {
@@ -1173,133 +1188,132 @@ foreach (patno_val = patnos) %dopar% {
         c(0, 0, 0)
       )
     }
-  
+
     rthal_interior_points_pme <- temp_candidates[rthal_interior_voxel_pme, ]
     rthal_interior_points_lpme <- temp_candidates[rthal_interior_voxel_lpme, ]
-  
-    rthal_pme_interior_plots[[time_idx]] <- p
-    rthal_lpme_interior_plots[[time_idx]] <- p_lpme
+
+    # rthal_pme_interior_plots[[time_idx]] <- p
+    # rthal_lpme_interior_plots[[time_idx]] <- p_lpme
     rthal_pme_volumes[time_idx] <- 1.054688 * nrow(rthal_interior_points_pme)
     rthal_lpme_volumes[time_idx] <- 1.054688 * nrow(rthal_interior_points_lpme)
-    
   }
-    
-  ### VOLUME ESTIMATION 2 
-  
+
+  ### VOLUME ESTIMATION 2
+
   print("RTHAL Volume Estimation 2")
   rthal_lpme_vals <- rthal_lpme_isomap_vals
 
   rthal_data_rescaled <- list()
   rthal_lpme_rescaled <- list()
   rthal_pme_rescaled <- list()
-  
+
   for (time_idx in 1:length(time_vals)) {
     temp_data <- rthal_mat[rthal_mat[, 1] == time_vals[time_idx], ]
     temp_lpme <- rthal_lpme_vals[rthal_lpme_vals[, 1] == time_vals[time_idx], ]
     temp_pme <- rthal_pme_vals[rthal_pme_vals[, 1] == time_vals[time_idx], ]
-  
+
     temp_max_x <- unique(rthal[rthal$time_from_bl == time_vals[time_idx], ]$max_x)
     temp_max_y <- unique(rthal[rthal$time_from_bl == time_vals[time_idx], ]$max_y)
     temp_max_z <- unique(rthal[rthal$time_from_bl == time_vals[time_idx], ]$max_z)
-  
+
     temp_data_rescaled <- temp_data[, -(5:7)]
     temp_lpme_rescaled <- temp_lpme[, -(5:7)]
     temp_pme_rescaled <- temp_pme[, -(5:7)]
-  
+
     temp_data_rescaled[, 2] <- round((temp_data_rescaled[, 2] * temp_max_x) / 1.2)
     temp_data_rescaled[, 3] <- round((temp_data_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_data_rescaled[, 4] <- round((temp_data_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_lpme_rescaled[, 2] <- round((temp_lpme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_lpme_rescaled[, 3] <- round((temp_lpme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_lpme_rescaled[, 4] <- round((temp_lpme_rescaled[, 4] * temp_max_z) / 0.9375)
-  
+
     temp_pme_rescaled[, 2] <- round((temp_pme_rescaled[, 2] * temp_max_x) / 1.2)
     temp_pme_rescaled[, 3] <- round((temp_pme_rescaled[, 3] * temp_max_y) / 0.9375)
     temp_pme_rescaled[, 4] <- round((temp_pme_rescaled[, 4] * temp_max_z) / 0.9375)
-    
+
     rthal_data_rescaled[[time_idx]] <- temp_data_rescaled
     rthal_lpme_rescaled[[time_idx]] <- temp_lpme_rescaled
     rthal_pme_rescaled[[time_idx]] <- temp_pme_rescaled
   }
-  
+
   rthal_data_rescaled_full <- reduce(rthal_data_rescaled, rbind)
   rthal_lpme_rescaled_full <- reduce(rthal_lpme_rescaled, rbind)
   rthal_pme_rescaled_full <- reduce(rthal_pme_rescaled, rbind)
-  
+
   voxel_vol <- 1.2 * 0.9375 * 0.9375
-  
+
   rthal_data_volumes2 <- map(
     rthal_data_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   rthal_data_volume_points2 <- map(
     rthal_data_volumes2,
     ~ .x[[2]]
   )
-  
+
   rthal_data_volumes2 <- map(
     rthal_data_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   rthal_lpme_volumes2 <- map(
     rthal_lpme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   rthal_lpme_volume_points2 <- map(
     rthal_lpme_volumes2,
     ~ .x[[2]]
   )
-  
+
   rthal_lpme_volumes2 <- map(
     rthal_lpme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   rthal_pme_volumes2 <- map(
     rthal_pme_rescaled,
     ~ estimate_volume(.x[, -1], voxel_vol)
   )
-  
+
   rthal_pme_volume_points2 <- map(
     rthal_pme_volumes2,
     ~ .x[[2]]
   )
-  
+
   rthal_pme_volumes2 <- map(
     rthal_pme_volumes2,
     ~ .x[[1]]
   ) %>%
     reduce(c)
-  
+
   rthal_data_volume_points_full <- map(
     1:length(rthal_data_volume_points2),
     ~ cbind(time_vals[.x], rthal_data_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
-  
+
+
   rthal_lpme_volume_points_full <- map(
     1:length(rthal_lpme_volume_points2),
     ~ cbind(time_vals[.x], rthal_lpme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   rthal_pme_volume_points_full <- map(
     1:length(rthal_pme_volume_points2),
     ~ cbind(time_vals[.x], rthal_pme_volume_points2[[.x]])
   ) %>%
     reduce(rbind)
-  
+
   dates <- unique(lhipp$time_bl) + time_vals
-  
+
   print("Creating Temporary Files...")
-  
+
   temp_hipp_info <- tibble(
     patno = patno_val,
     date = dates,
@@ -1314,7 +1328,7 @@ foreach (patno_val = patnos) %dopar% {
     rhipp_vol_pme1 = rhipp_pme_volumes,
     rhipp_vol_pme2 = rhipp_pme_volumes2
   )
-  
+
   temp_thal_info <- tibble(
     patno = patno_val,
     date = dates,
@@ -1332,12 +1346,12 @@ foreach (patno_val = patnos) %dopar% {
 
   est_hipp_info <- bind_rows(est_hipp_info, temp_hipp_info)
   est_thal_info <- bind_rows(est_thal_info, temp_thal_info)
-  
+
   write.csv(temp_hipp_info, file = paste0(patno_path, "/hipp_info.csv"))
   write.csv(temp_thal_info, file = paste0(patno_path, "/thal_info.csv"))
-  
+
   print("Temporary Files Saved")
-  
+
   p <- plot_ly(
     x = lhipp_mat[, 2],
     y = lhipp_mat[, 3],
@@ -1362,13 +1376,13 @@ foreach (patno_val = patnos) %dopar% {
       frame = lhipp_pme_vals[, 1],
       name = "PME"
     )
-  
+
   lhipp_lpme_plots <- list()
   lhipp_pme_plots <- list()
   lhipp_data_plots <- list()
-  
+
   colors <- brewer.pal(3, "Set1")
-  
+
   png(
     paste0(patno_path, "/adni_lhipp_data_plot.png"),
     res = 1000,
@@ -1376,7 +1390,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_data <- lhipp_mat[lhipp_mat[, 1] == time_vals[t], ]
     scatter3D(
@@ -1394,7 +1408,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_lhipp_lpme_isomap_plot.png"),
     res = 1000,
@@ -1402,7 +1416,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_lpme <- lhipp_lpme_isomap_vals[lhipp_lpme_isomap_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1420,7 +1434,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_lhipp_pme_plot.png"),
     res = 1000,
@@ -1428,7 +1442,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_pme <- lhipp_pme_vals[lhipp_pme_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1446,7 +1460,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   lhipp_cross_section <- create_cross_section_matrix(
     list(lhipp_mat, lhipp_lpme_isomap_vals, lhipp_pme_vals),
     2,
@@ -1462,7 +1476,7 @@ foreach (patno_val = patnos) %dopar% {
     units = "px",
     dpi = 1250
   )
-  
+
   p <- plot_ly(
     x = lthal_mat[, 2],
     y = lthal_mat[, 3],
@@ -1487,13 +1501,13 @@ foreach (patno_val = patnos) %dopar% {
       frame = lthal_pme_vals[, 1],
       name = "PME"
     )
-  
+
   lthal_lpme_plots <- list()
   lthal_pme_plots <- list()
   lthal_data_plots <- list()
-  
+
   colors <- brewer.pal(3, "Set1")
-  
+
   png(
     paste0(patno_path, "/adni_lthal_data_plot.png"),
     res = 1000,
@@ -1501,7 +1515,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_data <- lthal_mat[lthal_mat[, 1] == time_vals[t], ]
     scatter3D(
@@ -1519,7 +1533,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_lthal_lpme_isomap_plot.png"),
     res = 1000,
@@ -1527,7 +1541,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_lpme <- lthal_lpme_isomap_vals[lthal_lpme_isomap_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1545,7 +1559,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_lthal_pme_plot.png"),
     res = 1000,
@@ -1553,7 +1567,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_pme <- lthal_pme_vals[lthal_pme_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1571,7 +1585,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   lthal_cross_section <- create_cross_section_matrix(
     list(lthal_mat, lthal_lpme_isomap_vals, lthal_pme_vals),
     2,
@@ -1587,7 +1601,7 @@ foreach (patno_val = patnos) %dopar% {
     units = "px",
     dpi = 1250
   )
-  
+
   p <- plot_ly(
     x = rhipp_mat[, 2],
     y = rhipp_mat[, 3],
@@ -1612,13 +1626,13 @@ foreach (patno_val = patnos) %dopar% {
       frame = rhipp_pme_vals[, 1],
       name = "PME"
     )
-  
+
   rhipp_lpme_plots <- list()
   rhipp_pme_plots <- list()
   rhipp_data_plots <- list()
-  
+
   colors <- brewer.pal(3, "Set1")
-  
+
   png(
     paste0(patno_path, "/adni_rhipp_data_plot.png"),
     res = 1000,
@@ -1626,7 +1640,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_data <- rhipp_mat[rhipp_mat[, 1] == time_vals[t], ]
     scatter3D(
@@ -1644,7 +1658,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_rhipp_lpme_isomap_plot.png"),
     res = 1000,
@@ -1652,7 +1666,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_lpme <- rhipp_lpme_isomap_vals[rhipp_lpme_isomap_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1670,7 +1684,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_rhipp_pme_plot.png"),
     res = 1000,
@@ -1678,7 +1692,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_pme <- rhipp_pme_vals[rhipp_pme_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1696,7 +1710,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   rhipp_cross_section <- create_cross_section_matrix(
     list(rhipp_mat, rhipp_lpme_isomap_vals, rhipp_pme_vals),
     2,
@@ -1712,7 +1726,7 @@ foreach (patno_val = patnos) %dopar% {
     units = "px",
     dpi = 1250
   )
-  
+
   p <- plot_ly(
     x = rthal_mat[, 2],
     y = rthal_mat[, 3],
@@ -1737,13 +1751,13 @@ foreach (patno_val = patnos) %dopar% {
       frame = rthal_pme_vals[, 1],
       name = "PME"
     )
-  
+
   rthal_lpme_plots <- list()
   rthal_pme_plots <- list()
   rthal_data_plots <- list()
-  
+
   colors <- brewer.pal(3, "Set1")
-  
+
   png(
     paste0(patno_path, "/adni_rthal_data_plot.png"),
     res = 1000,
@@ -1751,7 +1765,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_data <- rthal_mat[rthal_mat[, 1] == time_vals[t], ]
     scatter3D(
@@ -1769,7 +1783,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_rthal_lpme_isomap_plot.png"),
     res = 1000,
@@ -1777,7 +1791,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_lpme <- rthal_lpme_isomap_vals[rthal_lpme_isomap_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1795,7 +1809,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   png(
     paste0(patno_path, "/adni_rthal_pme_plot.png"),
     res = 1000,
@@ -1803,7 +1817,7 @@ foreach (patno_val = patnos) %dopar% {
     width = 3500
   )
   par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
-  
+
   for (t in 1:length(time_vals)) {
     temp_pme <- rthal_pme_vals[rthal_pme_vals[, 1] == time_vals[t], ]
     scatter3D(
@@ -1821,7 +1835,7 @@ foreach (patno_val = patnos) %dopar% {
     )
   }
   dev.off()
-  
+
   rthal_cross_section <- create_cross_section_matrix(
     list(rthal_mat, rthal_lpme_isomap_vals, rthal_pme_vals),
     2,
@@ -1839,7 +1853,7 @@ foreach (patno_val = patnos) %dopar% {
   )
 }
 
-parallel::stopCluster(cl)
+# parallel::stopCluster(cl)
 
 write.csv(est_hipp_info, "results/est_hipp_info.csv")
 write.csv(est_thal_info, "results/est_thal_info.csv")
