@@ -294,9 +294,9 @@ rthal_surface <- bind_cols(rthal_surface, rthal_surface_spherical)
 patnos <- lhipp_surface$patno %>%
   unique()
 
-# ncores <- parallel::detectCores()
-# cl <- parallel::makeCluster(ncores - 2, type = "FORK")
-# doParallel::registerDoParallel(cl)
+ncores <- parallel::detectCores()
+cl <- parallel::makeCluster(ncores, type = "FORK")
+doParallel::registerDoParallel(cl)
 
 set.seed(10283)
 foreach(
@@ -317,7 +317,7 @@ foreach(
     "interior_identification", 
     "create_cross_section_matrix"
   )
-) %do% {
+) %dopar% {
   print(patno_val)
   lhipp <- lhipp_surface %>%
     filter(patno == patno_val)
@@ -1853,7 +1853,7 @@ foreach(
   )
 }
 
-# parallel::stopCluster(cl)
+parallel::stopCluster(cl)
 
 write.csv(est_hipp_info, "results/est_hipp_info.csv")
 write.csv(est_thal_info, "results/est_thal_info.csv")
