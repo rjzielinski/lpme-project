@@ -295,7 +295,7 @@ patnos <- lhipp_surface$patno %>%
   unique()
 
 ncores <- parallel::detectCores()
-cl <- parallel::makeCluster(ncores, type = "FORK")
+cl <- parallel::makeCluster(ncores - 2, type = "FORK")
 doParallel::registerDoParallel(cl)
 
 set.seed(10283)
@@ -425,8 +425,10 @@ foreach(
 
   print("LHIPP Volume Estimation 1")
 
+  
   lhipp_rescaled <- lhipp %>%
     mutate(
+      # creating centered coordinates at full scale
       x_rescaled = round((x * max_x)),
       y_rescaled = round((y * max_y)),
       z_rescaled = round((z * max_z))
@@ -476,25 +478,22 @@ foreach(
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
 
-    lhipp_interior_voxel_pme <- vector(length = nrow(temp_candidates))
-    lhipp_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
-    for (row_idx in 1:nrow(temp_candidates)) {
-      lhipp_interior_voxel_pme[row_idx] <- interior_identification(
-        temp_pme_embedding,
-        temp_pme_coefs,
-        temp_pme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-      lhipp_interior_voxel_lpme[row_idx] <- interior_identification(
-        temp_lpme_embedding,
-        coef_mat,
-        temp_lpme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-    }
-
+    temp_candidates_red <- temp_candidates[, 4:6]
+    lhipp_interior_voxel_pme <- interior_identification(
+      temp_pme_embedding, 
+      temp_pme_coefs, 
+      temp_pme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
+    lhipp_interior_voxel_lpme <- interior_identification(
+      temp_lpme_embedding, 
+      temp_lpme_coefs, 
+      temp_lpme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
+   
     lhipp_interior_points_pme <- temp_candidates[lhipp_interior_voxel_pme, ]
     lhipp_interior_points_lpme <- temp_candidates[lhipp_interior_voxel_lpme, ]
 
@@ -707,25 +706,21 @@ foreach(
       t(coef_mat[1:lpme_n_knots, ]) %*% pme::etaFunc(r, temp_lpme_params, 4 - d) +
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
-
-    lthal_interior_voxel_pme <- vector(length = nrow(temp_candidates))
-    lthal_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
-    for (row_idx in 1:nrow(temp_candidates)) {
-      lthal_interior_voxel_pme[row_idx] <- interior_identification(
-        temp_pme_embedding,
-        temp_pme_coefs,
-        temp_pme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-      lthal_interior_voxel_lpme[row_idx] <- interior_identification(
-        temp_lpme_embedding,
-        coef_mat,
-        temp_lpme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-    }
+    
+    lthal_interior_voxel_pme <- interior_identification(
+      temp_pme_embedding, 
+      temp_pme_coefs, 
+      temp_pme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
+    lthal_interior_voxel_lpme <- interior_identification(
+      temp_lpme_embedding, 
+      temp_lpme_coefs, 
+      temp_lpme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
 
     lthal_interior_points_pme <- temp_candidates[lthal_interior_voxel_pme, ]
     lthal_interior_points_lpme <- temp_candidates[lthal_interior_voxel_lpme, ]
@@ -939,25 +934,21 @@ foreach(
       t(coef_mat[1:lpme_n_knots, ]) %*% pme::etaFunc(r, temp_lpme_params, 4 - d) +
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
-
-    rhipp_interior_voxel_pme <- vector(length = nrow(temp_candidates))
-    rhipp_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
-    for (row_idx in 1:nrow(temp_candidates)) {
-      rhipp_interior_voxel_pme[row_idx] <- interior_identification(
-        temp_pme_embedding,
-        temp_pme_coefs,
-        temp_pme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-      rhipp_interior_voxel_lpme[row_idx] <- interior_identification(
-        temp_lpme_embedding,
-        coef_mat,
-        temp_lpme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-    }
+    
+    rhipp_interior_voxel_pme <- interior_identification(
+      temp_pme_embedding, 
+      temp_pme_coefs, 
+      temp_pme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
+    rhipp_interior_voxel_lpme <- interior_identification(
+      temp_lpme_embedding, 
+      temp_lpme_coefs, 
+      temp_lpme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
 
     rhipp_interior_points_pme <- temp_candidates[rhipp_interior_voxel_pme, ]
     rhipp_interior_points_lpme <- temp_candidates[rhipp_interior_voxel_lpme, ]
@@ -1170,25 +1161,21 @@ foreach(
         t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*% matrix(c(1, r), ncol = 1)
     }
 
-    rthal_interior_voxel_pme <- vector(length = nrow(temp_candidates))
-    rthal_interior_voxel_lpme <- vector(length = nrow(temp_candidates))
-    for (row_idx in 1:nrow(temp_candidates)) {
-      rthal_interior_voxel_pme[row_idx] <- interior_identification(
-        temp_pme_embedding,
-        temp_pme_coefs,
-        temp_pme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-      rthal_interior_voxel_lpme[row_idx] <- interior_identification(
-        temp_lpme_embedding,
-        coef_mat,
-        temp_lpme_params,
-        unlist(temp_candidates[row_idx, 4:6]),
-        c(0, 0, 0)
-      )
-    }
-
+    rthal_interior_voxel_pme <- interior_identification(
+      temp_pme_embedding, 
+      temp_pme_coefs, 
+      temp_pme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
+    rthal_interior_voxel_lpme <- interior_identification(
+      temp_lpme_embedding, 
+      temp_lpme_coefs, 
+      temp_lpme_params, 
+      temp_candidates_red, 
+      c(0, 0, 0)
+    )
+    
     rthal_interior_points_pme <- temp_candidates[rthal_interior_voxel_pme, ]
     rthal_interior_points_lpme <- temp_candidates[rthal_interior_voxel_lpme, ]
 
