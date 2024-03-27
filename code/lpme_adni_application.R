@@ -218,7 +218,8 @@ lhipp_surface <- lhipp_surface %>%
     x = (x - mean_x) / max_x,
     y = (y - mean_y) / max_y,
     z = (z - mean_z) / max_z,
-    time_from_bl = (scan_date - time_bl) / duration
+    # time_from_bl = (scan_date - time_bl) / duration
+    time_from_bl = scan_date - time_bl
   )
 
 lthal_surface <- lthal_surface %>%
@@ -231,7 +232,8 @@ lthal_surface <- lthal_surface %>%
     x = (x - mean_x) / max_x,
     y = (y - mean_y) / max_y,
     z = (z - mean_z) / max_z,
-    time_from_bl = (scan_date - time_bl) / duration
+    # time_from_bl = (scan_date - time_bl) / duration
+    time_from_bl = scan_date - time_bl
   )
 
 rhipp_surface <- rhipp_surface %>%
@@ -244,7 +246,8 @@ rhipp_surface <- rhipp_surface %>%
     x = (x - mean_x) / max_x,
     y = (y - mean_y) / max_y,
     z = (z - mean_z) / max_z,
-    time_from_bl = (scan_date - time_bl) / duration
+    # time_from_bl = (scan_date - time_bl) / duration
+    time_from_bl = scan_date - time_bl
   )
 
 rthal_surface <- rthal_surface %>%
@@ -257,7 +260,8 @@ rthal_surface <- rthal_surface %>%
     x = (x - mean_x) / max_x,
     y = (y - mean_y) / max_y,
     z = (z - mean_z) / max_z,
-    time_from_bl = (scan_date - time_bl) / duration
+    # time_from_bl = (scan_date - time_bl) / duration
+    time_from_bl = scan_date - time_bl
   )
 
 
@@ -294,9 +298,9 @@ rthal_surface <- bind_cols(rthal_surface, rthal_surface_spherical)
 patnos <- lhipp_surface$patno %>%
   unique()
 
-# ncores <- parallel::detectCores()
-# cl <- parallel::makeCluster(ncores / 2, type = "FORK")
-# doParallel::registerDoParallel(cl)
+ncores <- parallel::detectCores()
+cl <- parallel::makeCluster(ncores / 2, type = "FORK")
+doParallel::registerDoParallel(cl)
 
 set.seed(10283)
 foreach(
@@ -317,7 +321,7 @@ foreach(
     "interior_identification", 
     "create_cross_section_matrix"
   )
-) %do% {
+) %dopar% {
   print(patno_val)
   lhipp <- lhipp_surface %>%
     filter(patno == patno_val)
@@ -404,7 +408,7 @@ foreach(
     lhipp_pme_result[[t]] <- pme(temp_data, d = 2, lambda = exp(-12:5), verbose = FALSE)
     lhipp_pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(lhipp_pme_result[[t]], temp_data))
   }
-  lhipp_pme_vals <- reduce(lhipp_pme_vals, rbind)
+  lhipp_pme_vals <- purrr::reduce(lhipp_pme_vals, rbind)
 
   patno_path <- paste0("results/", patno_val)
   if (!dir.exists(patno_path)) {
@@ -1843,7 +1847,7 @@ foreach(
   )
 }
 
-# parallel::stopCluster(cl)
+parallel::stopCluster(cl)
 
 write.csv(est_hipp_info, "results/est_hipp_info.csv")
 write.csv(est_thal_info, "results/est_thal_info.csv")
