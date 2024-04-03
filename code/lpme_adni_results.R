@@ -175,33 +175,33 @@ hipp_info_ts %>%
 hipp_info_sd <- hipp_info %>%
   group_by(patno) %>%
   summarize(
-    data_sd = sd(lhipp_data_vol2),
-    lpme_sd = sd(lhipp_vol_lpme2),
-    pme_sd = sd(lhipp_vol_pme2),
-    data_iqr = quantile(lhipp_data_vol2, 0.75) - quantile(lhipp_data_vol2, 0.25),
-    lpme_iqr = quantile(lhipp_vol_lpme2, 0.75) - quantile(lhipp_vol_lpme2, 0.25),
-    pme_iqr = quantile(lhipp_vol_pme2, 0.75) - quantile(lhipp_vol_pme2, 0.25)
+    lhipp_data_sd = sd(lhipp_data_vol2),
+    lhipp_lpme_sd = sd(lhipp_vol_lpme2),
+    lhipp_pme_sd = sd(lhipp_vol_pme2),
+    rhipp_data_sd = sd(rhipp_data_vol2),
+    rhipp_lpme_sd = sd(rhipp_vol_lpme2),
+    rhipp_pme_sd = sd(rhipp_vol_pme2)
   ) %>%
   ungroup()
 
-hipp_info_sd %>%
+hipp_sd_mean <- hipp_info_sd %>%
   summarize(
-    data_sd_mean = mean(data_sd),
-    lpme_sd_mean = mean(lpme_sd),
-    pme_sd_mean = mean(pme_sd),
-    data_iqr_mean = mean(data_iqr),
-    lpme_iqr_mean = mean(lpme_iqr),
-    pme_iqr_mean = mean(pme_iqr)
+    lhipp_data_sd_mean = mean(lhipp_data_sd),
+    lhipp_lpme_sd_mean = mean(lhipp_lpme_sd),
+    lhipp_pme_sd_mean = mean(lhipp_pme_sd),
+    rhipp_data_sd_mean = mean(rhipp_data_sd),
+    rhipp_lpme_sd_mean = mean(rhipp_lpme_sd),
+    rhipp_pme_sd_mean = mean(rhipp_pme_sd)
   )
 
-hipp_info_sd %>%
+hipp_sd_med <- hipp_info_sd %>%
   summarize(
-    data_sd_med = median(data_sd),
-    lpme_sd_med = median(lpme_sd),
-    pme_sd_med = median(pme_sd),
-    data_iqr_med = median(data_iqr),
-    lpme_iqr_med = median(lpme_iqr),
-    pme_iqr_med = median(pme_iqr)
+    lhipp_data_sd_med = median(lhipp_data_sd),
+    lhipp_lpme_sd_med = median(lhipp_lpme_sd),
+    lhipp_pme_sd_med = median(lhipp_pme_sd),
+    rhipp_data_sd_med = median(rhipp_data_sd),
+    rhipp_lpme_sd_med = median(rhipp_lpme_sd),
+    rhipp_pme_sd_med = median(rhipp_pme_sd)
   )
 
 thal_info_ts %>%
@@ -216,33 +216,33 @@ thal_info_ts %>%
 thal_info_sd <- thal_info %>%
   group_by(patno) %>%
   summarize(
-    data_sd = sd(lthal_data_vol2),
-    lpme_sd = sd(lthal_vol_lpme2),
-    pme_sd = sd(lthal_vol_pme2),
-    data_iqr = quantile(lthal_data_vol2, 0.75) - quantile(lthal_data_vol2, 0.25),
-    lpme_iqr = quantile(lthal_vol_lpme2, 0.75) - quantile(lthal_vol_lpme2, 0.25),
-    pme_iqr = quantile(lthal_vol_pme2, 0.75) - quantile(lthal_vol_pme2, 0.25)
+    lthal_data_sd = sd(lthal_data_vol2),
+    lthal_lpme_sd = sd(lthal_vol_lpme2),
+    lthal_pme_sd = sd(lthal_vol_pme2),
+    rthal_data_sd = sd(rthal_data_vol2),
+    rthal_lpme_sd = sd(rthal_vol_lpme2),
+    rthal_pme_sd = sd(rthal_vol_pme2)
   ) %>%
   ungroup()
 
-thal_info_sd %>%
+thal_sd_mean <- thal_info_sd %>%
   summarize(
-    data_sd_mean = mean(data_sd),
-    lpme_sd_mean = mean(lpme_sd),
-    pme_sd_mean = mean(pme_sd),
-    data_iqr_mean = mean(data_iqr),
-    lpme_iqr_mean = mean(lpme_iqr),
-    pme_iqr_mean = mean(pme_iqr)
+    lthal_data_sd_mean = mean(lthal_data_sd),
+    lthal_lpme_sd_mean = mean(lthal_lpme_sd),
+    lthal_pme_sd_mean = mean(lthal_pme_sd),
+    rthal_data_sd_mean = mean(rthal_data_sd),
+    rthal_lpme_sd_mean = mean(rthal_lpme_sd),
+    rthal_pme_sd_mean = mean(rthal_pme_sd)
   )
 
-thal_info_sd %>%
+thal_sd_med <- thal_info_sd %>%
   summarize(
-    data_sd_med = median(data_sd),
-    lpme_sd_med = median(lpme_sd),
-    pme_sd_med = median(pme_sd),
-    data_iqr_med = median(data_iqr),
-    lpme_iqr_med = median(lpme_iqr),
-    pme_iqr_med = median(pme_iqr)
+    lthal_data_sd_med = median(lthal_data_sd),
+    lthal_lpme_sd_med = median(lthal_lpme_sd),
+    lthal_pme_sd_med = median(lthal_pme_sd),
+    rthal_data_sd_med = median(rthal_data_sd),
+    rthal_lpme_sd_med = median(rthal_lpme_sd),
+    rthal_pme_sd_med = median(rthal_pme_sd)
   )
 
 
@@ -250,24 +250,30 @@ set.seed(6819)
 hipp_info_ts %>%
   sample_n_keys(6) %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
+  geom_point(aes(y = lhipp_data_vol2), color = colors[1]) +
   geom_line(aes(y = lhipp_data_vol2), color = colors[1]) +
+  geom_point(aes(y = lhipp_vol_lpme2), color = colors[2]) +
   geom_line(aes(y = lhipp_vol_lpme2), color = colors[2]) +
+  geom_point(aes(y = lhipp_vol_pme2), color = colors[3]) +
   geom_line(aes(y = lhipp_vol_pme2), color = colors[3]) +
   facet_wrap(~ patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Hippocampus Volume")
-ggsave("paper/figures/adni_plots/adni_lhipp_volume_comp.png")
+ggsave("paper/figures/adni_plots/adni_lhipp_volume_comp.png", dpi = 1500)
 
 thal_info_ts %>%
   sample_n_keys(6) %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
+  geom_point(aes(y = lthal_data_vol2), color = colors[1]) +
   geom_line(aes(y = lthal_data_vol2), color = colors[1]) +
+  geom_point(aes(y = lthal_vol_lpme2), color = colors[2]) +
   geom_line(aes(y = lthal_vol_lpme2), color = colors[2]) +
+  geom_point(aes(y = lthal_vol_pme2), color = colors[3]) +
   geom_line(aes(y = lthal_vol_pme2), color = colors[3]) +
   facet_wrap(~ patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Thalamus Volume")
-ggsave("paper/figures/adni_plots/adni_lthal_volume_comp.png")
+ggsave("paper/figures/adni_plots/adni_lthal_volume_comp.png", dpi = 1500)
 
 
 thal_long %>%
