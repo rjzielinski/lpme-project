@@ -3,7 +3,36 @@
 .RData
 .Ruserdata
 .Rprofile
+.Rapp.history
 .DS_Store
+*.Rproj
 paper/main.*
 !paper/main.tex
 paper/reference_notes.*
+
+# ignore data files
+data/
+*.csv
+*.dcm
+*.nifti
+*.nii.gz
+*.bvars
+*.vtk
+*.rds
+
+# ignore plots
+*.png
+
+# ignore pdflatex outputs
+*.aux
+*.bcf
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.pdf
+*.synctex
+
+# ignore other miscellaneous files
+.vscode/
+presentations/
