@@ -15,7 +15,7 @@ source("code/prinSurf_v3.R")
 
 ### Simulation Case 1
 
-sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -52,7 +52,8 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -72,7 +73,13 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1, verbose = FALSE)
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 1,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers",
+      verbose = FALSE
+    )
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -181,14 +188,16 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case1/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -214,7 +223,7 @@ sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 2
 
-sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -251,7 +260,8 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
   # lpme_result_gp <- lpme(
@@ -269,7 +279,7 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1)
+    pme_result[[t]] <- pme(temp_data, d = 1, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -378,14 +388,16 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case2/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -411,7 +423,7 @@ sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 3
 
-sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -456,7 +468,8 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
   # lpme_result_gp <- lpme(
@@ -474,7 +487,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1)
+    pme_result[[t]] <- pme(temp_data, d = 1, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -583,14 +596,16 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case3/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -616,7 +631,7 @@ sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 4
 
-sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -673,7 +688,8 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
   # lpme_result_gp <- lpme(
@@ -691,7 +707,7 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1)
+    pme_result[[t]] <- pme(temp_data, d = 1, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -800,14 +816,16 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case4/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -833,7 +851,7 @@ sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 5
 
-sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -870,7 +888,8 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -889,7 +908,7 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1)
+    pme_result[[t]] <- pme(temp_data, d = 1, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -1003,14 +1022,16 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case5/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -1036,7 +1057,7 @@ sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ## Simulation Case 6
 
-sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1073,7 +1094,8 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1093,7 +1115,7 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 1)
+    pme_result[[t]] <- pme(temp_data, d = 1, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     curves <- list()
     curve_vals <- list()
@@ -1207,7 +1229,8 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
 
   sim_dir <- "simulations/case6/"
@@ -1215,7 +1238,8 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -1242,7 +1266,7 @@ sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 7
 
-sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1279,7 +1303,8 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1298,7 +1323,7 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2)
+    pme_result[[t]] <- pme(temp_data, d = 2, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
@@ -1407,14 +1432,16 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case7/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -1440,7 +1467,7 @@ sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 8
 
-sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1486,7 +1513,8 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1505,7 +1533,7 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2)
+    pme_result[[t]] <- pme(temp_data, d = 2, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
@@ -1615,14 +1643,16 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case8/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -1648,7 +1678,7 @@ sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 9
 
-sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
   time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1678,9 +1708,11 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   true_vals <- cbind(true_vals, true_sph)
 
   for (col_idx in 1:ncol(sim_df)) {
-    col_max <- max(abs(sim_df[, col_idx]))
-    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
-    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+    if (col_idx < 4) {
+      col_max <- max(abs(sim_df[, col_idx]))
+      sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+      true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+    }
   }
 
   time_vals <- unique(sim_df[, 1])
@@ -1691,7 +1723,8 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1710,7 +1743,7 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2)
+    pme_result[[t]] <- pme(temp_data, d = 2, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
@@ -1819,14 +1852,16 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case9/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -1852,7 +1887,7 @@ sim_error_case9 <- function(max_time, interval, amp_noise, shape_noise, time_cha
 
 ### Simulation Case 10
 
-sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, run = 1, print_plots = FALSE) {
+sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
  time_vals <- seq(0, max_time, interval)
   sim_list <- lapply(
     time_vals,
@@ -1896,7 +1931,8 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     smoothing_method = "spline",
     print_plots = print_plots,
     verbose = TRUE,
-    init = "first"
+    init = "first",
+    initialization_algorithm = initialization_alg
   )
   lpme_vals <- calc_lpme_est(lpme_result, sim_df)
 
@@ -1915,7 +1951,7 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
   principal_curve_vals <- list()
   for (t in 1:length(time_vals)) {
     temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
-    pme_result[[t]] <- pme(temp_data, d = 2)
+    pme_result[[t]] <- pme(temp_data, d = 2, initialization_algorithm = initialization_alg, initialization_type = "centers")
     pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
     principal_surface <- prinSurf(temp_data)
     surface_mse <- map(
@@ -2024,14 +2060,16 @@ sim_error_case10 <- function(max_time, interval, amp_noise, shape_noise, time_ch
     lpme_vals = lpme_vals,
     pme_vals = pme_vals,
     principal_curve_vals = principal_curve_vals,
-    plot = p
+    plot = p,
+    initialization_algorithm = initialization_alg
   )
   sim_dir <- "simulations/case10/"
   if (!dir.exists(sim_dir)) {
     dir.create(sim_dir, recursive = TRUE)
   }
   filename <- paste0(
-    "duration_",
+    initialization_alg,
+    "_duration_",
     str_pad(as.character(max_time), 2, side = "left", pad = "0"),
     "_interval_",
     str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
@@ -2067,9 +2105,16 @@ case <- 1:10
 time_changes <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
 # time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
 time_trends <- "constant"
+initialization_algorithms = c(
+  "diffusion_maps",
+  # "hessian_eigenmaps",
+  "laplacian_eigenmaps",
+  # "lle",
+  "isomap"
+)
 
 
-param_grid <- expand.grid(
+param_grid <- expand_grid(
   case,
   amp_noise_vals,
   shape_noise_vals,
@@ -2078,13 +2123,15 @@ param_grid <- expand.grid(
   max_times,
   replicates,
   time_changes,
-  time_trends
-)
+  time_trends,
+  initialization_algorithms
+) %>%
+  data.frame()
 
 param_grid <- param_grid[param_grid[, 1] != 4, ]
 param_grid <- param_grid[(param_grid[, 5] != param_grid[, 6]), ]
 
-cl <- makeCluster(detectCores())
+cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 
 set.seed(10972)
@@ -2096,6 +2143,7 @@ errors <- foreach(
   n = param_grid[, 4],
   interval = param_grid[, 5],
   duration = param_grid[, 6],
+  initialization_algorithm = param_grid[, 10],
   run = param_grid[, 7],
   time_change = param_grid[, 8],
   time_trend = param_grid[, 9],
@@ -2115,6 +2163,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2129,6 +2178,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2143,6 +2193,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2157,6 +2208,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2171,6 +2223,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2185,6 +2238,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2199,6 +2253,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2213,6 +2268,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )
@@ -2227,6 +2283,7 @@ errors <- foreach(
             time_change,
             time_trend,
             n,
+            initialization_algorithm,
             run,
             print_plots = FALSE
           )

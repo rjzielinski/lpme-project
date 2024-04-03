@@ -29,6 +29,7 @@ files_full <- list.files("simulations", recursive = TRUE, full.names = TRUE)
 
 # files_full <- files_case1
 
+initialization_algorithm <- vector()
 lpme_error <- vector()
 pme_error <- vector()
 # PME_error <- vector()
@@ -47,6 +48,7 @@ pme_ssd_raw <- vector()
 principal_curve_ssd_raw <- vector()
 for (i in 1:length(files_full)) {
   error_list <- readRDS(files_full[i])
+  initialization_algorithm[i] <- error_list$initialization_algorithm
   lpme_error[i] <- error_list$lpme_error
   pme_error[i] <- error_list$pme_error
   # PME_error[i] <- error_list$PME_error
@@ -102,6 +104,7 @@ for (i in 1:length(files_full)) {
 
 error_df <- data.frame(
   sim_case,
+  initialization_algorithm,
   max_time,
   n_visits,
   amp_noise,
