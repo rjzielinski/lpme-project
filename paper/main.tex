@@ -556,17 +556,21 @@ Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{
 
 \begin{table}[ht]
   \centering
-  \begin{tabular}{|c c c c|}
+  \begin{tabular}{|c c c c c|}
     \hline
-    Structure & Data & LPME & PME  \\
+    Structure & Regression-Adjusted & Data & LPME & PME  \\
     \hline
-    Left Hippocampus & 218 & 225 & 191 \\
-    Right Hippocampus & 221 & 245 & 195 \\
-    Left Thalamus & 82.9 & 49.7 & 72.0 \\
-    Right Thalamus & 147 & 116 & 130 \\
+    Left Hippocampus & No & 218 & 225 & 191 \\
+    Right Hippocampus & No & 221 & 245 & 195 \\
+    Left Thalamus & No & 82.9 & 49.7 & 72.0 \\
+    Right Thalamus & No & 147 & 116 & 130 \\
+    Left Hippocampus & Yes & 184 & 197 & 160 \\
+    Right Hippocampus & Yes & 185 & 215 & 163 \\
+    Left Thalamus & Yes & 68.3 & 30.7 & 57.9 \\
+    Right Thalamus & Yes & 124 & 89.9 & 109 \\
     \hline
   \end{tabular}
-  \caption{Mean of the empirical standard deviation of volume estimates computed for each ADNI participant.}
+  \caption{Mean of the empirical standard deviation of volume estimates computed for each ADNI participant. Entries that were not regression-adjusted include computations for raw volume estimates, while regression-adjusted entries compute the standard deviations of linear regression models regressing the volume estimates on time.}
   \label{table:adni_volume_sds}
 \end{table}
 
