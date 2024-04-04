@@ -172,6 +172,52 @@ hipp_info_ts %>%
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Hippocampus Volume")
 
+lhipp_data_vol_pred <- vector()
+lhipp_lpme_vol_pred <- vector()
+lhipp_pme_vol_pred <- vector()
+rhipp_data_vol_pred <- vector()
+rhipp_lpme_vol_pred <- vector()
+rhipp_pme_vol_pred <- vector()
+
+for (patno_val in unique(hipp_info$patno)) {
+  patno_data <- hipp_info %>%
+    filter(patno == patno_val)
+  lhipp_data_lm <- lm(lhipp_data_vol2 ~ date, data = patno_data)
+  lhipp_data_pred <- predict(lhipp_data_lm, newdata = patno_data)
+  lhipp_data_vol_pred <- c(lhipp_data_vol_pred, lhipp_data_pred)
+
+  lhipp_lpme_lm <- lm(lhipp_vol_lpme2 ~ date, data = patno_data)
+  lhipp_lpme_pred <- predict(lhipp_lpme_lm, newdata = patno_data)
+  lhipp_lpme_vol_pred <- c(lhipp_lpme_vol_pred, lhipp_lpme_pred)
+
+  lhipp_pme_lm <- lm(lhipp_vol_pme2 ~ date, data = patno_data)
+  lhipp_pme_pred <- predict(lhipp_pme_lm, newdata = patno_data)
+  lhipp_pme_vol_pred <- c(lhipp_pme_vol_pred, lhipp_pme_pred)
+
+  rhipp_data_lm <- lm(rhipp_data_vol2 ~ date, data = patno_data)
+  rhipp_data_pred <- predict(rhipp_data_lm, newdata = patno_data)
+  rhipp_data_vol_pred <- c(rhipp_data_vol_pred, rhipp_data_pred)
+
+  rhipp_lpme_lm <- lm(rhipp_vol_lpme2 ~ date, data = patno_data)
+  rhipp_lpme_pred <- predict(rhipp_lpme_lm, newdata = patno_data)
+  rhipp_lpme_vol_pred <- c(rhipp_lpme_vol_pred, rhipp_lpme_pred)
+
+  rhipp_pme_lm <- lm(rhipp_vol_pme2 ~ date, data = patno_data)
+  rhipp_pme_pred <- predict(rhipp_pme_lm, newdata = patno_data)
+  rhipp_pme_vol_pred <- c(rhipp_pme_vol_pred, rhipp_pme_pred)
+}
+
+hipp_lm_pred <- tibble(
+  lhipp_data_vol_pred,
+  lhipp_lpme_vol_pred,
+  lhipp_pme_vol_pred,
+  rhipp_data_vol_pred,
+  rhipp_lpme_vol_pred,
+  rhipp_pme_vol_pred
+)
+
+hipp_info <- bind_cols(hipp_info, hipp_lm_pred)
+
 hipp_info_sd <- hipp_info %>%
   group_by(patno) %>%
   summarize(
@@ -180,7 +226,13 @@ hipp_info_sd <- hipp_info %>%
     lhipp_pme_sd = sd(lhipp_vol_pme2),
     rhipp_data_sd = sd(rhipp_data_vol2),
     rhipp_lpme_sd = sd(rhipp_vol_lpme2),
-    rhipp_pme_sd = sd(rhipp_vol_pme2)
+    rhipp_pme_sd = sd(rhipp_vol_pme2),
+    lhipp_data_adj_sd = sd(lhipp_data_vol2 - lhipp_data_vol_pred),
+    lhipp_lpme_adj_sd = sd(lhipp_vol_lpme2 - lhipp_lpme_vol_pred),
+    lhipp_pme_adj_sd = sd(lhipp_vol_pme2 - lhipp_pme_vol_pred),
+    rhipp_data_adj_sd = sd(rhipp_data_vol2 - rhipp_data_vol_pred),
+    rhipp_lpme_adj_sd = sd(rhipp_vol_lpme2 - rhipp_lpme_vol_pred),
+    rhipp_pme_adj_sd = sd(rhipp_vol_pme2 - rhipp_pme_vol_pred)
   ) %>%
   ungroup()
 
@@ -191,8 +243,16 @@ hipp_sd_mean <- hipp_info_sd %>%
     lhipp_pme_sd_mean = mean(lhipp_pme_sd),
     rhipp_data_sd_mean = mean(rhipp_data_sd),
     rhipp_lpme_sd_mean = mean(rhipp_lpme_sd),
-    rhipp_pme_sd_mean = mean(rhipp_pme_sd)
+    rhipp_pme_sd_mean = mean(rhipp_pme_sd),
+    lhipp_data_adj_sd_mean = mean(lhipp_data_adj_sd),
+    lhipp_lpme_adj_sd_mean = mean(lhipp_lpme_adj_sd),
+    lhipp_pme_adj_sd_mean = mean(lhipp_pme_adj_sd),
+    rhipp_data_adj_sd_mean = mean(rhipp_data_adj_sd),
+    rhipp_lpme_adj_sd_mean = mean(rhipp_lpme_adj_sd),
+    rhipp_pme_adj_sd_mean = mean(rhipp_pme_adj_sd)
   )
+
+print(hipp_sd_mean, width = Inf)
 
 hipp_sd_med <- hipp_info_sd %>%
   summarize(
@@ -201,8 +261,16 @@ hipp_sd_med <- hipp_info_sd %>%
     lhipp_pme_sd_med = median(lhipp_pme_sd),
     rhipp_data_sd_med = median(rhipp_data_sd),
     rhipp_lpme_sd_med = median(rhipp_lpme_sd),
-    rhipp_pme_sd_med = median(rhipp_pme_sd)
+    rhipp_pme_sd_med = median(rhipp_pme_sd),
+    lhipp_data_adj_sd_med = median(lhipp_data_adj_sd),
+    lhipp_lpme_adj_sd_med = median(lhipp_lpme_adj_sd),
+    lhipp_pme_adj_sd_med = median(lhipp_pme_adj_sd),
+    rhipp_data_adj_sd_med = median(rhipp_data_adj_sd),
+    rhipp_lpme_adj_sd_med = median(rhipp_lpme_adj_sd),
+    rhipp_pme_adj_sd_med = median(rhipp_pme_adj_sd)
   )
+
+print(hipp_sd_med, width = Inf)
 
 thal_info_ts %>%
   sample_n_keys(3) %>%
@@ -213,6 +281,53 @@ thal_info_ts %>%
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Thalamus Volume")
 
+lthal_data_vol_pred <- vector()
+lthal_lpme_vol_pred <- vector()
+lthal_pme_vol_pred <- vector()
+rthal_data_vol_pred <- vector()
+rthal_lpme_vol_pred <- vector()
+rthal_pme_vol_pred <- vector()
+
+for (patno_val in unique(thal_info$patno)) {
+  patno_data <- thal_info %>%
+    filter(patno == patno_val)
+  lthal_data_lm <- lm(lthal_data_vol2 ~ date, data = patno_data)
+  lthal_data_pred <- predict(lthal_data_lm, newdata = patno_data)
+  lthal_data_vol_pred <- c(lthal_data_vol_pred, lthal_data_pred)
+
+  lthal_lpme_lm <- lm(lthal_vol_lpme2 ~ date, data = patno_data)
+  lthal_lpme_pred <- predict(lthal_lpme_lm, newdata = patno_data)
+  lthal_lpme_vol_pred <- c(lthal_lpme_vol_pred, lthal_lpme_pred)
+
+  lthal_pme_lm <- lm(lthal_vol_pme2 ~ date, data = patno_data)
+  lthal_pme_pred <- predict(lthal_pme_lm, newdata = patno_data)
+  lthal_pme_vol_pred <- c(lthal_pme_vol_pred, lthal_pme_pred)
+
+  rthal_data_lm <- lm(rthal_data_vol2 ~ date, data = patno_data)
+  rthal_data_pred <- predict(rthal_data_lm, newdata = patno_data)
+  rthal_data_vol_pred <- c(rthal_data_vol_pred, rthal_data_pred)
+
+  rthal_lpme_lm <- lm(rthal_vol_lpme2 ~ date, data = patno_data)
+  rthal_lpme_pred <- predict(rthal_lpme_lm, newdata = patno_data)
+  rthal_lpme_vol_pred <- c(rthal_lpme_vol_pred, rthal_lpme_pred)
+
+  rthal_pme_lm <- lm(rthal_vol_pme2 ~ date, data = patno_data)
+  rthal_pme_pred <- predict(rthal_pme_lm, newdata = patno_data)
+  rthal_pme_vol_pred <- c(rthal_pme_vol_pred, rthal_pme_pred)
+}
+
+thal_lm_pred <- tibble(
+  lthal_data_vol_pred,
+  lthal_lpme_vol_pred,
+  lthal_pme_vol_pred,
+  rthal_data_vol_pred,
+  rthal_lpme_vol_pred,
+  rthal_pme_vol_pred
+)
+
+thal_info <- bind_cols(thal_info, thal_lm_pred)
+
+
 thal_info_sd <- thal_info %>%
   group_by(patno) %>%
   summarize(
@@ -221,7 +336,13 @@ thal_info_sd <- thal_info %>%
     lthal_pme_sd = sd(lthal_vol_pme2),
     rthal_data_sd = sd(rthal_data_vol2),
     rthal_lpme_sd = sd(rthal_vol_lpme2),
-    rthal_pme_sd = sd(rthal_vol_pme2)
+    rthal_pme_sd = sd(rthal_vol_pme2),
+    lthal_data_adj_sd = sd(lthal_data_vol2 - lthal_data_vol_pred),
+    lthal_lpme_adj_sd = sd(lthal_vol_lpme2 - lthal_lpme_vol_pred),
+    lthal_pme_adj_sd = sd(lthal_vol_pme2 - lthal_pme_vol_pred),
+    rthal_data_adj_sd = sd(rthal_data_vol2 - rthal_data_vol_pred),
+    rthal_lpme_adj_sd = sd(rthal_vol_lpme2 - rthal_lpme_vol_pred),
+    rthal_pme_adj_sd = sd(rthal_vol_pme2 - rthal_pme_vol_pred)
   ) %>%
   ungroup()
 
@@ -232,8 +353,16 @@ thal_sd_mean <- thal_info_sd %>%
     lthal_pme_sd_mean = mean(lthal_pme_sd),
     rthal_data_sd_mean = mean(rthal_data_sd),
     rthal_lpme_sd_mean = mean(rthal_lpme_sd),
-    rthal_pme_sd_mean = mean(rthal_pme_sd)
+    rthal_pme_sd_mean = mean(rthal_pme_sd),
+    lthal_data_adj_sd_mean = mean(lthal_data_adj_sd),
+    lthal_lpme_adj_sd_mean = mean(lthal_lpme_adj_sd),
+    lthal_pme_adj_sd_mean = mean(lthal_pme_adj_sd),
+    rthal_data_adj_sd_mean = mean(rthal_data_adj_sd),
+    rthal_lpme_adj_sd_mean = mean(rthal_lpme_adj_sd),
+    rthal_pme_adj_sd_mean = mean(rthal_pme_adj_sd)
   )
+
+print(thal_sd_mean, width = Inf)
 
 thal_sd_med <- thal_info_sd %>%
   summarize(
@@ -242,9 +371,16 @@ thal_sd_med <- thal_info_sd %>%
     lthal_pme_sd_med = median(lthal_pme_sd),
     rthal_data_sd_med = median(rthal_data_sd),
     rthal_lpme_sd_med = median(rthal_lpme_sd),
-    rthal_pme_sd_med = median(rthal_pme_sd)
+    rthal_pme_sd_med = median(rthal_pme_sd),
+    lthal_data_adj_sd_med = median(lthal_data_adj_sd),
+    lthal_lpme_adj_sd_med = median(lthal_lpme_adj_sd),
+    lthal_pme_adj_sd_med = median(lthal_pme_adj_sd),
+    rthal_data_adj_sd_med = median(rthal_data_adj_sd),
+    rthal_lpme_adj_sd_med = median(rthal_lpme_adj_sd),
+    rthal_pme_adj_sd_med = median(rthal_pme_adj_sd)
   )
 
+print(thal_sd_med, width = Inf)
 
 set.seed(6819)
 hipp_info_ts %>%
@@ -252,11 +388,35 @@ hipp_info_ts %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
   geom_point(aes(y = lhipp_data_vol2), color = colors[1]) +
   geom_line(aes(y = lhipp_data_vol2), color = colors[1]) +
+  geom_smooth(
+    aes(y = lhipp_data_vol2),
+    color = colors[1],
+    method = "lm",
+    se = FALSE,
+    linetype = "dashed",
+    linewidth = 1
+  ) +
   geom_point(aes(y = lhipp_vol_lpme2), color = colors[2]) +
   geom_line(aes(y = lhipp_vol_lpme2), color = colors[2]) +
+  geom_smooth(
+    aes(y = lhipp_vol_lpme2),
+    color = colors[2],
+    method = "lm",
+    se = FALSE,
+    linetype = "dashed",
+    linewidth = 1
+  ) +
   geom_point(aes(y = lhipp_vol_pme2), color = colors[3]) +
   geom_line(aes(y = lhipp_vol_pme2), color = colors[3]) +
-  facet_wrap(~ patno) +
+  geom_smooth(
+    aes(y = lhipp_vol_pme2),
+    color = colors[3],
+    method = "lm",
+    se = FALSE,
+    linetype = "dashed",
+    linewidth = 1
+  ) +
+  facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Hippocampus Volume")
 ggsave("paper/figures/adni_plots/adni_lhipp_volume_comp.png", dpi = 1500)
@@ -266,19 +426,35 @@ thal_info_ts %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
   geom_point(aes(y = lthal_data_vol2), color = colors[1]) +
   geom_line(aes(y = lthal_data_vol2), color = colors[1]) +
+  geom_smooth(
+    aes(y = lthal_data_vol2),
+    color = colors[1],
+    method = "lm",
+    se = FALSE,
+    linetype = "dashed",
+    linewidth = 1
+  ) +
   geom_point(aes(y = lthal_vol_lpme2), color = colors[2]) +
   geom_line(aes(y = lthal_vol_lpme2), color = colors[2]) +
+  geom_smooth(
+    aes(y = lthal_vol_lpme2),
+    color = colors[2],
+    method = "lm",
+    se = FALSE,
+    linetype = "dashed",
+    linewidth = 1
+  ) +
   geom_point(aes(y = lthal_vol_pme2), color = colors[3]) +
   geom_line(aes(y = lthal_vol_pme2), color = colors[3]) +
-  facet_wrap(~ patno) +
+  geom_smooth(
+    aes(y = lthal_vol_pme2),
+    color = colors[3],
+    method = "lm",
+    se = FALSE,
+    linetype = "dashed",
+    linewidth = 1
+  ) +
+  facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Thalamus Volume")
 ggsave("paper/figures/adni_plots/adni_lthal_volume_comp.png", dpi = 1500)
-
-
-thal_long %>%
-  filter(method == "vol2") %>%
-  sample_n_keys(5) %>%
-  ggplot(aes(x = date, y = lthal_volume, group = patno, color = source)) +
-  geom_point() +
-  geom_line()
