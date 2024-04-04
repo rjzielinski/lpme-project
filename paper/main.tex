@@ -474,19 +474,6 @@ The hippocampus is a region with a relatively irregular shape, which may account
 
 Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{fig:adni_cross_section}, results of fitting the PME and LPME algorithms to the surface of the left thalamus are shown in Figures \ref{fig:adni_lthal_result} and \ref{fig:lthal_cross_sections}. While the segmentation estimates of the thalamus do not show the same sort of deviations that are clearly visible for the hippocampus, the cross section plots shown in Figure \ref{fig:lthal_cross_sections} indicate that both the PME and LPME algorithms show a closer fit to the more regularly shaped thalamus surface than was achieved for the hippocampus. This is reflected in the smaller discrepancies between volume estimates, as seen in Figure \ref{fig:lthal_volume_comparison}, though visible variations between time points remain.
 
-\begin{figure}%
-  \centering
-  \subfloat[\centering Data]{{\includegraphics[height=22cm]{adni_plots/adni_data_plot}}}%
-  \hfill
-  \subfloat[\centering LPME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_lpme_plot}}}
-  \hfill
-  \subfloat[\centering PME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_pme_plot}}}
-
-  \caption{Left Hippocampus, Cognitive Healthy ADNI Participant. The raw surface data, displayed in red, show slight changes in orientation that are absent in the LPME estimates, shown in blue. The estimates obtained by the PME and LPME algorithms appear unable to accurately capture the true shape of the structure at points with high levels of curvature.}
-  \label{fig:adni_result}
-\end{figure}
-
-
 
 %\zielinski{Figure \ref{fig:adni_result} will continue to be improved, with the current version mainly serving as a placeholder.}
 
@@ -501,12 +488,31 @@ Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\textwidth]{adni_plots/adni_cross_section}
+  %\includegraphics[width=\textwidth]{adni_plots/adni_cross_section}
+  \includegraphics[height=8cm]{adni_plots/adni_cross_section}
   \caption{Left Hippocampus Cross Section. We can see that the LPME-approximated embedding function, shown in blue, routinely falls inside the boundaries of the surface in the observed data. In the fifth observation with $t=3.04$, the LPME-estimated surface has a gap in it. Gaps in the surface estimates frequently correspond with inaccurate volume estimates.}
   \label{fig:lhipp_cross_sections}
 \end{figure}
 
+\begin{figure}[h]
+  \centering
+  %\includegraphics[width=\textwidth]{adni_plots/adni_lthal_cross_section}
+  \includegraphics[height=8cm]{adni_plots/adni_lthal_cross_section}
+  \caption{Left Thalamus Cross Section. The cross sectional plots indicate that the PME and LPME algorithms fit much more closely to the regularly shaped thalamus surface.}
+  \label{fig:lthal_cross_sections}
+\end{figure}
 
+\begin{figure}%
+  \centering
+  \subfloat[\centering Data]{{\includegraphics[height=22cm]{adni_plots/adni_data_plot}}}%
+  \hfill
+  \subfloat[\centering LPME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_lpme_plot}}}
+  \hfill
+  \subfloat[\centering PME Estimate]{{\includegraphics[height=22cm]{adni_plots/adni_pme_plot}}}
+
+  \caption{Left Hippocampus, Cognitive Healthy ADNI Participant. The raw surface data, displayed in red, show slight changes in orientation that are absent in the LPME estimates, shown in blue. The estimates obtained by the PME and LPME algorithms appear unable to accurately capture the true shape of the structure at points with high levels of curvature.}
+  \label{fig:adni_result}
+\end{figure}
 
 \begin{figure}%
   \centering
@@ -529,14 +535,6 @@ Considering the same individual shown in Figures \ref{fig:adni_result} and \ref{
 %   \label{fig:adni_lthal_cross_section}
 % \end{figure}
 %
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\textwidth]{adni_plots/adni_lthal_cross_section}
-  \caption{Left Thalamus Cross Section. The cross sectional plots indicate that the PME and LPME algorithms fit much more closely to the regularly shaped thalamus surface.}
-  \label{fig:lthal_cross_sections}
-\end{figure}
-
 
 
 \begin{figure}[h]
