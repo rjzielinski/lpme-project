@@ -388,34 +388,34 @@ hipp_info_ts %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
   geom_point(aes(y = lhipp_data_vol2), color = colors[1]) +
   geom_line(aes(y = lhipp_data_vol2), color = colors[1]) +
-  geom_smooth(
-    aes(y = lhipp_data_vol2),
-    color = colors[1],
-    method = "lm",
-    se = FALSE,
-    linetype = "dashed",
-    linewidth = 1
-  ) +
+  # geom_smooth(
+  #   aes(y = lhipp_data_vol2),
+  #   color = colors[1],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
   geom_point(aes(y = lhipp_vol_lpme2), color = colors[2]) +
   geom_line(aes(y = lhipp_vol_lpme2), color = colors[2]) +
-  geom_smooth(
-    aes(y = lhipp_vol_lpme2),
-    color = colors[2],
-    method = "lm",
-    se = FALSE,
-    linetype = "dashed",
-    linewidth = 1
-  ) +
+  # geom_smooth(
+  #   aes(y = lhipp_vol_lpme2),
+  #   color = colors[2],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
   geom_point(aes(y = lhipp_vol_pme2), color = colors[3]) +
   geom_line(aes(y = lhipp_vol_pme2), color = colors[3]) +
-  geom_smooth(
-    aes(y = lhipp_vol_pme2),
-    color = colors[3],
-    method = "lm",
-    se = FALSE,
-    linetype = "dashed",
-    linewidth = 1
-  ) +
+  # geom_smooth(
+  #   aes(y = lhipp_vol_pme2),
+  #   color = colors[3],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
   facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Hippocampus Volume")
@@ -426,34 +426,34 @@ thal_info_ts %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
   geom_point(aes(y = lthal_data_vol2), color = colors[1]) +
   geom_line(aes(y = lthal_data_vol2), color = colors[1]) +
-  geom_smooth(
-    aes(y = lthal_data_vol2),
-    color = colors[1],
-    method = "lm",
-    se = FALSE,
-    linetype = "dashed",
-    linewidth = 1
-  ) +
+  # geom_smooth(
+  #   aes(y = lthal_data_vol2),
+  #   color = colors[1],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
   geom_point(aes(y = lthal_vol_lpme2), color = colors[2]) +
   geom_line(aes(y = lthal_vol_lpme2), color = colors[2]) +
-  geom_smooth(
-    aes(y = lthal_vol_lpme2),
-    color = colors[2],
-    method = "lm",
-    se = FALSE,
-    linetype = "dashed",
-    linewidth = 1
-  ) +
+  # geom_smooth(
+  #   aes(y = lthal_vol_lpme2),
+  #   color = colors[2],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
   geom_point(aes(y = lthal_vol_pme2), color = colors[3]) +
   geom_line(aes(y = lthal_vol_pme2), color = colors[3]) +
-  geom_smooth(
-    aes(y = lthal_vol_pme2),
-    color = colors[3],
-    method = "lm",
-    se = FALSE,
-    linetype = "dashed",
-    linewidth = 1
-  ) +
+  # geom_smooth(
+  #   aes(y = lthal_vol_pme2),
+  #   color = colors[3],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
   facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Thalamus Volume")
