@@ -4,6 +4,21 @@ library(RColorBrewer)
 
 colors <- brewer.pal(3, "Set1")
 
+roster <- read_csv("data/adni_standard/ROSTER.csv")
+roster <- roster %>% 
+  select(
+    -USERDATE,
+    -USERDATE2,
+    -update_stamp
+  )
+adni_status <- read_csv("data/adni_standard/ADNIMERGE.csv")
+
+# adni_status <- full_join(
+#   adni_status,
+#   roster,
+#   by = c("Phase", "ID", "RID", "SITEID")
+# )
+
 sub_dirs <- list.dirs("results", recursive = FALSE)
 
 hipp_info <- data.frame(
@@ -62,7 +77,7 @@ thal_bl <- thal_info %>%
   )
 
 eligible_patnos <- hipp_bl %>%
-  filter(max_date - date_bl > 3) %>%
+  filter(max_date - date_bl > 2) %>%
   select(patno) %>%
   unlist() %>%
   unique()
@@ -250,7 +265,7 @@ hipp_sd_mean <- hipp_info_sd %>%
     rhipp_data_adj_sd_mean = mean(rhipp_data_adj_sd),
     rhipp_lpme_adj_sd_mean = mean(rhipp_lpme_adj_sd),
     rhipp_pme_adj_sd_mean = mean(rhipp_pme_adj_sd)
-  )
+)
 
 print(hipp_sd_mean, width = Inf)
 
@@ -458,3 +473,11 @@ thal_info_ts %>%
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Thalamus Volume")
 ggsave("paper/figures/adni_plots/adni_lthal_volume_comp.png", dpi = 1500)
+
+adni_status %>% 
+  filter(
+    PTID %in% eligible_patnos,
+    VISCODE == "bl"
+  ) %>% 
+  group_by(DX_bl) %>% 
+  tally()
