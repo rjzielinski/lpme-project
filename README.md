@@ -18,13 +18,17 @@ The code in these files often depend on helper functions, which can be found in 
 
 ## Dependency installation:
 
-We used the [renv package](https://rstudio.github.io/renv/) to manage this project's dependency environment. To install the necessary dependencies, use the following steps:
+We used the [renv package](https://rstudio.github.io/renv/) to manage this project's dependency environment. To install most of the necessary dependencies, use the following steps:
 
 1. Clone this repository using `git clone [LINK]`.
 2. Install the `renv` package using `install.packages()`.
 3. Call `renv::restore()` to install dependencies.
 
-Please see the [renv documentation](https://rstudio.github.io/renv/) for more information about this package. Also, note that for this analysis, the PME and LPME algorithms were implemented in the [pme package](https://github.com/rjzielinski/pme). This package is still in the early stages of development, and may undergo substantial syntax changes in the future. Efforts will be made to maintain compatibility between the code in this repository and the updated versions of the `pme` package, but if you do experience errors related to this package, please create an issue in this repository so the problem can be addressed.
+Please see the [renv documentation](https://rstudio.github.io/renv/) for more information about this process.
+
+The [fslr](https://github.com/muschellij2/fslr) package, used to preprocess MRI data, relies on a separate installation of [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/). Instructions for installation of the FSL software can be found [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallationhttps://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation). For more information about configuring your FSL installation to work with the `fslr` package, see the "fslr setup" section in [this paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4911193/).
+
+Also, note that for this analysis, the PME and LPME algorithms were implemented in the [pme package](https://github.com/rjzielinski/pme). This package is still in the early stages of development, and may undergo substantial syntax changes in the future. Efforts will be made to maintain compatibility between the code in this repository and the updated versions of the `pme` package, but if you do experience errors related to this package, please create an issue in this repository so the problem can be addressed.
 
 ## ADNI Data
 
