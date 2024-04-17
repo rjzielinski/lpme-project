@@ -38,6 +38,6 @@ To demonstrate the use of the LPME algorithm for a real dataset, we considered t
 - Under the "Download" tab at the top of the page, select "Image Collections".
 - Select "Advanced Search", and check the boxes for the ADNI 1 project phase, MRI modality, and T1 weighting. Then search for the relevant images.
 - Select all of the images returned in the search results and add to a collection.
-- Navigate to your collection under the "Data Collections" tab and select all the images. Then hit the "1-Click Download" button to initiate the download process.
+- Navigate to your collection under the "Data Collections" tab and select all the images. Then hit the "1-Click Download" button, and click the "Zip File 1" link on the subsequent window to initiate the download process. Note that this will be a large download and will likely take a long time to complete.
 - Move your downloaded dataset to the `data/` directory and unzip the file to `data/adni`. Now you are ready to proceed to the image preprocessing steps in `code/03_adni_mri_preprocess.qmd`.
 
