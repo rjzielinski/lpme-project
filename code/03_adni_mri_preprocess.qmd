@@ -1,0 +1,585 @@
+---
+title: "Preprocessing ADNI Structural MRI Data for LPME"
+author: "Robert Zielinski"
+date: "April 23, 2024"
+output: html_document
+---
+
+This notebook contains the code used to preprocess structural MRI images from the ADNI dataset and extract the hippocampuses and thalamuses from each image for further analysis with the LPME algorithm. To run properly, the code assumes that the ADNI data is contained within the `data/adni` directory in this project. To obtain this data, please follow the steps outlined in the `README.md` document, seen [here](https://github.com/rjzielinski/lpme-project).
+
+The packages required for preprocessing are loaded below:
+
+```{r, message=FALSE}
+library(foreach)      # used for parallelization
+library(fslr)         # includes functions for registration and segmentation
+library(oro.dicom)    # dicom file operations
+library(oro.nifti)    # nifti file operations
+library(neurobase)    # added functions for nifti operations
+library(stringr)      # string and regex operations
+library(tidyverse)    # used for dataframe construction
+```
+
+The following code chunk obtains the directory names for each subject incldued in the ADNI data, loads the MNI space mask, and creates two empty lists. The first will contain the original scans converted into nifti format, while the second will store the scan outputs after the preprocessing steps have been applied.
+
+```{r}
+sub_dirs <- list.dirs("data/adni", recursive = FALSE)
+
+mni_nifti <- readNIfTI(
+  paste0(fsl_dir(), "/data/standard/MNI152_T1_1mm.nii.gz")
+)
+
+nii_scans <- list()
+
+processed_scans <- list()
+```
+
+The preprocessing steps that follow are computationally intensive. To relieve some of this burden, the code below enables parallelization.
+
+```{r}
+ncores <- parallel::detectCores() / 2
+cl <- parallel::makeCluster(ncores, type = "FORK")
+doParallel::registerDoParallel(cl = cl)
+```
+
+The following code preprocesses every image in our dataset. The data is originally formatted as DICOM files, so we begin processing by converting these to NIFTI format. Details of FSL's FIRST algorithm are given in the User Guide provided [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FIRST/UserGuide). The `fslr` package's `run_first_all()` function calls FSL's `run_first_all` function, which in turn has two main steps:
+
+1. Affine transformation to MNI space using `first_flirt`. This is designed to be run on whole-head t1-weighted images.
+2. Segment structures by running `run_first`. The `run_first_all` function repeats this function call for all available structures.
+
+Following the guidance of this documentation, we use the `run_first_all` function on the T1-weighted images that have been loaded from the original DICOM files and converted to NIFTI format. No other preprocessing steps are used.
+
+```{r, eval=FALSE}
+foreach (dir_idx = 1:length(sub_dirs)) %dopar% {
+  # for each subject...
+
+  # retrieve the filenames of all images
+  img_dirs <- list.files(sub_dirs[dir_idx], recursive = TRUE, full.names = TRUE) %>%
+    str_remove(pattern = "([^/]+$)") %>%  # remove all text after final slash
+    unique()
+
+  nii_scans[[dir_idx]] <- list() # list to store all scans for given subject
+
+  for (img_idx in 1:length(img_dirs)) {
+    # for each of the subject's images
+
+    # save all processed data to data/adni_processed_fsl
+    proc_dir <- paste0("data/adni_processed_fsl", gsub(pattern = "data/adni", replacement = "", img_dirs[img_idx]))
+
+    if (file.exists(paste0(proc_dir, "/_all_fast_origsegs.nii.gz"))) {
+      # avoid repeat processing if output file is already present
+      next
+    } else {
+      # read all dicom images in directory
+      all_slices <- readDICOM(img_dirs[img_idx])
+
+      # convert to nifti format
+      nii <- dicom2nifti(all_slices)
+
+      # run segmentation function
+      run_first_all(
+        nii,
+        oprefix = proc_dir,
+        verbose = FALSE,
+        opts = "-d"
+      )
+    }
+  }
+}
+
+parallel::stopCluster(cl = cl) # stop parallelized cluster
+```
+
+The segmentation process above saves aggregated volumetric estimates in the `_all_fast_origsegs.nii.gz` files within each output directory. Note that these results have been backtransformed to the original image space, while the results given in `_all_fast_firstsegs.nii.gz` are still registered to the MNI space. As this analysis is primarily concerned with structural differences between images, we prefer to operate in the original image space.
+
+Next, we must extract the results specific to the right and left hippocampuses and the left and right thalamuses.
+
+```{r}
+patnos <- list.dirs("data/adni_processed_fsl", recursive = FALSE, full.names = FALSE)
+processed_dirs <- list.dirs("data/adni_processed_fsl", recursive = FALSE)
+
+# create matrices to hold voxel information
+lhipp <- matrix(ncol = 6)
+rhipp <- matrix(ncol = 6)
+
+lthal <- matrix(ncol = 6)
+rthal <- matrix(ncol = 6)
+
+# vectors to hold FIRST-estimated volume information
+lhipp_vol <- vector()
+rhipp_vol <- vector()
+
+lthal_vol <- vector()
+rthal_vol <- vector()
+
+# image collection information
+img_id <- vector()
+img_date <- vector()
+
+# matrices for surface voxel information
+lhipp_surface <- matrix(ncol = 6)
+rhipp_surface <- matrix(ncol = 6)
+
+lthal_surface <- matrix(ncol = 6)
+rthal_surface <- matrix(ncol = 6)
+```
+
+The following code contains all information necessary to extract voxel-level location estimates for the relevant structures in all images. The indices for the structures of interest are based on the structure order in the "Labels" section at the end of the [user guide](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FIRST/UserGuide).
+
+The essential operation being performed is the conversion of structure information from a 170 x 256 x 256 tensor of image voxel intensities to a $N \times 6$ matrix with two columns of image metadata, three columns of positional values and one column representing voxel intensity. In this case, $N$ represents the number of voxels with nonzero intensity. This allows us to represent a masked T1-weighted image as a point cloud with $N$ observations.
+
+This process outputs a similar point cloud matrix that only includes voxels found to be on the surface of the structure. To approximate the structure surface while considering the irregularity of the structures being considered, any voxel having an adjacent voxel with zero intensity was included in the surface estimate. Despite the potential for error in estimating the surface, in practice, this procedure provides surface estimates that appear to reasonably reflect the expected shapes upon visual inspection.
+
+```{r, eval=FALSE}
+for (dir_idx in 1:length(processed_dirs)) {
+  # for each subject
+
+  # identify image recording dates
+  scan_dates <- list.dirs(
+    paste0(processed_dirs[dir_idx], "/MPRAGE"),
+    full.names = FALSE,
+    recursive = FALSE
+  )
+  scan_dirs <- list.files(
+    paste0(processed_dirs[dir_idx], "/MPRAGE"),
+    recursive = TRUE,
+    full.names = TRUE
+  ) %>%
+    gsub(pattern = "([^/]+$)", replacement = "") %>%
+    unique()
+
+  for (scan_idx in 1:length(scan_dirs)) {
+    # for each image
+
+    # if results file exists
+    if (file.exists(paste0(scan_dirs[scan_idx], "_all_fast_origsegs.nii.gz"))) {
+      img_id <- c(img_id, patnos[dir_idx])
+      img_date <- c(img_date, scan_dates[scan_idx])
+
+      # read segmentation estimates
+      temp_segs <- readnii(paste0(scan_dirs[scan_idx], "_all_fast_origsegs.nii.gz"))
+
+      # estimate volumes for all structures
+      seg_vols <- fslstats(
+        paste0(scan_dirs[scan_idx], "_all_fast_origsegs.nii.gz"),
+        opts = "-V",
+        ts = TRUE
+      )
+
+      # left hippocampus corresponds to index 6
+      temp_lhipp <- temp_segs[, , , 6]
+      # volume estimates contain two values: (1) number of voxels; (2) volume
+      # retrieve second value
+      temp_lhipp_vol <- seg_vols[6] %>%
+        str_replace(
+          pattern = "([^\\s]+)",
+          replacement = ""
+        ) %>%
+        gsub(
+          pattern = " ",
+          replacement = ""
+        ) %>%
+        as.numeric()
+      lhipp_vol <- c(lhipp_vol, temp_lhipp_vol)
+
+      # find left hippocampus voxels with intensity > 0
+      # arr.ind saves index values in all three dimensions
+      # this gives us positional locations of active voxels
+      lhipp_idx <- which(temp_lhipp > 0, arr.ind = TRUE)
+
+      # logical vector indicating whether voxel is on the structure's surface
+      surface <- rep(FALSE, nrow(lhipp_idx))
+
+      ### Surface Identification
+
+      # loop through all voxels
+      for (dim in 1:3) {
+        for (dim2 in 1:3) {
+          if (dim != dim2) {
+            # ensure dim, dim2, dim3 are all different to select different values
+            dim3 <- seq(1, 3, 1)[!(1:3 %in% c(dim, dim2))]
+            # for each of the first two specified dimensions,
+            # get all available values in third dimension
+            unique_vals <- unique(lhipp_idx[, c(dim, dim2)])
+            for (i in 1:nrow(unique_vals)) {
+              # get all third dimension values given first two dimensions
+              vals <- lhipp_idx[lhipp_idx[, dim] == unique_vals[i, 1] & lhipp_idx[, dim2] == unique_vals[i, 2], dim3]
+              min_vals <- vector()
+              max_vals <- vector()
+
+              for (v in vals) {
+                # for each third dimension value
+                # if position immediately before or after given value
+                # does not have positive intensity, then selected value must
+                # be on structure surface
+                if (!((v-1) %in% vals)) {
+                  min_vals <- c(min_vals, v)
+                } else if (!((v+1) %in% vals)) {
+                  max_vals <- c(max_vals, v)
+                }
+              }
+              surface_vals <- c(min_vals, max_vals)
+              for (v in surface_vals) {
+                surface[which(lhipp_idx[, dim] == unique_vals[i, 1] & lhipp_idx[, dim2] == unique_vals[i, 2] & lhipp_idx[, dim3] == v, arr.ind = TRUE)] <- TRUE
+              }
+            }
+          } else {
+            next
+          }
+        }
+      }
+      lhipp_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        # ensure proper structure of positional indices
+        lhipp_idx %*% diag(pixdim(as.nifti(temp_lhipp))[2:4]),
+        # append intensity values
+        temp_lhipp[lhipp_idx]
+      )
+      # repeat process, but only for voxels where surface == TRUE
+      lhipp_surface_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        lhipp_idx[surface, ] %*% diag(pixdim(as.nifti(temp_lhipp))[2:4]),
+        temp_lhipp[lhipp_idx[surface, ]]
+      )
+      lhipp <- rbind(lhipp, lhipp_temp)
+      lhipp_surface <- rbind(lhipp_surface, lhipp_surface_temp)
+
+      # repeat for right hippocampus, index 13
+      temp_rhipp <- temp_segs[, , , 13]
+
+      temp_rhipp_vol <- seg_vols[13] %>%
+        str_replace(
+          pattern = "([^\\s]+)",
+          replacement = ""
+        ) %>%
+        gsub(
+          pattern = " ",
+          replacement = ""
+        ) %>%
+        as.numeric()
+      rhipp_vol <- c(rhipp_vol, temp_rhipp_vol)
+      rhipp_idx <- which(temp_rhipp > 0, arr.ind = TRUE)
+      surface <- rep(FALSE, nrow(rhipp_idx))
+      for (dim in 1:3) {
+        for (dim2 in 1:3) {
+          if (dim != dim2) {
+            dim3 <- seq(1, 3, 1)[!(1:3 %in% c(dim, dim2))]
+            unique_vals <- unique(rhipp_idx[, c(dim, dim2)])
+            for (i in 1:nrow(unique_vals)) {
+              vals <- rhipp_idx[rhipp_idx[, dim] == unique_vals[i, 1] & rhipp_idx[, dim2] == unique_vals[i, 2], dim3]
+              min_vals <- vector()
+              max_vals <- vector()
+              for (v in vals) {
+                if (!((v-1) %in% vals)) {
+                  min_vals <- c(min_vals, v)
+                } else if (!((v+1) %in% vals)) {
+                  max_vals <- c(max_vals, v)
+                }
+              }
+              surface_vals <- c(min_vals, max_vals)
+              for (v in surface_vals) {
+                surface[which(rhipp_idx[, dim] == unique_vals[i, 1] & rhipp_idx[, dim2] == unique_vals[i, 2] & rhipp_idx[, dim3] == v, arr.ind = TRUE)] <- TRUE
+              }
+            }
+          } else {
+            next
+          }
+        }
+      }
+      rhipp_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        rhipp_idx %*% diag(pixdim(as.nifti(temp_rhipp))[2:4]),
+        temp_rhipp[rhipp_idx]
+      )
+      rhipp_surface_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        rhipp_idx[surface, ] %*% diag(pixdim(as.nifti(temp_rhipp))[2:4]),
+        temp_rhipp[rhipp_idx[surface, ]]
+      )
+      rhipp <- rbind(rhipp, rhipp_temp)
+      rhipp_surface <- rbind(rhipp_surface, rhipp_surface_temp)
+
+
+      # repeat for left thalamus, index 1
+      temp_lthal <- temp_segs[, , , 1]
+      temp_lthal_vol <- seg_vols[1] %>%
+        str_replace(
+          pattern = "([^\\s]+)",
+          replacement = ""
+        ) %>%
+        gsub(
+          pattern = " ",
+          replacement = ""
+        ) %>%
+        as.numeric()
+      lthal_vol <- c(lthal_vol, temp_lthal_vol)
+      lthal_idx <- which(temp_lthal > 0, arr.ind = TRUE)
+      surface <- rep(FALSE, nrow(lthal_idx))
+      for (dim in 1:3) {
+        for (dim2 in 1:3) {
+          if (dim != dim2) {
+            dim3 <- seq(1, 3, 1)[!(1:3 %in% c(dim, dim2))]
+            unique_vals <- unique(lthal_idx[, c(dim, dim2)])
+            for (i in 1:nrow(unique_vals)) {
+              vals <- lthal_idx[lthal_idx[, dim] == unique_vals[i, 1] & lthal_idx[, dim2] == unique_vals[i, 2], dim3]
+              min_vals <- vector()
+              max_vals <- vector()
+              for (v in vals) {
+                if (!((v-1) %in% vals)) {
+                  min_vals <- c(min_vals, v)
+                } else if (!((v+1) %in% vals)) {
+                  max_vals <- c(max_vals, v)
+                }
+              }
+              surface_vals <- c(min_vals, max_vals)
+              for (v in surface_vals) {
+                surface[which(lthal_idx[, dim] == unique_vals[i, 1] & lthal_idx[, dim2] == unique_vals[i, 2] & lthal_idx[, dim3] == v, arr.ind = TRUE)] <- TRUE
+              }
+            }
+          } else {
+            next
+          }
+        }
+      }
+      lthal_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        lthal_idx %*% diag(pixdim(as.nifti(temp_lthal))[2:4]),
+        temp_lthal[lthal_idx]
+      )
+      lthal_surface_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        lthal_idx[surface, ] %*% diag(pixdim(as.nifti(temp_lthal))[2:4]),
+        temp_lthal[lthal_idx[surface, ]]
+      )
+      lthal <- rbind(lthal, lthal_temp)
+      lthal_surface <- rbind(lthal_surface, lthal_surface_temp)
+
+      # repeat for right thalamus, index 9
+      temp_rthal <- temp_segs[, , , 9]
+      temp_rthal_vol <- seg_vols[9] %>%
+        str_replace(
+          pattern = "([^\\s]+)",
+          replacement = ""
+        ) %>%
+        gsub(
+          pattern = " ",
+          replacement = ""
+        ) %>%
+        as.numeric()
+      rthal_vol <- c(rthal_vol, temp_rthal_vol)
+      rthal_idx <- which(temp_rthal > 0, arr.ind = TRUE)
+      surface <- rep(FALSE, nrow(rthal_idx))
+      for (dim in 1:3) {
+        for (dim2 in 1:3) {
+          if (dim != dim2) {
+            dim3 <- seq(1, 3, 1)[!(1:3 %in% c(dim, dim2))]
+            unique_vals <- unique(rthal_idx[, c(dim, dim2)])
+            for (i in 1:nrow(unique_vals)) {
+              vals <- rthal_idx[rthal_idx[, dim] == unique_vals[i, 1] & rthal_idx[, dim2] == unique_vals[i, 2], dim3]
+              min_vals <- vector()
+              max_vals <- vector()
+              for (v in vals) {
+                if (!((v-1) %in% vals)) {
+                  min_vals <- c(min_vals, v)
+                } else if (!((v+1) %in% vals)) {
+                  max_vals <- c(max_vals, v)
+                }
+              }
+              surface_vals <- c(min_vals, max_vals)
+              for (v in surface_vals) {
+                surface[which(rthal_idx[, dim] == unique_vals[i, 1] & rthal_idx[, dim2] == unique_vals[i, 2] & rthal_idx[, dim3] == v, arr.ind = TRUE)] <- TRUE
+              }
+            }
+          } else {
+            next
+          }
+        }
+      }
+      rthal_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        rthal_idx %*% diag(pixdim(as.nifti(temp_rthal))[2:4]),
+        temp_rthal[rthal_idx]
+      )
+      rthal_surface_temp <- cbind(
+        patnos[dir_idx],
+        scan_dates[scan_idx],
+        rthal_idx[surface, ] %*% diag(pixdim(as.nifti(temp_rthal))[2:4]),
+        temp_rthal[rthal_idx[surface, ]]
+      )
+      rthal <- rbind(rthal, rthal_temp)
+      rthal_surface <- rbind(rthal_surface, rthal_surface_temp)
+    }
+  }
+}
+```
+
+The following code takes the matrix-formatted results from the previous code chunk and reformats them as `tibble` objects, providing column names and ensuring use of the appropriate data classes.
+
+```{r, eval=FALSE}
+lhipp <- lhipp[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+
+lhipp_surface <- lhipp_surface[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+
+rhipp <- rhipp[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+
+rhipp_surface <- rhipp_surface[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+
+lthal <- lthal[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+
+lthal_surface <- lthal_surface[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+
+rthal <- rthal[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+
+rthal_surface <- rthal_surface[-1, ] %>%
+  as_tibble() %>%
+  rename(
+    patno = V1,
+    scan_date = V2,
+    x = V3,
+    y = V4,
+    z = V5,
+    intensity = V6
+  ) %>%
+  mutate(
+    x = as.numeric(x),
+    y = as.numeric(y),
+    z = as.numeric(z),
+    intensity = as.numeric(intensity)
+  )
+```
+
+Finally, the `hipp_info` and `thal_info` data frames are created to store volume information for the hippocampuses and thalamuses, respectively. All results are then saved as CSV files to be used in the analysis step.
+
+```{r, eval=FALSE}
+hipp_info <- data.frame(img_id, img_date, lhipp_vol, rhipp_vol)
+names(hipp_info) <- c("patno", "date", "lhipp_vol", "rhipp_vol")
+
+thal_info <- data.frame(img_id, img_date, lthal_vol, rthal_vol)
+names(thal_info) <- c("patno", "date", "lthal_vol", "rthal_vol")
+
+write_csv(hipp_info, "data/adni_fsl_hipp_info.csv")
+write_csv(thal_info, "data/adni_fsl_thal_info.csv")
+
+write_csv(lhipp, "data/adni_fsl_lhipp.csv")
+write_csv(rhipp, "data/adni_fsl_rhipp.csv")
+
+write_csv(lthal, "data/adni_fsl_lthal.csv")
+write_csv(rthal, "data/adni_fsl_rthal.csv")
+
+write_csv(lhipp_surface, "data/adni_fsl_lhipp_surface.csv")
+write_csv(rhipp_surface, "data/adni_fsl_rhipp_surface.csv")
+
+write_csv(lthal_surface, "data/adni_fsl_lthal_surface.csv")
+write_csv(rthal_surface, "data/adni_fsl_rthal_surface.csv")
+```
