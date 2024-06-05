@@ -409,16 +409,9 @@ Visualizations of the results from some example simulated cases, truncated for c
 \begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{sim_case1}
-  \includegraphics[width=\textwidth]{sim_case5}
-  \caption{Scatterplots of two example simulated data clouds (gray points) with $d=1$ overlaid true embedding manifold (red), the estimated LMPE function (blue, dashed), PME (green, dotted), and principal curve or surface (purple, dot-dashed).}
-  \label{fig:sim_case1}
-\end{figure}
-
-\begin{figure}[h]
-  \centering
   \includegraphics[width=\textwidth]{sim_case7}
-  \caption{Scatterplots of two example simulated data clouds (gray points) with $d=2$ overlaid true embedding manifold (red), the estimated LMPE function (blue, dashed), PME (green, dotted), and principal curve or surface (purple, dot-dashed).}
-  \label{fig:sim_case6}
+  \caption{Scatterplots of two example simulated data clouds (gray points) with $d=1$ and $d=2$ overlaid with points on the true embedding manifold (red), the estimated LMPE function (blue), PME (green), and principal curve or surface (purple).}
+  \label{fig:sim_results}
 \end{figure}
 
 The median and interquartile range of the mean squared distance from the true underlying manifold values for the estimates of each approach, as well as for the data itself, are shown in Table \ref{table:simulation_results_median}. Analogous mean and standard deviation summaries of the results are given in the Appendix. Because the PME, principal curve, and principal surface methods each attempt to estimate the manifold in question at each individual time point without allowing other time points to inform these estimates, they should result in similar deviations from the true underlying manifold, with differences in error resulting primarily from differing performances in fitting to the observed data. Meanwhile, because the LPME approach accounts for all time points simultaneously, this approach results in lower mean squared distance values.
