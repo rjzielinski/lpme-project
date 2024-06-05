@@ -64,9 +64,9 @@ lines3D(
 text3D(-2.25, -0.85, -2.25, labels = expression(theta), add = TRUE)
 dev.off()
 
-sim_example_case1 <- readRDS("simulations/case1/duration_01_interval_010_ampnoise_025_pernoise_050_n_1000_constant000_run_01.rds")
-sim_example_case5 <- readRDS("simulations/case6/duration_01_interval_010_ampnoise_000_pernoise_005_n_1000_constant000_run_01.rds")
-sim_example_case7 <- readRDS("simulations/case7/duration_01_interval_010_ampnoise_010_pernoise_010_n_1000_constant000_run_01.rds")
+sim_example_case1 <- readRDS("simulations/case1/duration_01_interval_010_ampnoise_050_pernoise_050_n_1000_constant025_run_01.rds")
+sim_example_case5 <- readRDS("simulations/case6/duration_01_interval_010_ampnoise_005_pernoise_000_n_1000_constant010_run_01.rds")
+sim_example_case7 <- readRDS("simulations/case7/duration_01_interval_010_ampnoise_010_pernoise_005_n_1000_linear000_run_01.rds")
 
 df_labels <- c("Data", "True", "LPME", "PME", "Principal Curve")
 
@@ -86,13 +86,14 @@ for (df_idx in 1:length(data_case1)) {
 }
 df_case1 <- reduce(data_case1, rbind)
 df_case1 <- df_case1 %>%
-  filter(mod(time * 10, 2) == 0)
+  filter(mod(time * 10, 3) < 1e-10)
 
 time_vals <- sim_example_case1$times
-time_vals <- time_vals[mod(time_vals * 10, 2) == 0]
+time_vals <- time_vals[mod(time_vals * 10, 3) < 1e-10]
+time_vals <- time_vals[time_vals != 0]
 
 png("paper/figures/sim_case1.png", res = 500, height = 2000, width = 3000)
-par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
+par(oma = c(4, 1, 1, 1), mfrow = c(1, 3), mar = c(2, 2, 1, 1))
 for (time_idx in 1:length(time_vals)) {
   temp_data <- df_case1 %>%
     filter(
@@ -136,8 +137,8 @@ for (time_idx in 1:length(time_vals)) {
     ylab = "y",
     col = alpha("black", 0.2),
     bg = alpha("black", 0.2),
-    xlim = c(-4, 4),
-    ylim = c(-2, 2),
+    xlim = c(-1, 1),
+    ylim = c(-1, 1),
     pch = 21,
     main = paste0("Time = ", time_vals[time_idx]),
     cex = 0.5
@@ -148,9 +149,9 @@ for (time_idx in 1:length(time_vals)) {
     col = "red",
     bg = "red",
     pch = 21,
-    # cex = 0.5
-    type = "l",
-    lwd = 1.25
+    cex = 0.25
+    # type = "l",
+    # lwd = 1.25
   )
   points(
     x = temp_lpme$x,
@@ -158,9 +159,10 @@ for (time_idx in 1:length(time_vals)) {
     col = "blue",
     bg = "blue",
     pch = 21,
-    type = "l",
-    lty = "dashed",
-    lwd = 1.25
+    # type = "l",
+    # lty = "dashed",
+    # lwd = 1.25
+    cex = 0.25
   )
   points(
     x = temp_pme$x,
@@ -168,9 +170,10 @@ for (time_idx in 1:length(time_vals)) {
     col = "green",
     bg = "green",
     pch = 21,
-    type = "l",
-    lty = "dotted",
-    lwd = 1.25
+    # type = "l",
+    # lty = "dotted",
+    # lwd = 1.25
+    cex = 0.25
   )
   points(
     x = temp_princurve$x,
@@ -178,9 +181,10 @@ for (time_idx in 1:length(time_vals)) {
     col = "purple",
     bg = "purple",
     pch = 21,
-    type = "l",
-    lty = "dotdash",
-    lwd = 1.25
+    # type = "l",
+    # lty = "dotdash",
+    # lwd = 1.25
+    cex = 0.25
   )
 }
 par(fig = c(0, 1, 0, 1), oma = c(0, 1, 0, 1), mar = c(0, 0, 0, 0), new = TRUE)
@@ -215,14 +219,15 @@ for (df_idx in 1:length(data_case5)) {
 }
 df_case5 <- reduce(data_case5, rbind)
 df_case5 <- df_case5 %>%
-  filter(mod(time * 10, 2) == 0)
+  filter(mod(time * 10, 3) < 1e-10)
 
 time_vals <- sim_example_case5$times
-time_vals <- time_vals[mod(time_vals * 10, 2) == 0]
+time_vals <- time_vals[mod(time_vals * 10, 3) < 1e-10]
+time_vals <- time_vals[time_vals != 0]
 
 png("paper/figures/sim_case5.png", res = 500, height = 2000, width = 3000)
-par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
-for (time_idx in 1:length(time_vals)) {
+par(oma = c(4, 1, 1, 1), mfrow = c(1, 3), mar = c(2, 2, 1, 1))
+for (time_idx in 1:3) {
   temp_df <- df_case5 %>%
     filter(time == time_vals[time_idx]) %>%
     arrange(x)
@@ -269,12 +274,12 @@ for (time_idx in 1:length(time_vals)) {
     xlab = "x",
     ylab = "y",
     zlab = "z",
-    xlim = c(-1, 10),
-    ylim = c(-3, 3),
-    zlim = c(-3, 3),
+    xlim = c(-1, 1),
+    ylim = c(-1, 1),
+    zlim = c(-1, 1),
     pch = 21,
-    col = alpha("black", 0.005),
-    bg = alpha("black", 0.005),
+    col = alpha("black", 0.01),
+    bg = alpha("black", 0.01),
     main = paste0("Time = ", time_vals[time_idx]),
     ticktype = "detailed"
   )
@@ -285,8 +290,9 @@ for (time_idx in 1:length(time_vals)) {
     col = alpha("red", 0.5),
     bg = alpha("red", 0.5),
     pch = 20,
-    type = "l",
-    lwd = 1,
+    cex = 0.25,
+    # type = "l",
+    # lwd = 1,
     add = TRUE
   )
   scatter3D(
@@ -296,9 +302,10 @@ for (time_idx in 1:length(time_vals)) {
     col = "blue",
     bg = "blue",
     pch = 20,
-    type = "l",
-    lty = 2,
-    lwd = 1,
+    cex = 0.25,
+    # type = "l",
+    # lty = 2,
+    # lwd = 1,
     add = TRUE
   )
   scatter3D(
@@ -308,9 +315,10 @@ for (time_idx in 1:length(time_vals)) {
     col = "green",
     bg = "green",
     pch = 20,
-    type = "l",
-    lty = 3,
-    lwd = 1,
+    cex = 0.25,
+    # type = "l",
+    # lty = 3,
+    # lwd = 1,
     add = TRUE
   )
   scatter3D(
@@ -320,9 +328,10 @@ for (time_idx in 1:length(time_vals)) {
     col = "purple",
     bg = "purple",
     pch = 20,
-    type = "l",
-    lty = 4,
-    lwd = 1,
+    cex = 0.25,
+    # type = "l",
+    # lty = 4,
+    # lwd = 1,
     add = TRUE
   )
 }
@@ -365,13 +374,14 @@ for (df_idx in 1:length(data_case7)) {
 }
 df_case7 <- reduce(data_case7, rbind)
 df_case7 <- df_case7 %>%
-  filter(mod(time * 10, 2) == 0)
+  filter(mod(time * 10, 3) < 1e-10)
 
 time_vals <- unique(df_case7$time)
+time_vals <- time_vals[time_vals != 0]
 
 png("paper/figures/sim_case7.png", res = 500, height = 2000, width = 3000)
-par(oma = c(4, 1, 1, 1), mfrow = c(2, 3), mar = c(2, 2, 1, 1))
-for (time_idx in 1:length(time_vals)) {
+par(oma = c(4, 1, 1, 1), mfrow = c(1, 3), mar = c(2, 2, 1, 1))
+for (time_idx in 1:3) {
   temp_data <- df_case7 %>%
     filter(
       time == time_vals[time_idx],
@@ -417,7 +427,7 @@ for (time_idx in 1:length(time_vals)) {
     zlab = "z",
     xlim = c(-1, 1),
     ylim = c(-1, 1),
-    zlim = c(-1, 3),
+    zlim = c(-1, 1),
     pch = 21,
     col = alpha("black", 0.05),
     bg = alpha("black", 0.05),
