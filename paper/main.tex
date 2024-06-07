@@ -382,7 +382,7 @@ In the situations where $d = 1$, LPME is compared to the PME method naively run 
 
 A factorial design is used to run the simulation studies, with the factor levels set as follows: 1) $\alpha, \beta, \zeta \in \left\{0, 0.05, 0.1, 0.25, 0.5, 1.0\right\}$; 2) study duration: $\left\{1, 2, 5\right\}$; 3) interval between images: $\left\{0.1, 0.25, 0.5\right\}$; 4) longitudinal change model: Constant, Linear, Quadratic, Sinusoidal. The sample size for each time point is set to 1,000 observations. Each combination of factor levels is run once, resulting in each embedding map being simulated a total of 7,776 times. All code required to reproduce the simulation results and associated Figures is provided at \href{https://github.com/rjzielinski/lpme-project}{\texttt{https://github.com/rjzielinski/lpme-project}}.
 
-Visualizations of the results from some example simulated cases, truncated for concision, are shown in Figures \ref{fig:sim_case1} and \ref{fig:sim_case6}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
+Visualizations of the results from some example simulated cases, truncated for concision, are shown in Figures \ref{fig:sim_case1} and \ref{fig:sim_case7}. Informally, the performance of each estimation method can be observed by considering the proximity of each method's estimated manifold to the true manifold (shown in red) over time. Thus, in Figure \ref{fig:sim_case1}, we see that the LPME-estimated manifold bears the closest resemblance to the true manifold underlying the data, while the manifolds estimated by PME and the principal curve method show greater responses to temporary random fluctuations in the data at each time point.
 
 
 
@@ -408,8 +408,10 @@ Visualizations of the results from some example simulated cases, truncated for c
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\textwidth]{sim_case1}
-  \includegraphics[width=\textwidth]{sim_case7}
+  \subfloat[\centering Simulation Case 1]{{\includegraphics[height=8cm]{sim_case1}} \label{fig:sim_case1}}%
+  \vfill
+  \subfloat[\centering Simulation Case 7]{{\includegraphics[height=8cm]{sim_case7}} \label{fig:sim_case7}}
+  
   \caption{Scatterplots of two example simulated data clouds (gray points) with $d=1$ and $d=2$ overlaid with points on the true embedding manifold (red), the estimated LMPE function (blue), PME (green), and principal curve or surface (purple).}
   \label{fig:sim_results}
 \end{figure}
@@ -445,17 +447,12 @@ A summary of the between-visit variability in the volume estimates of the subcor
 \begin{figure}[h]
   \centering
   %\includegraphics[width=\textwidth]{adni_plots/adni_cross_section}
-  \includegraphics[height=8cm]{adni_plots/adni_cross_section}
-  \caption{Left Hippocampus Cross Section. LPME-approximated embedding function, shown in blue, routinely falls inside the boundaries of the surface in the observed data. In the fifth observation with $t=3.04$, the LPME-estimated surface has a gap. Such gaps in the surface estimates frequently correspond with inaccurate volume estimates.}
-  \label{fig:lhipp_cross_sections}
-\end{figure}
-
-\begin{figure}[h]
-  \centering
-  %\includegraphics[width=\textwidth]{adni_plots/adni_lthal_cross_section}
-  \includegraphics[height=8cm]{adni_plots/adni_lthal_cross_section}
-  \caption{Left Thalamus Cross Section. The cross sectional plots indicate that the PME and LPME algorithms fit much more closely to the regularly shaped thalamus surface.}
-  \label{fig:lthal_cross_sections}
+  \subfloat[\centering Left Hippocampus Cross Section]{{\includegraphics[height=8cm]{adni_plots/adni_cross_section}} \label{fig:lhipp_cross_sections}}%
+  \vfill
+  \subfloat[\centering Left Thalamus Cross Section]{{\includegraphics[height=8cm]{adni_plots/adni_lthal_cross_section}} \label{fig:lthal_cross_sections}}
+  
+  \caption{Left Hippocampus and Left Thalamus Cross Sections. LPME-approximated embedding function, shown in blue, routinely falls inside the boundaries of the observed hippocampus surface. In the fifth hippocampus observation with $t=3.04$, the LPME-estimated surface has a gap. Such gaps in the surface estimates frequently correspond with inaccurate volume estimates. The cross sectional plots indicate that the PME and LPME algorithms fit much more closely to the regularly shaped thalamus surface.}
+  \label{fig:adni_cross_sections}
 \end{figure}
 
 \begin{figure}%
