@@ -14,6 +14,8 @@ source("code/functions/estimate_volume.R")
 source("code/functions/interior_identification.R")
 source("code/functions/create_cross_section_matrix.R")
 
+
+
 lhipp_surface <- read_csv("data/adni_fsl_lhipp_surface.csv")
 lthal_surface <- read_csv("data/adni_fsl_lthal_surface.csv")
 rhipp_surface <- read_csv("data/adni_fsl_rhipp_surface.csv")
@@ -90,29 +92,6 @@ thal_info <- thal_info %>%
     date = ymd_hms(date),
     date = decimal_date(date)
   )
-
-
-
-lhipp_patnos <- lhipp_surface %>%
-  dplyr::select(patno, scan_date) %>%
-  distinct() %>%
-  group_by(patno) %>%
-  tally() %>%
-  filter(n >= 3) %>%
-  select(patno) %>%
-  unlist()
-
-lhipp_surface <- lhipp_surface %>%
-  filter(patno %in% lhipp_patnos)
-
-lthal_surface <- lthal_surface %>%
-  filter(patno %in% lhipp_patnos)
-
-rhipp_surface <- rhipp_surface %>%
-  filter(patno %in% lhipp_patnos)
-
-rthal_surface <- rthal_surface %>%
-  filter(patno %in% lhipp_patnos)
 
 lhipp_surface_centers <- lhipp_surface %>%
   group_by(patno, scan_date) %>%
@@ -207,6 +186,8 @@ rthal_bl <- rthal_surface %>%
   mutate(duration = max_time - time_bl)
 
 
+
+
 # center and standardize data
 lhipp_surface <- lhipp_surface %>%
   full_join(lhipp_surface_centers, by = c("patno", "scan_date")) %>%
@@ -263,6 +244,23 @@ rthal_surface <- rthal_surface %>%
     # time_from_bl = (scan_date - time_bl) / duration
     time_from_bl = scan_date - time_bl
   )
+
+lhipp_patnos <- lhipp_surface %>% 
+  filter(duration > 2) %>% 
+  .$patno %>% 
+  unique()
+
+lhipp_surface <- lhipp_surface %>%
+  filter(patno %in% lhipp_patnos)
+
+lthal_surface <- lthal_surface %>%
+  filter(patno %in% lhipp_patnos)
+
+rhipp_surface <- rhipp_surface %>%
+  filter(patno %in% lhipp_patnos)
+
+rthal_surface <- rthal_surface %>%
+  filter(patno %in% lhipp_patnos)
 
 
 lhipp_surface_spherical <- lhipp_surface %>%
@@ -321,7 +319,7 @@ foreach(
     "interior_identification", 
     "create_cross_section_matrix"
   )
-) %dopar% {
+) %do% {
   print(patno_val)
   lhipp <- lhipp_surface %>%
     filter(patno == patno_val)
@@ -1383,23 +1381,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_data <- lhipp_mat[lhipp_mat[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_data[, 2],
-      y = temp_data[, 3],
-      z = temp_data[, 4],
-      pch = 20,
-      col = alpha(colors[1], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(lhipp$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+     temp_data <- lhipp_mat[lhipp_mat[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(lhipp$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      ) 
+    }
   }
   dev.off()
 
@@ -1409,23 +1411,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_lpme <- lhipp_lpme_isomap_vals[lhipp_lpme_isomap_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_lpme[, 2],
-      y = temp_lpme[, 3],
-      z = temp_lpme[, 4],
-      pch = 20,
-      col = alpha(colors[2], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(lhipp$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_lpme <- lhipp_lpme_isomap_vals[lhipp_lpme_isomap_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 20,
+        col = alpha(colors[2], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(lhipp$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
@@ -1435,29 +1441,33 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_pme <- lhipp_pme_vals[lhipp_pme_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_pme[, 2],
-      y = temp_pme[, 3],
-      z = temp_pme[, 4],
-      pch = 20,
-      col = alpha(colors[3], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(lhipp$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_pme <- lhipp_pme_vals[lhipp_pme_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 20,
+        col = alpha(colors[3], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(lhipp$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
   lhipp_cross_section <- create_cross_section_matrix(
     list(lhipp_mat, lhipp_lpme_isomap_vals, lhipp_pme_vals),
-    2,
+    4,
     c(0.005, 0.005, 0.005),
     nrow = 2,
     lhipp = lhipp
@@ -1508,23 +1518,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_data <- lthal_mat[lthal_mat[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_data[, 2],
-      y = temp_data[, 3],
-      z = temp_data[, 4],
-      pch = 20,
-      col = alpha(colors[1], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(lthal$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_data <- lthal_mat[lthal_mat[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(lthal$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
@@ -1534,23 +1548,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_lpme <- lthal_lpme_isomap_vals[lthal_lpme_isomap_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_lpme[, 2],
-      y = temp_lpme[, 3],
-      z = temp_lpme[, 4],
-      pch = 20,
-      col = alpha(colors[2], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(lthal$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_lpme <- lthal_lpme_isomap_vals[lthal_lpme_isomap_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 20,
+        col = alpha(colors[2], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(lthal$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
@@ -1560,32 +1578,36 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_pme <- lthal_pme_vals[lthal_pme_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_pme[, 2],
-      y = temp_pme[, 3],
-      z = temp_pme[, 4],
-      pch = 20,
-      col = alpha(colors[3], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(lthal$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_pme <- lthal_pme_vals[lthal_pme_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 20,
+        col = alpha(colors[3], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(lthal$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
   lthal_cross_section <- create_cross_section_matrix(
     list(lthal_mat, lthal_lpme_isomap_vals, lthal_pme_vals),
-    2,
+    4,
     c(0.005, 0.005, 0.005),
     nrow = 2,
-    lthal = lthal
+    lhipp = lthal
   )
   ggsave(
     paste0(patno_path, "/adni_lthal_cross_section.png"),
@@ -1633,23 +1655,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_data <- rhipp_mat[rhipp_mat[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_data[, 2],
-      y = temp_data[, 3],
-      z = temp_data[, 4],
-      pch = 20,
-      col = alpha(colors[1], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(rhipp$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) != 0) {
+      next
+    } else {
+      temp_data <- rhipp_mat[rhipp_mat[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(rhipp$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
@@ -1659,23 +1685,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_lpme <- rhipp_lpme_isomap_vals[rhipp_lpme_isomap_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_lpme[, 2],
-      y = temp_lpme[, 3],
-      z = temp_lpme[, 4],
-      pch = 20,
-      col = alpha(colors[2], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(rhipp$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) != 0) {
+      next
+    } else {
+      temp_lpme <- rhipp_lpme_isomap_vals[rhipp_lpme_isomap_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 20,
+        col = alpha(colors[2], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(rhipp$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
@@ -1685,32 +1715,36 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_pme <- rhipp_pme_vals[rhipp_pme_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_pme[, 2],
-      y = temp_pme[, 3],
-      z = temp_pme[, 4],
-      pch = 20,
-      col = alpha(colors[3], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(rhipp$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) != 0) {
+      next
+    } else {
+      temp_pme <- rhipp_pme_vals[rhipp_pme_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 20,
+        col = alpha(colors[3], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(rhipp$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
   rhipp_cross_section <- create_cross_section_matrix(
     list(rhipp_mat, rhipp_lpme_isomap_vals, rhipp_pme_vals),
-    2,
+    4,
     c(0.005, 0.005, 0.005),
     nrow = 2,
-    rhipp = rhipp
+    lhipp = rhipp
   )
   ggsave(
     paste0(patno_path, "/adni_rhipp_cross_section.png"),
@@ -1758,23 +1792,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_data <- rthal_mat[rthal_mat[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_data[, 2],
-      y = temp_data[, 3],
-      z = temp_data[, 4],
-      pch = 20,
-      col = alpha(colors[1], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(rthal$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) != 0) {
+      next
+    } else {
+      temp_data <- rthal_mat[rthal_mat[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(rthal$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
@@ -1784,23 +1822,27 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_lpme <- rthal_lpme_isomap_vals[rthal_lpme_isomap_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_lpme[, 2],
-      y = temp_lpme[, 3],
-      z = temp_lpme[, 4],
-      pch = 20,
-      col = alpha(colors[2], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(rthal$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) != 0) {
+      next
+    } else {
+      temp_lpme <- rthal_lpme_isomap_vals[rthal_lpme_isomap_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 20,
+        col = alpha(colors[2], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(rthal$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
@@ -1810,32 +1852,36 @@ foreach(
     height = 15000,
     width = 3500
   )
-  par(oma = c(4, 1, 1, 1), mfrow = c(6, 1), mar = c(2, 2, 1, 1))
+  par(oma = c(4, 1, 1, 1), mfrow = c(3, 1), mar = c(2, 2, 1, 1))
 
   for (t in 1:length(time_vals)) {
-    temp_pme <- rthal_pme_vals[rthal_pme_vals[, 1] == time_vals[t], ]
-    scatter3D(
-      x = temp_pme[, 2],
-      y = temp_pme[, 3],
-      z = temp_pme[, 4],
-      pch = 20,
-      col = alpha(colors[3], 0.5),
-      theta = 220,
-      ticktype = "detailed",
-      main = paste0("Time = ", round((time_vals * max(rthal$duration))[t], 2)),
-      xlim = c(-0.15, 0.15),
-      ylim = c(-0.15, 0.15),
-      zlim = c(-0.15, 0.15)
-    )
+    if (mod(t, 2) != 0) {
+      next
+    } else {
+      temp_pme <- rthal_pme_vals[rthal_pme_vals[, 1] == time_vals[t], ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 20,
+        col = alpha(colors[3], 0.5),
+        theta = 220,
+        ticktype = "detailed",
+        main = paste0("Time = ", round((time_vals * max(rthal$duration))[t], 2)),
+        xlim = c(-0.15, 0.15),
+        ylim = c(-0.15, 0.15),
+        zlim = c(-0.15, 0.15)
+      )
+    }
   }
   dev.off()
 
   rthal_cross_section <- create_cross_section_matrix(
     list(rthal_mat, rthal_lpme_isomap_vals, rthal_pme_vals),
-    2,
+    4,
     c(0.005, 0.005, 0.005),
     nrow = 2,
-    rthal = rthal
+    lhipp = rthal
   )
   ggsave(
     paste0(patno_path, "/adni_rthal_cross_section.png"),
