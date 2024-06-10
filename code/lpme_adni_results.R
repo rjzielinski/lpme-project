@@ -397,11 +397,15 @@ thal_sd_med <- thal_info_sd %>%
 
 print(thal_sd_med, width = Inf)
 
-set.seed(6819)
+set.seed(8310)
+sampled_patnos <- hipp_info_ts %>% 
+  sample_n_keys(3) %>% 
+  .$patno %>% 
+  unique()
 hipp_info_ts %>%
-  sample_n_keys(6) %>%
+  filter(patno %in% sampled_patnos) %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
-  geom_point(aes(y = lhipp_data_vol2), color = colors[1]) +
+  geom_point(aes(y = lhipp_data_vol2), shape = 16, color = colors[1]) +
   geom_line(aes(y = lhipp_data_vol2), color = colors[1]) +
   # geom_smooth(
   #   aes(y = lhipp_data_vol2),
@@ -411,7 +415,7 @@ hipp_info_ts %>%
   #   linetype = "dashed",
   #   linewidth = 1
   # ) +
-  geom_point(aes(y = lhipp_vol_lpme2), color = colors[2]) +
+  geom_point(aes(y = lhipp_vol_lpme2), shape = 15, color = colors[2]) +
   geom_line(aes(y = lhipp_vol_lpme2), color = colors[2]) +
   # geom_smooth(
   #   aes(y = lhipp_vol_lpme2),
@@ -421,7 +425,7 @@ hipp_info_ts %>%
   #   linetype = "dashed",
   #   linewidth = 1
   # ) +
-  geom_point(aes(y = lhipp_vol_pme2), color = colors[3]) +
+  geom_point(aes(y = lhipp_vol_pme2), shape = 17, color = colors[3]) +
   geom_line(aes(y = lhipp_vol_pme2), color = colors[3]) +
   # geom_smooth(
   #   aes(y = lhipp_vol_pme2),
@@ -437,10 +441,10 @@ hipp_info_ts %>%
 ggsave("paper/figures/adni_plots/adni_lhipp_volume_comp.png", dpi = 1500)
 
 thal_info_ts %>%
-  sample_n_keys(6) %>%
+  filter(patno %in% sampled_patnos) %>% 
   ggplot(aes(x = time_from_bl, group = patno)) +
-  geom_point(aes(y = lthal_data_vol2), color = colors[1]) +
-  geom_line(aes(y = lthal_data_vol2), color = colors[1]) +
+  geom_point(aes(y = lthal_data_vol2), shape = 16, color = colors[1]) +
+  geom_line(aes(y = lthal_data_vol2), linetype = "solid", color = colors[1]) +
   # geom_smooth(
   #   aes(y = lthal_data_vol2),
   #   color = colors[1],
@@ -449,8 +453,8 @@ thal_info_ts %>%
   #   linetype = "dashed",
   #   linewidth = 1
   # ) +
-  geom_point(aes(y = lthal_vol_lpme2), color = colors[2]) +
-  geom_line(aes(y = lthal_vol_lpme2), color = colors[2]) +
+  geom_point(aes(y = lthal_vol_lpme2), shape = 15, color = colors[2]) +
+  geom_line(aes(y = lthal_vol_lpme2), linetype = "dashed", color = colors[2]) +
   # geom_smooth(
   #   aes(y = lthal_vol_lpme2),
   #   color = colors[2],
@@ -459,8 +463,8 @@ thal_info_ts %>%
   #   linetype = "dashed",
   #   linewidth = 1
   # ) +
-  geom_point(aes(y = lthal_vol_pme2), color = colors[3]) +
-  geom_line(aes(y = lthal_vol_pme2), color = colors[3]) +
+  geom_point(aes(y = lthal_vol_pme2), shape = 17, color = colors[3]) +
+  geom_line(aes(y = lthal_vol_pme2), linetype = "dotted", color = colors[3]) +
   # geom_smooth(
   #   aes(y = lthal_vol_pme2),
   #   color = colors[3],
@@ -471,7 +475,11 @@ thal_info_ts %>%
   # ) +
   facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
-  ylab("Estimated Left Thalamus Volume")
+  ylab("Estimated Left Thalamus Volume") + 
+  guides(
+    color = guide_legend(title = "Participant ID"),
+    shape = guide_legend(title = "Estimate Source")
+  )
 ggsave("paper/figures/adni_plots/adni_lthal_volume_comp.png", dpi = 1500)
 
 adni_status %>% 
