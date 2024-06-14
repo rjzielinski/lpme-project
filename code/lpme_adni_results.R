@@ -402,6 +402,8 @@ sampled_patnos <- hipp_info_ts %>%
   sample_n_keys(3) %>% 
   .$patno %>% 
   unique()
+
+scale_factor <- 3
 hipp_info_ts %>%
   filter(patno %in% sampled_patnos) %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
@@ -437,7 +439,14 @@ hipp_info_ts %>%
   # ) +
   facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
-  ylab("Estimated Left Hippocampus Volume")
+  ylab("Estimated Left Hippocampus Volume") + 
+  theme(
+    axis.title.x = element_text(size = scale_factor * 5),
+    axis.title.y = element_text(size = scale_factor * 5),
+    axis.text.x = element_text(size = scale_factor * 5),
+    axis.text.y = element_text(size = scale_factor * 5),
+    strip.text.x = element_text(size = scale_factor * 5)
+  )
 ggsave("paper/figures/adni_plots/adni_lhipp_volume_comp.png", dpi = 1500)
 
 thal_info_ts %>%
@@ -479,6 +488,13 @@ thal_info_ts %>%
   guides(
     color = guide_legend(title = "Participant ID"),
     shape = guide_legend(title = "Estimate Source")
+  ) +
+  theme(
+    axis.title.x = element_text(size = scale_factor * 5),
+    axis.title.y = element_text(size = scale_factor * 5),
+    axis.text.x = element_text(size = scale_factor * 5),
+    axis.text.y = element_text(size = scale_factor * 5),
+    strip.text.x = element_text(size = scale_factor * 5)
   )
 ggsave("paper/figures/adni_plots/adni_lthal_volume_comp.png", dpi = 1500)
 
