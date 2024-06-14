@@ -12,6 +12,7 @@ The packages required for preprocessing are loaded below:
 ```{r, message=FALSE}
 library(foreach)      # used for parallelization
 library(fslr)         # includes functions for registration and segmentation
+library(here)
 library(oro.dicom)    # dicom file operations
 library(oro.nifti)    # nifti file operations
 library(neurobase)    # added functions for nifti operations
@@ -87,6 +88,7 @@ foreach (dir_idx = 1:length(sub_dirs)) %dopar% {
 }
 
 parallel::stopCluster(cl = cl) # stop parallelized cluster
+
 ```
 
 The segmentation process above saves aggregated volumetric estimates in the `_all_fast_origsegs.nii.gz` files within each output directory. Note that these results have been backtransformed to the original image space, while the results given in `_all_fast_firstsegs.nii.gz` are still registered to the MNI space. As this analysis is primarily concerned with structural differences between images, we prefer to operate in the original image space.
@@ -94,8 +96,8 @@ The segmentation process above saves aggregated volumetric estimates in the `_al
 Next, we must extract the results specific to the right and left hippocampuses and the left and right thalamuses.
 
 ```{r}
-patnos <- list.dirs("data/adni_processed_fsl", recursive = FALSE, full.names = FALSE)
-processed_dirs <- list.dirs("data/adni_processed_fsl", recursive = FALSE)
+patnos <- list.dirs(here("data/adni_processed_fsl"), recursive = FALSE, full.names = FALSE)
+processed_dirs <- list.dirs(here("data/adni_processed_fsl"), recursive = FALSE)
 
 # create matrices to hold voxel information
 lhipp <- matrix(ncol = 6)
@@ -110,6 +112,7 @@ rhipp_vol <- vector()
 
 lthal_vol <- vector()
 rthal_vol <- vector()
+
 
 # image collection information
 img_id <- vector()
@@ -130,6 +133,7 @@ The essential operation being performed is the conversion of structure informati
 This process outputs a similar point cloud matrix that only includes voxels found to be on the surface of the structure. To approximate the structure surface while considering the irregularity of the structures being considered, any voxel having an adjacent voxel with zero intensity was included in the surface estimate. Despite the potential for error in estimating the surface, in practice, this procedure provides surface estimates that appear to reasonably reflect the expected shapes upon visual inspection.
 
 ```{r, eval=FALSE}
+
 for (dir_idx in 1:length(processed_dirs)) {
   # for each subject
 
@@ -417,6 +421,7 @@ for (dir_idx in 1:length(processed_dirs)) {
     }
   }
 }
+
 ```
 
 The following code takes the matrix-formatted results from the previous code chunk and reformats them as `tibble` objects, providing column names and ensuring use of the appropriate data classes.
@@ -568,18 +573,18 @@ names(hipp_info) <- c("patno", "date", "lhipp_vol", "rhipp_vol")
 thal_info <- data.frame(img_id, img_date, lthal_vol, rthal_vol)
 names(thal_info) <- c("patno", "date", "lthal_vol", "rthal_vol")
 
-write_csv(hipp_info, "data/adni_fsl_hipp_info.csv")
-write_csv(thal_info, "data/adni_fsl_thal_info.csv")
+write_csv(hipp_info, here("data/adni_fsl_hipp_info.csv"))
+write_csv(thal_info, here("data/adni_fsl_thal_info.csv"))
 
-write_csv(lhipp, "data/adni_fsl_lhipp.csv")
-write_csv(rhipp, "data/adni_fsl_rhipp.csv")
+write_csv(lhipp, here("data/adni_fsl_lhipp.csv"))
+write_csv(rhipp, here("data/adni_fsl_rhipp.csv"))
 
-write_csv(lthal, "data/adni_fsl_lthal.csv")
-write_csv(rthal, "data/adni_fsl_rthal.csv")
+write_csv(lthal, here("data/adni_fsl_lthal.csv"))
+write_csv(rthal, here("data/adni_fsl_rthal.csv"))
 
-write_csv(lhipp_surface, "data/adni_fsl_lhipp_surface.csv")
-write_csv(rhipp_surface, "data/adni_fsl_rhipp_surface.csv")
+write_csv(lhipp_surface, here("data/adni_fsl_lhipp_surface.csv"))
+write_csv(rhipp_surface, here("data/adni_fsl_rhipp_surface.csv"))
 
-write_csv(lthal_surface, "data/adni_fsl_lthal_surface.csv")
-write_csv(rthal_surface, "data/adni_fsl_rthal_surface.csv")
+write_csv(lthal_surface, here("data/adni_fsl_lthal_surface.csv"))
+write_csv(rthal_surface, here("data/adni_fsl_rthal_surface.csv"))
 ```
