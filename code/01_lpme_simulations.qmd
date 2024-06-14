@@ -1,0 +1,2357 @@
+---
+title: "LPME Simulation Studies"
+author: "Robert Zielinski"
+date: "April 23, 2024"
+output: html_document
+---
+
+This notebook includes all code necessary to replicate the results of the simulations comparing performance between the LPME, PME, and PC/PS algorithms on data generated from a common underlying manifold, but with varying degrees of noise added between time points. The LPME algorithm is designed to obtain *smooth* estimates of the manifolds underlying noisy data. Consequently, if the algorithm achieves its stated goal, it will not show the best goodness of fit to the observed data in these conditions. Simulated data is useful in this setting because we can generate the data from a known underlying manifold, allowing us to measure the algorithm's success at recovering this known manifold.
+
+```{r, message=FALSE}
+library(tidyverse)
+library(plotly)
+library(pracma)
+library(foreach)
+library(doParallel)
+library(furrr)
+library(progress)
+library(pme)
+library(princurve)
+
+# note that file paths are relative to the data/ directory where this notebook resides
+source("functions/sim_data.R")
+source("functions/calc_pme_est.R")
+source("functions/calc_lpme_est.R")
+source("prinSurf_v3.R")
+```
+
+Manifold learning algorithms traditionally have tradeoffs when compared to each other, meaning that an algorithm that displays strong performance for one manifold may be outperformed by another algorithm when considering a different manifold. Because of this, manifold learning algorithms are often evaluated with several manifolds meant to test an algorithm's performance on data with various attributes. We consider eight different manifolds:
+
+1. For $r \in [-3, 3]$, $f(r) = (r, \sin(r + \frac{\pi}{2}))$.
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 1,
+  noise = 0.15,
+  amp_noise = 0.25,
+  period_noise = 0.25,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 1],
+  z = sim_df[, 3],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 1],
+    z = true_vals[, 3],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 1")
+```
+
+2. For $r \in [-3\pi, 3\pi]$, $f(r) = (r, \sin(r))$
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 2,
+  noise = 0.15,
+  amp_noise = 0.25,
+  period_noise = 0.25,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 1],
+  z = sim_df[, 3],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 1],
+    z = true_vals[, 3],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 2")
+```
+
+3. For $r \in [-\frac{4}{5}\pi, \frac{\pi}{2}]$, $f(r) = (\cos(r), \sin(r))$
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 3,
+  noise = 0.15,
+  amp_noise = 0.25,
+  period_noise = 0.25,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 1],
+  z = sim_df[, 3],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 1],
+    z = true_vals[, 3],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 3")
+```
+
+4. For $r \in [-1, 1]$, $f(r) = (r, r^2, r^3)$
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 4,
+  noise = 0.15,
+  amp_noise = 0.25,
+  period_noise = 0.25,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 3],
+  z = sim_df[, 4],
+  frame = sim_df[, 1],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 3],
+    z = true_vals[, 4],
+    frame = true_vals[, 1],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 4")
+```
+
+5. For $r \in [0, 3\pi]$, $f(r) = (r, \cos(r), \sin(r))$
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 5,
+  noise = 0.15,
+  amp_noise = 0.25,
+  period_noise = 0.25,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 3],
+  z = sim_df[, 4],
+  frame = sim_df[, 1],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 3],
+    z = true_vals[, 4],
+    frame = true_vals[, 1],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 5")
+```
+
+6. For $r_1 \in [-1, 1]$, $r_2 \in [-1, 1]$, $f(r_1, r_2) = (r_1, r_2, \|\mathbf{r}\|^2)$
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 6,
+  noise = 0.15,
+  amp_noise = 0.25,
+  period_noise = 0.25,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 3],
+  z = sim_df[, 4],
+  frame = sim_df[, 1],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 3],
+    z = true_vals[, 4],
+    frame = true_vals[, 1],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 6")
+```
+
+7. For $r_1 \in [0, 3\pi]$, $r_2 \in [-1, 1]$, $f(r_1, r_2) = (r_1\cos(r_1), r_1\sin(r_1), r_2)$
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 7,
+  noise = 0.15,
+  amp_noise = 0.25 / 25, # noise reduced to maintain integrity of shape
+  period_noise = 0.25 / 25,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 3],
+  z = sim_df[, 4],
+  frame = sim_df[, 1],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 3],
+    z = true_vals[, 4],
+    frame = true_vals[, 1],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 7")
+```
+
+8. For $r_1 \in [0, \pi]$, $r_2 \in [0, 2\pi]$, $f(r_1, r_2) = (\sin(r_1)\cos(r_2), \sin(r_1)\sin(r_2), \cos(r_1))$
+
+```{r, echo=FALSE}
+set.seed(500)
+time_vals <- seq(0, 1, 0.2)
+sim_list <- lapply(
+  time_vals,
+  sim_data,
+  case = 8,
+  noise = 0.15,
+  amp_noise = 0.25,
+  period_noise = 0.25 / 5,
+  N = 1000,
+  time_change = 0,
+  time_trend = "constant"
+)
+
+sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+for (i in 1:length(sim_list)) {
+  sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+  true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+}
+sim_df <- sim_df[-1, ]
+true_vals <- true_vals[-1, ]
+
+plot_ly(
+  x = sim_df[, 2],
+  y = sim_df[, 3],
+  z = sim_df[, 4],
+  frame = sim_df[, 1],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) %>%
+  add_markers(
+    x = true_vals[, 2],
+    y = true_vals[, 3],
+    z = true_vals[, 4],
+    frame = true_vals[, 1],
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) %>%
+  layout(title = "Simulation Case 8")
+```
+
+Simulation runs were conducted using functions for each case, with each function taking the following arguments:
+
+- `max_time`: The maximum time from baseline of a set of observations, or the study duration.
+- `interval`: The interval of study visits. Intervals between study visits were assumed to be constant in these simulations, but the LPME algorithm can handle settings with varying intervals between visits.
+- `amp_noise`: Specifies the magnitude of between-time point noise impacting the amplitude of the functions used to generate the data.
+- `shape_noise`: Specifies the magnitude of between-time point noise impacting the shape, or period, of the functions used to generate the data.
+- `time_change`: Specifies the magnitude of structural change in the underlying manifold over time.
+- `time_trend`: Describes the type of longitudinal change in the underlying manifold. May take one of four values - constant, linear, quadratic, or sinusoidal.
+- `n`: The number of observations generated at each time point.
+- `initialization_alg`: The manifold learning algorithm used to initialize the PME algorithm. May currently take one of three values - isomap, diffusion_maps, or laplacian_eigenmaps.
+- `run`: Used to save multiple simulation results with the same parameter inputs.
+- `print_plots`: Specify whether plots of preliminary results should be viewed. This is useful for debugging but is computationally expensive.
+
+The functions are given in the code chunks below:
+
+### Simulation Case 1
+
+```{r}
+sim_error_case1 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 1,
+    noise = 0.15,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+
+  # standardize observations to fall between -1 and 1 in each dimension
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+
+  # run lpme algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected to lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal curve estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  # test all smoothing options for principal curve algorithm
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 1,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers",
+      verbose = FALSE
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      # save projections of observations onto estimated principal curve
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
+    }
+    opt_curve <- which.min(curve_error)
+    # save principal curve results for smoothing approach with the lowest error
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 3-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # save list of parameter values, LPME, PME, and principal curve results,
+  # projections and errors for all models
+  sim_case1 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+  sim_dir <- "simulations/case1/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case1,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+### Simulation Case 2
+
+```{r}
+sim_error_case2 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 2,
+    noise = 0.15,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+
+  # standardize observations to fall between -1 and 1 in each dimension
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+  # run lpme algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected onto lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal curve estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  # test all smoothing options for principal curve algorithm
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 1,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers",
+      verbose = FALSE
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
+    }
+    opt_curve <- which.min(curve_error)
+    # save principal curve results for smoothing approach with lowest error
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 3-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # save list of parameter values, LPME, PME, and principal curve results,
+  # projections and errors for all models
+  sim_case2 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+  sim_dir <- "simulations/case2/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case2,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+### Simulation Case 3
+
+```{r}
+sim_error_case3 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 3,
+    noise = 0.15,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+
+
+  # compute polar coordinates for the simulated observations
+  # and points on the true manifold
+  pol <- sim_df[, -1] %>%
+    cart2pol()
+  true_pol <- true_vals[, -1] %>%
+    cart2pol()
+  # augment data with polar coordinates, excluding the radius for this case
+  sim_df <- cbind(sim_df, pol)[, -5]
+  true_vals <- cbind(true_vals, true_pol)[, -5]
+
+  # standardize observations to fall between -1 and 1 in each dimension
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+  # run lpme algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected to lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal curve estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  # test all smoothing options for principal curve algorithm
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 1,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers"
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      # save projections of observations onto estimated principal curve
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
+    }
+    opt_curve <- which.min(curve_error)
+    # save principal curve results for smoothing approach with the lowest error
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 3-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:3], pme_vals[.x, 1:3])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:3], lpme_vals[.x, 1:3])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:3], sim_df[.x, 1:3])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:3], principal_curve_vals[.x, 1:3])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+
+  # save list of parameter values, LPME, PME, and principal curve results,
+  # projections and errors for all models
+  sim_case3 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+  sim_dir <- "simulations/case3/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case3,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+### Simulation Case 4
+
+```{r}
+sim_error_case4 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 4,
+    noise = 0.15,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+
+  # standardize observations to fall between -1 and 1 in each dimension
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+  # run lpme algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected to lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal curve estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  # test all smoothing options for principal curve algorithm
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 1,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers"
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      # save projections of observations onto estimated principal curve
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
+    }
+    opt_curve <- which.min(curve_error)
+    # save principal curve results for smoothing approach with the lowest error
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 4-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 4],
+    frame = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 4],
+      frame = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 4],
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # save list of parameter values, LPME, PME, and principal curve results,
+  # projections and errors for all models
+  sim_case4 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+  sim_dir <- "simulations/case4/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case4,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+## Simulation Case 5
+
+```{r}
+sim_error_case5 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 5,
+    noise = 0.15,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+  # run lpme algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    1,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected to lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal curve estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  # test all smoothing options for principal curve algorithm
+  smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 1,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers"
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    curves <- list()
+    curve_vals <- list()
+    curve_error <- vector()
+    for (smoother_idx in 1:length(smoothing_options)) {
+      curves[[smoother_idx]] <- principal_curve(
+        temp_data,
+        smoother = smoothing_options[smoother_idx]
+      )
+      # save projections of observations onto estimated principal curve
+      curve_vals[[smoother_idx]] <- cbind(time_vals[t], curves[[smoother_idx]]$s)
+      curve_error[smoother_idx] <- curves[[smoother_idx]]$dist
+    }
+    opt_curve <- which.min(curve_error)
+    # save principal curve results for smoothing approach with the lowest error
+    principal_curve_result[[t]] <- curves[[opt_curve]]
+    principal_curve_vals[[t]] <- curve_vals[[opt_curve]]
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 4-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 4],
+    frame = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 4],
+      frame = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 4],
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # save list of parameter values, LPME, PME, and principal curve results,
+  # projections and errors for all models
+  sim_case5 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+
+  sim_dir <- "simulations/case5/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+
+  saveRDS(
+    sim_case5,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+### Simulation Case 6
+
+```{r}
+sim_error_case6 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 6,
+    noise = 0.05,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+
+  # standardize observations to fall between -1 and 1 in each dimension
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+  # run lpme_algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    2,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected to lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal surface estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 2,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers"
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    principal_surface <- prinSurf(temp_data)
+    # obtain principal surface error estimates
+    surface_mse <- map(
+      1:length(principal_surface),
+      ~ principal_surface[[.x]]$MSE
+    ) %>%
+      unlist()
+    opt_surface <- which.min(surface_mse)
+    # save principal surface results
+    # using opt_surface + 2 as list index because first two list entries are NULL
+    principal_curve_result[[t]] <- principal_surface[[opt_surface + 2]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface + 2]]$PS)
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 4-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 4],
+    frame = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 4],
+      frame = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 4],
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], pme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], lpme_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], sim_df[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # keep principal_curve_error as variable name for continuity
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, ], principal_curve_vals[.x, ])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+
+  # save list of parameter values, LPME, PME, and principal surface results,
+  # projections and errors for all models
+  sim_case6 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+  sim_dir <- "simulations/case6/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case6,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+### Simulation Case 7
+
+```{r}
+sim_error_case7 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 7,
+    noise = 0.15,
+    amp_noise = amp_noise / 25,
+    period_noise = shape_noise / 25,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+
+  # compute polar coordinates for the simulated observations
+  # and points on the true manifold
+  # removing 4th column from consideration removes the depth from the Swiss roll
+  pol <- sim_df[, -c(1, 4)] %>%
+    cart2pol()
+  true_pol <- true_vals[, -c(1, 4)] %>%
+    cart2pol()
+  # augment data with polar coordinates, excluding the radius
+  sim_df <- cbind(sim_df, pol)
+  sim_df <- sim_df[, -5]
+  true_vals <- cbind(true_vals, true_pol)
+  true_vals <- true_vals[, -5]
+
+  # standardize observations to fall between -1 and 1 in each dimension
+  for (col_idx in 1:ncol(sim_df)) {
+    col_max <- max(abs(sim_df[, col_idx]))
+    sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+    true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+  # run lpme algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    2,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected to lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal surface estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 2,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers"
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    principal_surface <- prinSurf(temp_data)
+    # obtain principal surface error estimates
+    surface_mse <- map(
+      1:length(principal_surface),
+      ~ principal_surface[[.x]]$MSE
+    ) %>%
+      unlist()
+    opt_surface <- which.min(surface_mse)
+    # save principal surface results
+    # using opt_surface + 2 as list index because first two list entries are NULL
+    principal_curve_result[[t]] <- principal_surface[[opt_surface + 2]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface + 2]]$PS)
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 4-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 4],
+    frame = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 4],
+      frame = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 4],
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], pme_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], lpme_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], sim_df[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # keep principal_curve_error as variable name for continuity
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], principal_curve_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # save list of parameter values, LPME, PME, and principal surface results,
+  # projections and errors for all models
+  sim_case7 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    # lpme_gp_result = lpme_result_gp,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    # lpme_gp_error = lpme_error_gp,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+  sim_dir <- "simulations/case7/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case7,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+### Simulation Case 8
+
+```{r}
+sim_error_case8 <- function(max_time, interval, amp_noise, shape_noise, time_change, time_trend, n, initialization_alg, run = 1, print_plots = FALSE) {
+  time_vals <- seq(0, max_time, interval)
+  # at each time point, simulate a dataset
+  sim_list <- lapply(
+    time_vals,
+    sim_data,
+    case = 9,
+    noise = 0.05,
+    amp_noise = amp_noise,
+    period_noise = shape_noise / 5,
+    N = n,
+    time_change = time_change,
+    time_trend = time_trend
+  )
+
+  # combine the simulated observations into one matrix
+  # do the same with points from the true manifold
+  # these true points correspond to the simulated observations without added noise
+  sim_df <- matrix(ncol = ncol(sim_list[[1]][[1]]))
+  true_vals <- matrix(ncol = ncol(sim_list[[1]][[2]]))
+  for (i in 1:length(sim_list)) {
+    sim_df <- rbind(sim_df, sim_list[[i]][[1]])
+    true_vals <- rbind(true_vals, sim_list[[i]][[2]])
+  }
+
+  # compute spherical coordinates for the simulated observations
+  # and points on the true manifold
+  sim_df <- sim_df[-1, ]
+  true_vals <- true_vals[-1, ]
+  sph <- sim_df[, -1] %>%
+    cart2sph()
+  true_sph <- true_vals[, -1] %>%
+    cart2sph()
+  # augment data with spherical coordinates
+  sim_df <- cbind(sim_df, sph)
+  true_vals <- cbind(true_vals, true_sph)
+
+  # standardize observations to fall between -1 and 1 in each dimension
+  for (col_idx in 1:ncol(sim_df)) {
+    # results improved in this case by
+    # excluding spherical coordinates from the standardization
+    if (col_idx < 4) {
+      col_max <- max(abs(sim_df[, col_idx]))
+      sim_df[, col_idx] <- sim_df[, col_idx] / col_max
+      true_vals[, col_idx] <- true_vals[, col_idx] / col_max
+    }
+  }
+
+  # update time_vals to use standardized values
+  time_vals <- unique(sim_df[, 1])
+
+  # run lpme algorithm on observations
+  lpme_result <- lpme(
+    sim_df,
+    2,
+    smoothing_method = "spline",
+    print_plots = print_plots,
+    verbose = TRUE,
+    init = "first",
+    initialization_algorithm = initialization_alg
+  )
+  # compute values of observations projected to lpme estimated manifold
+  lpme_vals <- calc_lpme_est(lpme_result, sim_df)
+
+  # fit pme and principal surface estimates independently for each time point
+  pme_result <- list()
+  pme_vals <- list()
+  principal_curve_result <- list()
+  principal_curve_vals <- list()
+  for (t in 1:length(time_vals)) {
+    temp_data <- sim_df[sim_df[, 1] == time_vals[t], -1]
+    pme_result[[t]] <- pme(
+      temp_data,
+      d = 2,
+      initialization_algorithm = initialization_alg,
+      initialization_type = "centers"
+    )
+    # save projections of observations onto PME manifold
+    pme_vals[[t]] <- cbind(time_vals[t], calc_pme_est(pme_result[[t]], temp_data))
+    principal_surface <- prinSurf(temp_data)
+    surface_mse <- map(
+      1:length(principal_surface),
+      ~ principal_surface[[.x]]$MSE
+    ) %>%
+      unlist()
+    opt_surface <- which.min(surface_mse)
+    # save principal surface results
+    # using opt_surface + 2 as list index because first two list entries are NULL
+    principal_curve_result[[t]] <- principal_surface[[opt_surface + 2]]
+    principal_curve_vals[[t]] <- cbind(time_vals[t], principal_surface[[opt_surface + 2]]$PS)
+  }
+  pme_vals <- reduce(pme_vals, rbind)
+  principal_curve_vals <- reduce(principal_curve_vals, rbind)
+
+  # create 4-dimensional plot of data, estimated manifolds, and true manifold
+  p <- plot_ly(
+    x = lpme_vals[, 2],
+    y = lpme_vals[, 3],
+    z = lpme_vals[, 4],
+    frame = lpme_vals[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "LPME"
+  ) %>%
+    add_markers(
+      x = pme_vals[, 2],
+      y = pme_vals[, 3],
+      z = pme_vals[, 4],
+      frame = pme_vals[, 1],
+      name = "PME"
+    ) %>%
+    add_markers(
+      x = principal_curve_vals[, 2],
+      y = principal_curve_vals[, 3],
+      z = principal_curve_vals[, 4],
+      frame = principal_curve_vals[, 1],
+      name = "Principal Curve"
+    ) %>%
+    add_markers(
+      x = true_vals[, 2],
+      y = true_vals[, 3],
+      z = true_vals[, 4],
+      frame = true_vals[, 1],
+      name = "True Manifold"
+    ) %>%
+    add_markers(
+      x = sim_df[, 2],
+      y = sim_df[, 3],
+      z = sim_df[, 4],
+      frame = sim_df[, 1],
+      name = "Data",
+      opacity = 0.2
+    )
+
+  # for each estimate, compute mean squared distance between
+  # points on the true manifold and the same points projected to
+  # the relevant manifold estimate
+  pme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], pme_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  lpme_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], lpme_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  data_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], sim_df[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # keep principal_curve_error as variable name for continuity
+  principal_curve_error <- map(
+    1:nrow(true_vals),
+    ~ dist_euclidean(true_vals[.x, 1:4], principal_curve_vals[.x, 1:4])^2
+  ) %>%
+    unlist() %>%
+    mean()
+
+  # save list of parameter values, LPME, PME, and principal surface results,
+  # projections and errors for all models
+  sim_case8 <- list(
+    df = sim_df,
+    times = time_vals,
+    amp_noise = amp_noise,
+    period_noise = shape_noise,
+    n = n,
+    lpme_result = lpme_result,
+    pme_results = pme_result,
+    principal_curve_results = principal_curve_result,
+    lpme_error = lpme_error,
+    pme_error = pme_error,
+    data_error = data_error,
+    principal_curve_error = principal_curve_error,
+    true_vals = true_vals,
+    lpme_vals = lpme_vals,
+    pme_vals = pme_vals,
+    principal_curve_vals = principal_curve_vals,
+    plot = p,
+    initialization_algorithm = initialization_alg
+  )
+  sim_dir <- "simulations/case8/"
+  if (!dir.exists(sim_dir)) {
+    dir.create(sim_dir, recursive = TRUE)
+  }
+  filename <- paste0(
+    initialization_alg,
+    "_duration_",
+    str_pad(as.character(max_time), 2, side = "left", pad = "0"),
+    "_interval_",
+    str_pad(as.character(100 * interval), 3, side = "left", pad = "0"),
+    "_ampnoise_",
+    str_pad(as.character(100 * amp_noise), 3, side = "left", pad = "0"),
+    "_pernoise_",
+    str_pad(as.character(100 * shape_noise), 3, side = "left", pad = "0"),
+    "_n_",
+    str_pad(as.character(n), 4, side = "left", pad = "0"),
+    "_",
+    time_trend,
+    str_pad(as.character(100 * time_change), 3, side = "left", pad = "0"),
+    "_run_",
+    str_pad(as.character(run), 2, side = "left", pad = "0"),
+    ".rds"
+  )
+  saveRDS(
+    sim_case8,
+    paste0(sim_dir, filename)
+  )
+  return(0)
+}
+```
+
+Finally, the last code chunks contains the code needed to set the parameters for all simulation runs and run those simulations. We consider amplitude and shape noise values of $\{0, 0.05, 0.1, 0.25, 0.5, 1\}$, study durations of $\{1, 2, 5\}$, and intervals between study visits of $\{0.1, 0.25, 0.5\}$. Each simulation run has 1,000 observations and every combination of parameters is run one time. Finally, we consider three types of change to the underlying manifold (linear, quadratic, and sinusoidal), and the possibility of the manifold remaining constant over time. In cases where the manifold changes over time, the following magnitudes of longitudinal change were used: $\{0, 0.05, 0.1, 0.25, 0.5, 1\}$. Finally, in addition to using ISOMAP to initialize the PME algorithm, we also considered using Laplacian eigenmaps and diffusion maps. All possible combinations of parameter values were considered.
+
+```{r, eval=FALSE}
+# set parameter values
+amp_noise_vals <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+shape_noise_vals <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+max_times <- c(1, 2, 5)
+intervals <- c(0.1, 0.25, 0.5)
+n_vals <- 1000
+replicates <- 1
+case <- 1:8
+time_changes <- c(0, 0.05, 0.1, 0.25, 0.5, 1)
+time_trends <- c("constant", "linear", "quadratic", "sinusoidal")
+initialization_algorithms = c(
+  "diffusion_maps",
+  "laplacian_eigenmaps",
+  "isomap"
+)
+
+# create data frame where each row is a combination of parameter values
+param_grid <- expand_grid(
+  case,
+  amp_noise_vals,
+  shape_noise_vals,
+  n_vals,
+  intervals,
+  max_times,
+  replicates,
+  time_changes,
+  time_trends,
+  initialization_algorithms
+) %>%
+  data.frame()
+```
+
+The final chunk below includes the code required to run the simulations. This code loops through the rows of the data frame created in the chunk above, running the appropriate simulation function with the parameter values given in the row in question.
+
+```{r, eval=FALSE}
+# run code in parallel using the foreach package
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl)
+
+set.seed(10972)
+errors <- foreach(
+  case = param_grid[, 1],
+  amp_noise = param_grid[, 2],
+  shape_noise = param_grid[, 3],
+  n = param_grid[, 4],
+  interval = param_grid[, 5],
+  duration = param_grid[, 6],
+  initialization_algorithm = param_grid[, 10],
+  run = param_grid[, 7],
+  time_change = param_grid[, 8],
+  time_trend = param_grid[, 9],
+  .inorder = FALSE,
+  # the .export and .packages arguments are used to make functions and packages
+  # available for the additional workers initialized by the parallel cluster.
+  # in my experience, this may take some tinkering with to get everything
+  # running properly
+  .export = c(
+    "sim_data",
+    "calc_pme_est",
+    "calc_lpme_est",
+    "prinSurf",
+    "cart2sph",
+    "cart2pol"
+  ),
+  .packages = c(
+    "tidyverse",
+    "pme",
+    "princurve",
+    "plotly",
+    "doParallel"
+  )
+) %dopar% {
+    # control statements are used to run the appropriate function for each case value
+    if (case == 1) {
+      try({
+        simlist <- sim_error_case1(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      })
+    } else if (case == 2) {
+      try(
+        sim_error_case2(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      )
+    } else if (case == 3) {
+      try(
+        sim_error_case3(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      )
+    } else if (case == 4) {
+      try(
+        sim_error_case4(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      )
+    } else if (case == 5) {
+      try(
+        sim_error_case5(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      )
+    } else if (case == 6) {
+      try(
+        sim_error_case6(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      )
+    } else if (case == 7) {
+      try(
+        sim_error_case7(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      )
+    } else if (case == 8) {
+      try(
+        sim_error_case8(
+          duration,
+          interval,
+          amp_noise,
+          shape_noise,
+          time_change,
+          time_trend,
+          n,
+          initialization_algorithm,
+          run,
+          print_plots = FALSE
+        )
+      )
+    }
+  }
+
+stopCluster(cl)
+```
