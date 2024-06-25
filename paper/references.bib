@@ -3,7 +3,60 @@
   author = {Akhiezer, N.I. and Glazman, I.M.},
   year = {1963},
   publisher = {Dover Publications, Inc.},
-  address = {New York}
+  location = {New York}
+}
+
+@article{li2023inference,
+  title={Inference for Gaussian processes with Mat{\'e}rn covariogram on compact Riemannian manifolds},
+  author={Li, Didong and Tang, Wenpin and Banerjee, Sudipto},
+  journal={Journal of Machine Learning Research},
+  volume={24},
+  number={101},
+  pages={1--26},
+  year={2023}
+}
+
+@Misc{Cannoodt2018princurve,
+    author = {Robrecht Cannoodt},
+    title = {princurve 2.0: Fit a Principal Curve in Arbitrary
+      Dimension},
+    journal = {CRAN},
+    year = {2018},
+    month = {June},
+    doi = {10.5281/zenodo.3351282},
+    url = {https://github.com/rcannood/princurve},
+  }
+
+@book{hatcher2002algebraic,
+  author    = {Allen Hatcher},
+  title     = {Algebraic Topology},
+  publisher = {Cambridge University Press},
+  year      = {2002}
+}
+
+@article{ding2023learning,
+author = {Xiucai Ding and Rong Ma},
+title = {{Learning low-dimensional nonlinear structures from high-dimensional noisy data: An integral operator approach}},
+volume = {51},
+journal = {The Annals of Statistics},
+number = {4},
+publisher = {Institute of Mathematical Statistics},
+pages = {1744 -- 1769},
+keywords = {High-dimensional data, kernel method, manifold learning, nonlinear dimension reduction, Spectral method},
+year = {2023},
+doi = {10.1214/23-AOS2306},
+URL = {https://doi.org/10.1214/23-AOS2306}
+}
+
+
+@article{Pearson1901on,
+  title = {On Lines and Planes of Closest Fit to Systems of Points in Space},
+  author = {Pearson, Karl},
+  date = {1901},
+  journaltitle = {Philosophical Magazine},
+  volume = {2},
+  number = {11},
+  pages = {559–572}
 }
 
 @article{avantsAdvancedNormalizationTools2009,
@@ -30,6 +83,7 @@
   publisher = {Taylor \& Francis},
   issn = {0162-1459},
   doi = {10.1080/01621459.1992.10475169},
+  url = {https://www.tandfonline.com/doi/abs/10.1080/01621459.1992.10475169},
   urldate = {2024-06-18},
   abstract = {Identification of ice floes and their outlines in satellite images is important for understanding physical processes in the polar regions, for transportation in ice-covered seas, and for the design of offshore structures intended to survive in the presence of ice. At present this is done manually, a long and tedious process that precludes full use of the great volume of relevant images now available. We describe an accurate and almost fully automatic method for identifying ice floes and their outlines. Floe outlines are modeled as closed principal curves, a flexible class of smooth nonparametric curves. We propose a robust method of estimating closed principal curves that reduces both bias and variance. Initial estimates of floe outlines come from the erosion-propagation (EP) algorithm, which combines erosion from mathematical morphology with local propagation of information about floe edges. The edge pixels from the EP algorithm are grouped into floe outlines using a new clustering algorithm. This extends existing clustering methods by allowing groups to be centered about principal curves rather than points or lines. This may open the way to efficient feature extraction using cluster analysis in images more generally. The method is implemented in an object-oriented programming environment, for which it is well suited, and is quite computationally efficient.},
   keywords = {Erosion,Feature extraction,Nonparametric curves,Remote sensing,Robustness},
@@ -394,20 +448,21 @@
   file = {/Users/rzielinski/Zotero/storage/57W567QB/jmri.html}
 }
 
-@article{jenkinsonFSL2012,
+ @article{jenkinsonFSL2012,
   title = {{{FSL}}},
   author = {Jenkinson, Mark and Beckmann, Christian F. and Behrens, Timothy E. J. and Woolrich, Mark W. and Smith, Stephen M.},
-  year = {2012},
-  month = aug,
-  journal = {NeuroImage},
+  date = {2012-08-15},
+  journaltitle = {NeuroImage},
+  shortjournal = {NeuroImage},
   series = {20 {{YEARS OF fMRI}}},
   volume = {62},
   number = {2},
   pages = {782--790},
   issn = {1053-8119},
   doi = {10.1016/j.neuroimage.2011.09.015},
+  url = {https://www.sciencedirect.com/science/article/pii/S1053811911010603},
   urldate = {2024-06-24},
-  abstract = {FSL (the FMRIB Software Library) is a comprehensive library of analysis tools for functional, structural and diffusion MRI brain imaging data, written mainly by members of the Analysis Group, FMRIB, Oxford. For this NeuroImage special issue on ``20 years of fMRI'' we have been asked to write about the history, developments and current status of FSL. We also include some descriptions of parts of FSL that are not well covered in the existing literature. We hope that some of this content might be of interest to users of FSL, and also maybe to new research groups considering creating, releasing and supporting new software packages for brain image analysis.},
+  abstract = {FSL (the FMRIB Software Library) is a comprehensive library of analysis tools for functional, structural and diffusion MRI brain imaging data, written mainly by members of the Analysis Group, FMRIB, Oxford. For this NeuroImage special issue on “20 years of fMRI” we have been asked to write about the history, developments and current status of FSL. We also include some descriptions of parts of FSL that are not well covered in the existing literature. We hope that some of this content might be of interest to users of FSL, and also maybe to new research groups considering creating, releasing and supporting new software packages for brain image analysis.},
   keywords = {FSL,Software},
   file = {/Users/rzielinski/Zotero/storage/3DBESR3U/Jenkinson et al_2012_FSL.pdf;/Users/rzielinski/Zotero/storage/SIK92HI7/S1053811911010603.html}
 }
@@ -572,17 +627,19 @@
   title = {Fslr: {{Connecting}} the {{FSL Software}} with {{R}}},
   shorttitle = {Fslr},
   author = {Muschelli, John and Sweeney, Elizabeth and Lindquist, Martin and Crainiceanu, Ciprian},
-  year = {2015},
-  month = jun,
-  journal = {The R journal},
+  date = {2015-06},
+  journaltitle = {The R journal},
+  shortjournal = {R J},
   volume = {7},
   number = {1},
+  eprint = {27330830},
+  eprinttype = {pmid},
   pages = {163--175},
   issn = {2073-4859},
+  url = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4911193/},
   urldate = {2024-06-24},
-  abstract = {We present the package fslr, a set of R functions that interface with FSL (FMRIB Software Library), a commonly-used open-source software package for processing and analyzing neuroimaging data. The fslr package performs operations on `nifti' image objects in R using command-line functions from FSL, and returns R objects back to the user. fslr allows users to develop image processing and analysis pipelines based on FSL functionality while interfacing with the functionality provided by R. We present an example of the analysis of structural magnetic resonance images, which demonstrates how R users can leverage the functionality of FSL without switching to shell commands.},
+  abstract = {We present the package fslr, a set of R functions that interface with FSL (FMRIB Software Library), a commonly-used open-source software package for processing and analyzing neuroimaging data. The fslr package performs operations on ‘nifti’ image objects in R using command-line functions from FSL, and returns R objects back to the user. fslr allows users to develop image processing and analysis pipelines based on FSL functionality while interfacing with the functionality provided by R. We present an example of the analysis of structural magnetic resonance images, which demonstrates how R users can leverage the functionality of FSL without switching to shell commands.},
   pmcid = {PMC4911193},
-  pmid = {27330830},
   file = {/Users/rzielinski/Zotero/storage/97YT8IUV/Muschelli et al_2015_fslr.pdf}
 }
 
