@@ -34,6 +34,12 @@
 
 \begin{document}
 
+\renewcommand\thefigure{S\arabic{figure}}
+\renewcommand\thetable{S\arabic{table}}
+
+\setcounter{figure}{0}
+\setcounter{table}{0}
+
 \begin{table}[h]
   \centering
   \begin{tabular}{|c c c c c|}
@@ -55,38 +61,47 @@
 \end{table}
 
 \begin{figure}
-\centering
-\subfloat{
-\label{fig:adni_lhipp_result}
-\subfloat[\centering Data]{
-\includegraphics[height=10cm]{adni_plots/adni_lhipp_data_plot}
-}
-\vfill
-\subfloat[\centering LPME]{
-\includegraphics[height=10cm]{adni_plots/adni_lhipp_lpme_isomap_plot}
-}
-\vfill
-\subfloat[\centering PME]{
-\includegraphics[height=10cm]{adni_plots/adni_lhipp_pme_plot}
-}
-}
-\vfill
-\subfloat{
-\label{fig:adni_lthal_result}
-\subfloat[\centering Data]{
-\includegraphics[height=10cm]{adni_plots/adni_lthal_data_plot}
-}
-\vfill
-\subfloat[\centering LPME]{
-\includegraphics[height=10cm]{adni_plots/adni_lthal_lpme_isomap_plot}
-}
-\vfill
-\subfloat[\centering PME]{
-\includegraphics[height=10cm]{adni_plots/adni_lthal_pme_plot}
-}
-}
-\caption{Left Hippocampus (left), and Left Thalamus (right), Cognitive Healthy ADNI Participant. The raw surface data, displayed in red, show slight changes in orientation that are absent in the LPME estimates, shown in blue. The estimates obtained by the PME and LPME algorithms appear unable to accurately capture the true shape of the hippocampus at points with high levels of curvature.}
-\label{fig:adni_result}
+
+  \begin{subfigure}{\textwidth}
+    \label{fig:adni_lhipp_result}
+    \begin{subfigure}{\textwidth}
+      \centering
+      \includegraphics[height=3cm]{adni_plots/adni_lhipp_data_plot}
+      \caption{Data}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+      \centering
+      \includegraphics[height=3cm]{adni_plots/adni_lhipp_lpme_isomap_plot}
+      \caption{LPME}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+      \centering
+      \includegraphics[height=3cm]{adni_plots/adni_lhipp_pme_plot}
+      \caption{PME}
+    \end{subfigure}   
+  \end{subfigure}
+
+  \begin{subfigure}{\textwidth}
+    \label{fig:adni_lthal_result}
+    \begin{subfigure}{\textwidth}
+      \centering
+      \includegraphics[height=3cm]{adni_plots/adni_lthal_data_plot}
+      \caption{Data}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+      \centering
+      \includegraphics[height=3cm]{adni_plots/adni_lthal_lpme_isomap_plot}
+      \caption{LPME}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+      \centering
+      \includegraphics[height=3cm]{adni_plots/adni_lthal_pme_plot}
+      \caption{PME}
+    \end{subfigure}   
+  \end{subfigure}
+
+  \caption{Left Hippocampus (panels a-c), and Left Thalamus (panels d-f), Cognitive Healthy ADNI Participant. The raw surface data, displayed in red, show slight changes in orientation that are absent in the LPME estimates, shown in blue. The estimates obtained by the PME and LPME algorithms appear unable to accurately capture the true shape of the hippocampus at points with high levels of curvature.}
+  \label{fig:adni_result}
 \end{figure}
 
 \begin{figure}
