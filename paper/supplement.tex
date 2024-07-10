@@ -1,0 +1,108 @@
+\documentclass[12pt]{article}
+
+\usepackage{algorithm2e}
+\usepackage{amscd}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{authblk}
+\usepackage[english]{babel}
+\usepackage{bm}
+\usepackage{caption}
+\usepackage{color}
+%\usepackage{csquotes}
+\usepackage{float}
+\usepackage[perpage, symbol*]{footmisc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{mathrsfs}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{url}
+
+\addtolength{\oddsidemargin}{-.5in}%
+\addtolength{\evensidemargin}{-1in}%
+\addtolength{\textwidth}{1in}%
+\addtolength{\textheight}{1.7in}%
+\addtolength{\topmargin}{-1in}%
+
+\graphicspath{{figures/}}
+
+\begin{document}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{|c c c c c|}
+    \hline
+    Case & Data & LPME & PME & PC/PS \\
+    \hline
+    1 & 0.223 (0.256) & {\bf 0.125 (0.161)} & 0.268 (0.850) & 0.189 (0.245) \\
+    2 & 0.514 (0.408) & {\bf 0.384 (0.648)} & 0.843 (1.93) & 0.600 (0.296) \\
+    3 & 0.446 (0.445) & {\bf 0.401 (0.446)} & 0.507 (0.594) & 0.412 (0.423) \\
+    4 & 30.7 (88.1) & {\bf 27.7 (260)} & 30.7 (88.2) & 30.6 (88.1) \\
+    5 & 0.980 (0.771) & {\bf 0.791 (0.845)} & 1.04 (1.07) & 0.934 (0.713) \\
+    6 & 1.43 (6.04) & 1.21 (5.66) & 1.47 (6.06) & {\bf 1.01 (2.11)} \\
+    7 & 0.580 (0.839) & 4.07 (3.30) & 7.37 (1.14) & {\bf 1.95 (0.800)} \\
+    8 & 0.226 (0.275) & {\bf 0.136 (0.169)} & 0.242 (0.311) & 0.274 (0.243) \\
+    \hline
+  \end{tabular}
+  \caption{MSD comparison to true values, Mean (SD). For each case, the lowest algorithm-specific mean (SD) are highlighted in bold. }
+  \label{table:simulation_results_mean}
+\end{table}
+
+\begin{figure}
+\centering
+\subfloat{
+\label{fig:adni_lhipp_result}
+\subfloat[\centering Data]{
+\includegraphics[height=10cm]{adni_plots/adni_lhipp_data_plot}
+}
+\hfill
+\subfloat[\centering LPME]{
+\includegraphics[height=10cm]{adni_plots/adni_lhipp_lpme_isomap_plot}
+}
+\hfill
+\subfloat[\centering PME]{
+\includegraphics[height=10cm]{adni_plots/adni_lhipp_pme_plot}
+}
+}
+\hfill
+\subfloat{
+\label{fig:adni_lthal_result}
+\subfloat[\centering Data]{
+\includegraphics[height=10cm]{adni_plots/adni_lthal_data_plot}
+}
+\hfill
+\subfloat[\centering LPME]{
+\includegraphics[height=10cm]{adni_plots/adni_lthal_lpme_isomap_plot}
+}
+\hfill
+\subfloat[\centering PME]{
+\includegraphics[height=10cm]{adni_plots/adni_lthal_pme_plot}
+}
+}
+\caption{Left Hippocampus (left), and Left Thalamus (right), Cognitive Healthy ADNI Participant. The raw surface data, displayed in red, show slight changes in orientation that are absent in the LPME estimates, shown in blue. The estimates obtained by the PME and LPME algorithms appear unable to accurately capture the true shape of the hippocampus at points with high levels of curvature.}
+\label{fig:adni_result}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \subfloat[\centering Left Hippocampus Volume Estimates]{
+      \includegraphics[height=8cm]{adni_plots/adni_lhipp_volume_comp}
+      \label{fig:lhipp_volume_comparison}
+    }
+    \vfill
+    \subfloat[\centering Left Thalamus Volume Estimates]{
+      \includegraphics[height=8cm]{adni_plots/adni_lthal_volume_comp}
+      \label{fig:lthal_volume_comparison}
+    }
+    \caption{Left hippocampus and left thalamus volume estimates for three ADNI participants. Volume estimates are obtained by summing the volumes of voxels contained within the structure as described by the segmented data (red, circles), LPME (blue, squares), and PME (green, triangles). When PME and LPME are applied to the irregular shape of the hippocampus, there is a clear ordering of the volume estimates. Gaps in the estimated surface induce underestimates of the volume compared to the volume values estimated from the data. These gaps may also cause inconsistency in the LPME volume estimates, resulting in higher aggregate variability than for the data or PME estimates. When applied to the thalamus, the PME-based volume estimates demonstrate similar time point-to-time point changes in the volumes estimated from the segmented data, reflecting the close fit of the PME algorithm to the regularly-shaped thalamus data. The LPME estimates appear to successfully smooth over regions with large variations in subsequent volume measures from the data and PME estimates, as seen for participant 011\_S\_0003.}
+\end{figure}
+
+
+
+\end{document}
