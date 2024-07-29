@@ -2,7 +2,7 @@
 
 This repository includes the documents needed to reproduce the simulations and applied analysis demonstrating potential uses of the Longitudinal Principal Manifold Estimation (LPME) algorithm developed in the following paper by Robert Zielinski, Kun Meng, and Ani Eloyan.
 
-[Give name and link to preprint here]
+[Longitudinal Principal Manifold Estimation](https://arxiv.org/pdf/2407.17450)
 
 This project is intended to create a longitudinal extension of the Principal Manifold Estimation (PME) algorithm introduced in [Meng and Eloyan, 2021](https://pubmed.ncbi.nlm.nih.gov/35813449/). The proposed LPME algorithm allows for the smooth estimation of manifolds over time. The files included here contain notebooks allowing the complete replication of the comparisons between LPME and naive applications of the PME and principal curve algorithms on simulated data. Notebooks also describe the analysis of hippocampus and thalamus data from structural MRI data from the Alzheimer's Disease Neuroimaging Initiative (ADNI) dataset. The relevant files needed to reproduce results can be found in the `code/` directory at the following locations:
 
