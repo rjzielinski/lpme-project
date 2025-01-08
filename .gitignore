@@ -31,6 +31,7 @@ data/
 *.synctex
 
 # ignore other miscellaneous files
+*.bib
 *.png
 *.bak
 *.docx
