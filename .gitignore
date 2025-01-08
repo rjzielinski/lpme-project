@@ -43,3 +43,7 @@ results_partial/
 paper/jsm_2024/
 paper/smi_2024/
 paper/enar_2024/
+code/01_lpme_simulations_files/
+code/03_adni_mri_preprocess_files/
+code/04_lpme_adni_application_files/
+code/05_lpme_adni_results_files/
