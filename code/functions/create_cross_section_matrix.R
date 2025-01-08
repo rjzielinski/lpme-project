@@ -1,12 +1,14 @@
 # function for creating cross-section plots
 create_cross_section_matrix <- function(mats, slice_idx, slice_widths, nrow = 1, lhipp) {
-  time_vals <- unique(mats[[1]][, 1])
+  time_vals <- unlist(mats[[1]][, 1]) %>% 
+    unique()
   slices <- list()
   for (time_idx in 1:length(time_vals)) {
     slice_list <- list()
     for (idx in 1:length(mats)) {
       mat <- mats[[idx]]
-      temp_mat <- mat[mat[, 1] == time_vals[time_idx], ]
+      temp_mat <- mat[almost.equal(mat[, 1], time_vals[time_idx]), ] %>% 
+        as.matrix()
       n_pixels <- length(unique(temp_mat[, slice_idx]))
       slice_mean <- mean(temp_mat[, slice_idx])
       # in the PME- and LPME-generated value matrices, voxel values are not all
@@ -25,7 +27,7 @@ create_cross_section_matrix <- function(mats, slice_idx, slice_widths, nrow = 1,
   names(slice_df) <- c("time", "x", "y", "z", "theta", "phi", "r", "Source")
   slice_df <- slice_df %>%
     mutate(
-      time = time * unique(lhipp$duration),
+      # time = time * unique(lhipp$duration),
       time = round(time, 2),
       time = as.factor(time),
       Source = ifelse(
@@ -59,16 +61,21 @@ create_cross_section_matrix <- function(mats, slice_idx, slice_widths, nrow = 1,
     )
 
   indices <- c("x", "y", "z")[2:4 != slice_idx]
+  lim_val <- max(max(abs(slice_df[[indices[1]]])), max(abs(slice_df[[indices[2]]])))
   plt <- ggplot(arrange(slice_df, desc(as.character(Source)))) +
     geom_point(
       aes(
         x = .data[[indices[1]]],
         y = .data[[indices[2]]],
-        color = Source
+        color = Source,
+        shape = Source
       ),
-      size = 0.5
+      size = 1
     ) +
-    facet_wrap(vars(time), nrow = nrow)
+    xlim(-lim_val, lim_val) +
+    ylim(-lim_val, lim_val) +
+    facet_wrap(vars(time), nrow = nrow) +
+    theme(axis.text.x = element_text(angle = -45, vjust = 0.5, hjust=0))
 
   plt
 }
