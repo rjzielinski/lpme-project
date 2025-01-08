@@ -18,6 +18,7 @@ library(numbers)
 library(plot3D)
 library(plotly)
 library(RColorBrewer)
+library(Rfast)
 library(scatterplot3d)
 library(tidyverse)
 
