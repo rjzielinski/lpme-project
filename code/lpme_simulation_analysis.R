@@ -84,7 +84,7 @@ for (i in 1:length(files_full)) {
   pme_ssd_raw <- c(pme_ssd_raw, pme_ssd_vals)
   pme_ssd[i] <- mean(pme_ssd_vals)
   if (case < 7) {
-    principal_curve_ssd_vals <-map(
+    principal_curve_ssd_vals <- map(
       error_list$principal_curve_results,
       ~ .x$dist
     ) %>%
@@ -120,32 +120,32 @@ error_df <- data.frame(
 error_df2 <- error_df %>%
   dplyr::select(-pme_ssd, -principal_curve_ssd) %>%
   pivot_longer(
-  lpme_error:data_error,
-  names_to = "model_type",
-  values_to = "error"
-) %>%
-mutate(
-  amp_noise_fct = as.factor(amp_noise),
-  period_noise_fct = as.factor(period_noise),
-  model_type = ifelse(
-    model_type == "lpme_error",
-    "LPME",
-    ifelse(
-      model_type == "pme_error",
-      "PME",
+    lpme_error:data_error,
+    names_to = "model_type",
+    values_to = "error"
+  ) %>%
+  mutate(
+    amp_noise_fct = as.factor(amp_noise),
+    period_noise_fct = as.factor(period_noise),
+    model_type = ifelse(
+      model_type == "lpme_error",
+      "LPME",
       ifelse(
-        model_type == "principal_curve_error",
-        "PC",
+        model_type == "pme_error",
+        "PME",
         ifelse(
-          model_type == "PME_error",
-          "PME2",
-          "Data"
+          model_type == "principal_curve_error",
+          "PC",
+          ifelse(
+            model_type == "PME_error",
+            "PME2",
+            "Data"
+          )
         )
       )
     )
-  )
-) %>%
-rename(Model = model_type) %>%
+  ) %>%
+  rename(Model = model_type) %>%
   mutate(
     amp_noise = as.factor(amp_noise),
     period_noise = as.factor(period_noise)
@@ -188,3 +188,10 @@ error_df2 %>%
     iqr_error = IQR(error)
   )
 
+ggplot(error_df2) +
+  geom_boxplot(aes(x = as.factor(sim_case), y = log(error), fill = Model)) +
+  xlab("Simulation Case") +
+  ylab("Mean Squared Distance (Log)")
+ggtitle("LPME vs. Alternatives, Simulation MSD")
+
+ggsave("paper/figures/simulation_msd_summary.png")
