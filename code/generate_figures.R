@@ -66,7 +66,7 @@ dev.off()
 
 sim_example_case1 <- readRDS("simulations/case1/duration_01_interval_010_ampnoise_050_pernoise_050_n_1000_constant025_run_01.rds")
 sim_example_case5 <- readRDS("simulations/case6/duration_01_interval_010_ampnoise_005_pernoise_000_n_1000_constant010_run_01.rds")
-sim_example_case7 <- readRDS("simulations/case7/duration_01_interval_010_ampnoise_010_pernoise_005_n_1000_linear000_run_01.rds")
+sim_example_case7 <- readRDS("simulations/case7/duration_01_interval_010_ampnoise_010_pernoise_010_n_1000_constant000_run_01.rds")
 
 df_labels <- c("Data", "True", "LPME", "PME", "Principal Curve")
 
@@ -86,13 +86,13 @@ for (df_idx in 1:length(data_case1)) {
 }
 df_case1 <- reduce(data_case1, rbind)
 df_case1 <- df_case1 %>%
-  filter(mod(time * 10, 3) < 1e-10)
+  filter(mod(as.integer(time * 10), 3) < 1e-10)
 
 time_vals <- sim_example_case1$times
-time_vals <- time_vals[mod(time_vals * 10, 3) < 1e-10]
+time_vals <- time_vals[mod(as.integer(time_vals * 10), 3) < 1e-10]
 time_vals <- time_vals[time_vals != 0]
 
-png("paper/figures/sim_case1.png", res = 500, height = 2000, width = 3000)
+png("paper/figures/sim_case1.png", res = 1000, height = 4000, width = 6000)
 par(oma = c(4, 1, 1, 1), mfrow = c(1, 3), mar = c(2, 2, 1, 1))
 for (time_idx in 1:length(time_vals)) {
   temp_data <- df_case1 %>%
@@ -141,15 +141,15 @@ for (time_idx in 1:length(time_vals)) {
     ylim = c(-1, 1),
     pch = 21,
     main = paste0("Time = ", time_vals[time_idx]),
-    cex = 0.5
+    cex = 0.1
   )
   points(
     x = temp_true$x,
     y = temp_true$y,
     col = "red",
     bg = "red",
-    pch = 21,
-    cex = 0.25
+    pch = 23,
+    cex = 0.1
     # type = "l",
     # lwd = 1.25
   )
@@ -158,44 +158,45 @@ for (time_idx in 1:length(time_vals)) {
     y = temp_lpme$y,
     col = "blue",
     bg = "blue",
-    pch = 21,
+    pch = 22,
     # type = "l",
     # lty = "dashed",
     # lwd = 1.25
-    cex = 0.25
+    cex = 0.1
   )
   points(
     x = temp_pme$x,
     y = temp_pme$y,
     col = "green",
     bg = "green",
-    pch = 21,
+    pch = 24,
     # type = "l",
     # lty = "dotted",
     # lwd = 1.25
-    cex = 0.25
+    cex = 0.1
   )
   points(
     x = temp_princurve$x,
     y = temp_princurve$y,
     col = "purple",
     bg = "purple",
-    pch = 21,
+    pch = 25,
     # type = "l",
     # lty = "dotdash",
     # lwd = 1.25
-    cex = 0.25
+    cex = 0.1
   )
 }
 par(fig = c(0, 1, 0, 1), oma = c(0, 1, 0, 1), mar = c(0, 0, 0, 0), new = TRUE)
-plot(0, 0, type = "l", bty = "n", xaxt = "n", yaxt = "n")
+plot(0, 0, type = "p", bty = "n", xaxt = "n", yaxt = "n", col = alpha("black", 0))
 legend(
   "bottom",
   c("Data", "True Manifold", "LPME", "PME", "Principal Curve"),
   col = c("black", "red", "blue", "green", "purple"),
-  # fill = c("black", "red", "blue", "green", "purple"),
-  lty = c("solid", "solid", "dashed", "dotted", "dotdash"),
-  lwd = 1.25,
+  # bg = c("black", "red", "blue", "green", "purple"),
+  # lty = c("solid", "solid", "solid", "solid", "solid"),
+  pch = c(21, 23, 22, 24, 25),
+  # lwd = 1.25,
   xpd = TRUE,
   horiz = TRUE,
   cex = 1,
@@ -289,7 +290,7 @@ for (time_idx in 1:3) {
     z = temp_true$z,
     col = alpha("red", 0.5),
     bg = alpha("red", 0.5),
-    pch = 20,
+    pch = 23,
     cex = 0.25,
     # type = "l",
     # lwd = 1,
@@ -301,7 +302,7 @@ for (time_idx in 1:3) {
     z = temp_lpme$z,
     col = "blue",
     bg = "blue",
-    pch = 20,
+    pch = 22,
     cex = 0.25,
     # type = "l",
     # lty = 2,
@@ -314,7 +315,7 @@ for (time_idx in 1:3) {
     z = temp_pme$z,
     col = "green",
     bg = "green",
-    pch = 20,
+    pch = 24,
     cex = 0.25,
     # type = "l",
     # lty = 3,
@@ -327,7 +328,7 @@ for (time_idx in 1:3) {
     z = temp_princurve$z,
     col = "purple",
     bg = "purple",
-    pch = 20,
+    pch = 25,
     cex = 0.25,
     # type = "l",
     # lty = 4,
@@ -440,7 +441,7 @@ for (time_idx in 1:3) {
     z = temp_true$z,
     col = alpha("red", 0.25),
     bg = alpha("red", 0.25),
-    pch = 21,
+    pch = 23,
     cex = 0.1,
     add = TRUE
   )
@@ -450,7 +451,7 @@ for (time_idx in 1:3) {
     z = temp_lpme$z,
     col = alpha("blue", 0.25),
     bg = alpha("blue", 0.25),
-    pch = 21,
+    pch = 22,
     cex = 0.1,
     add = TRUE
   )
@@ -460,7 +461,7 @@ for (time_idx in 1:3) {
     z = temp_pme$z,
     col = alpha("green", 0.25),
     bg = alpha("green", 0.25),
-    pch = 21,
+    pch = 24,
     cex = 0.1,
     add = TRUE
   )
@@ -470,7 +471,7 @@ for (time_idx in 1:3) {
     z = temp_princurve$z,
     col = alpha("purple", 0.25),
     bg = alpha("purple", 0.25),
-    pch = 21,
+    pch = 25,
     cex = 0.1,
     add = TRUE
   )
@@ -482,7 +483,7 @@ legend(
   c("Data", "True Manifold", "LPME", "PME", "Principal Curve"),
   col = c("black", "red", "blue", "green", "purple"),
   # fill = c("black", "red", "blue", "green", "purple"),
-  lwd = 5,
+  lwd = 1,
   xpd = TRUE,
   horiz = TRUE,
   cex = 1,
