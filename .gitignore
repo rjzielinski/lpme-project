@@ -31,5 +31,15 @@ data/
 *.synctex
 
 # ignore other miscellaneous files
+*.png
+*.bak
+*.docx
 .vscode/
+arxiv/
+jasa/
 presentations/
+results/
+results_partial/
+paper/jsm_2024/
+paper/smi_2024/
+paper/enar_2024/
