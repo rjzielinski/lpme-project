@@ -346,7 +346,7 @@ est_sphere_vol <- function(max_time, interval, amp_noise, r, pct_missingness, ru
 }
 
 durations <- c(1, 2, 5)
-intervals <- c(0.1, 0.25, 0.5)
+intervals <- c(0.25, 0.5)
 noise_vals <- c(0, 0.1, 0.25, 0.5)
 r_vals <- c(1, 5, 10, 25)
 missingness <- c(0, 0.05, 0.1, 0.25)
@@ -361,8 +361,8 @@ param_grid <- expand.grid(
   runs
 )
 
-cl <- makeCluster(detectCores() - 1)
-registerDoParallel(cl)
+# cl <- makeCluster(detectCores() / 2)
+# registerDoParallel(cl)
 
 set.seed(94713)
 volumes <- foreach(
@@ -375,9 +375,10 @@ volumes <- foreach(
   run = param_grid[, 6],
   .inorder = FALSE,
   .export = c("sim_data", "calc_pme_est", "calc_lpme_est", "cart2sph", "estimate_volume"),
-  .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel")
-) %dopar% {
+  .packages = c("tidyverse", "pme", "princurve", "plotly", "doParallel"),
+  .errorhandling = "pass"
+) %do% {
     est_sphere_vol(duration, interval, noise, r, missing_pct, run)
   }
 
-stopCluster(cl)
+# stopCluster(cl)
