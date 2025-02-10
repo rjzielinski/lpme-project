@@ -1,0 +1,1314 @@
+---
+title: "ADNI Application Results"
+author: "Robert Zielinski"
+date: "June 14, 2024"
+output: html_document
+
+execute:
+  eval: false
+---
+
+This notebook includes the code used to generate plots and other visualizations from the results of applying the LPME and PME algorithms to ADNI data, as well as the code needed to summarize the results as shown in the paper.
+
+```{r}
+library(bazar)
+library(brolgar)
+library(here)
+library(numbers)
+library(plot3D)
+library(plotly)
+library(RColorBrewer)
+library(Rfast)
+library(scatterplot3d)
+library(tidyverse)
+
+source(here("code/functions/create_cross_section_matrix.R"))
+```
+
+```{r}
+# set color palette to maintain consistency between plots
+colors <- brewer.pal(3, "Set1")
+```
+
+
+```{r}
+result_dirs <- list.dirs(here("results"), recursive = FALSE)
+```
+
+```{r}
+lhipp_full <- read_csv(here("data/adni_lhipp_surface_processed.csv"))
+rhipp_full <- read_csv(here("data/adni_rhipp_surface_processed.csv"))
+lthal_full <- read_csv(here("data/adni_lthal_surface_processed.csv"))
+rthal_full <- read_csv(here("data/adni_rthal_surface_processed.csv"))
+
+patnos <- unique(lhipp_full$patno)
+```
+
+
+```{r}
+for (dir_idx in 1:length(result_dirs)) {
+  dir_path <- result_dirs[dir_idx]
+
+  # load files with structure surface data
+  lhipp_mat <- read_csv(paste0(dir_path, "/adni_lhipp_mat.csv"))[, -1]
+  rhipp_mat <- read_csv(paste0(dir_path, "/adni_rhipp_mat.csv"))[, -1]
+  lthal_mat <- read_csv(paste0(dir_path, "/adni_lthal_mat.csv"))[, -1]
+  rthal_mat <- read_csv(paste0(dir_path, "/adni_rthal_mat.csv"))[, -1]
+  
+  lhipp <- lhipp_full %>% 
+    filter(patno == patnos[dir_idx])
+  rhipp <- rhipp_full %>% 
+    filter(patno == patnos[dir_idx])
+  lthal <- lthal_full %>%
+    filter(patno == patnos[dir_idx])
+  rthal <- rthal_full %>%
+    filter(patno == patnos[dir_idx])
+  
+  lhipp_mat <- lhipp %>% 
+    select(time_from_bl, x, y, z, theta, phi, r) %>% 
+    as.matrix()
+  rhipp_mat <- rhipp %>% 
+    select(time_from_bl, x, y, z, theta, phi, r) %>% 
+    as.matrix()
+  lthal_mat <- lthal %>% 
+    select(time_from_bl, x, y, z, theta, phi, r) %>% 
+    as.matrix()
+  rthal_mat <- rthal %>% 
+    select(time_from_bl, x, y, z, theta, phi, r) %>% 
+    as.matrix()
+
+  # load lpme and pme estimates of all structures
+  lhipp_lpme_isomap_vals <- read_csv(paste0(dir_path, "/adni_lhipp_lpme_isomap_vals.csv"))[, -1] %>% 
+    as.matrix()
+  lhipp_pme_vals <- read_csv(paste0(dir_path, "/adni_lhipp_pme_vals.csv"))[, -1] %>% 
+    as.matrix()
+  rhipp_lpme_isomap_vals <- read_csv(paste0(dir_path, "/adni_rhipp_lpme_isomap_vals.csv"))[, -1] %>% 
+    as.matrix()
+  rhipp_pme_vals <- read_csv(paste0(dir_path, "/adni_rhipp_pme_vals.csv"))[, -1] %>% 
+    as.matrix()
+  lthal_lpme_isomap_vals <- read_csv(paste0(dir_path, "/adni_lthal_lpme_isomap_vals.csv"))[, -1] %>% 
+    as.matrix()
+  lthal_pme_vals <- read_csv(paste0(dir_path, "/adni_lthal_pme_vals.csv"))[, -1] %>% 
+    as.matrix()
+  rthal_lpme_isomap_vals <- read_csv(paste0(dir_path, "/adni_rthal_lpme_isomap_vals.csv"))[, -1] %>% 
+    as.matrix()
+  rthal_pme_vals <- read_csv(paste0(dir_path, "/adni_rthal_pme_vals.csv"))[, -1] %>% 
+    as.matrix()
+
+  time_vals <- unlist(lhipp_mat[, 1]) %>% 
+    unique()
+  
+  nplots <- floor(length(time_vals) / 2)
+  
+  lhipp_range <- colMinsMaxs(lhipp_mat[, 2:4]) %>% 
+    abs() %>% 
+    max()
+  rhipp_range <- colMinsMaxs(rhipp_mat[, 2:4]) %>% 
+    abs() %>% 
+    max()
+  lthal_range <- colMinsMaxs(lthal_mat[, 2:4]) %>% 
+    abs() %>% 
+    max()
+  rthal_range <- colMinsMaxs(rthal_mat[, 2:4]) %>% 
+    abs() %>% 
+    max()
+  
+  lhipp_positions <- data.frame(
+    c(0, round(-1.35 * lhipp_range, 2), round(1.35 * lhipp_range, 2)),
+    c(round(1.45 * lhipp_range, 2), 0, round(1.35 * lhipp_range, 2)),
+    c(round(-1.2 * lhipp_range, 2), round(-1.3 * lhipp_range, 2), 0)
+  ) %>% 
+    as.matrix(byrow = TRUE)
+  
+  rhipp_positions <- data.frame(
+    c(0, round(-1.35 * rhipp_range, 2), round(1.35 * rhipp_range, 2)),
+    c(round(1.45 * rhipp_range, 2), 0, round(1.35 * rhipp_range, 2)),
+    c(round(-1.2 * rhipp_range, 2), round(-1.3 * rhipp_range, 2), 0)
+  ) %>% 
+    as.matrix(byrow = TRUE)
+ 
+  lthal_positions <- data.frame(
+    c(0, round(-1.35 * lthal_range, 2), round(1.35 * lthal_range, 2)),
+    c(round(1.45 * lthal_range, 2), 0, round(1.35 * lthal_range, 2)),
+    c(round(-1.2 * lthal_range, 2), round(-1.3 * lthal_range, 2), 0)
+  ) %>% 
+    as.matrix(byrow = TRUE)
+ 
+  rthal_positions <- data.frame(
+    c(0, round(-1.35 * rthal_range, 2), round(1.35 * rthal_range, 2)),
+    c(round(1.45 * rthal_range, 2), 0, round(1.35 * rthal_range, 2)),
+    c(round(-1.2 * rthal_range, 2), round(-1.3 * rthal_range, 2), 0)
+  ) %>% 
+    as.matrix(byrow = TRUE)
+ 
+  plot_labels <- c("x", "y", "z")
+  
+
+  p <- plot_ly(
+    x = lhipp_mat[, 2],
+    y = lhipp_mat[, 3],
+    z = lhipp_mat[, 4],
+    frame = lhipp_mat[, 1],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3),
+    name = "Data"
+  ) %>%
+    add_markers(
+      x = lhipp_lpme_isomap_vals[, 2],
+      y = lhipp_lpme_isomap_vals[, 3],
+      z = lhipp_lpme_isomap_vals[, 4],
+      frame = lhipp_lpme_isomap_vals[, 1],
+      name = "LPME"
+    ) %>%
+    add_markers(
+      x = lhipp_pme_vals[, 2],
+      y = lhipp_pme_vals[, 3],
+      z = lhipp_pme_vals[, 4],
+      frame = lhipp_pme_vals[, 1],
+      name = "PME"
+    )
+
+  lhipp_lpme_plots <- list()
+  lhipp_pme_plots <- list()
+  lhipp_data_plots <- list()
+  
+  lims <- c(-lhipp_range, lhipp_range)
+  png(
+    paste0(dir_path, "/adni_lhipp_data_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_data <- lhipp_mat[almost.equal(lhipp_mat[, 1], time_vals[t]), ]
+
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = lhipp_positions[, 1],
+        y = lhipp_positions[, 2],
+        z = lhipp_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_lhipp_lpme_isomap_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_lpme <- lhipp_lpme_isomap_vals[almost.equal(lhipp_lpme_isomap_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 15,
+        col = alpha(colors[2], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = lhipp_positions[, 1],
+        y = lhipp_positions[, 2],
+        z = lhipp_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_lhipp_pme_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_pme <- lhipp_pme_vals[almost.equal(lhipp_pme_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 17,
+        col = alpha(colors[3], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = lhipp_positions[, 1],
+        y = lhipp_positions[, 2],
+        z = lhipp_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+
+  lhipp_cross_section <- create_cross_section_matrix(
+    list(lhipp_mat, lhipp_lpme_isomap_vals, lhipp_pme_vals),
+    4,
+    c(0.005, 0.005, 0.005),
+    nrow = 2,
+    lhipp = lhipp
+  )
+  ggsave(
+    paste0(dir_path, "/adni_lhipp_cross_section.png"),
+    plot = lhipp_cross_section,
+    height = 5000,
+    width = 7000,
+    units = "px",
+    dpi = 1250
+  )
+  
+  lims <- c(-rhipp_range, rhipp_range)
+  png(
+    paste0(dir_path, "/adni_rhipp_data_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_data <- rhipp_mat[almost.equal(rhipp_mat[, 1], time_vals[t]), ]
+
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = rhipp_positions[, 1],
+        y = rhipp_positions[, 2],
+        z = rhipp_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_rhipp_lpme_isomap_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_lpme <- rhipp_lpme_isomap_vals[almost.equal(rhipp_lpme_isomap_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 15,
+        col = alpha(colors[2], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = rhipp_positions[, 1],
+        y = rhipp_positions[, 2],
+        z = rhipp_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_rhipp_pme_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_pme <- rhipp_pme_vals[almost.equal(rhipp_pme_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 17,
+        col = alpha(colors[3], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = rhipp_positions[, 1],
+        y = rhipp_positions[, 2],
+        z = rhipp_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+
+  rhipp_cross_section <- create_cross_section_matrix(
+    list(rhipp_mat, rhipp_lpme_isomap_vals, rhipp_pme_vals),
+    4,
+    c(0.005, 0.005, 0.005),
+    nrow = 2,
+    lhipp = rhipp
+  )
+  ggsave(
+    paste0(dir_path, "/adni_rhipp_cross_section.png"),
+    plot = rhipp_cross_section,
+    height = 5000,
+    width = 7000,
+    units = "px",
+    dpi = 1250
+  )
+  
+  lims <- c(-lthal_range, lthal_range)
+  png(
+    paste0(dir_path, "/adni_lthal_data_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_data <- lthal_mat[almost.equal(lthal_mat[, 1], time_vals[t]), ]
+
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = lthal_positions[, 1],
+        y = lthal_positions[, 2],
+        z = lthal_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_lthal_lpme_isomap_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_lpme <- lthal_lpme_isomap_vals[almost.equal(lthal_lpme_isomap_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 15,
+        col = alpha(colors[2], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = lthal_positions[, 1],
+        y = lthal_positions[, 2],
+        z = lthal_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_lthal_pme_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_pme <- lthal_pme_vals[almost.equal(lthal_pme_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 17,
+        col = alpha(colors[3], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = lthal_positions[, 1],
+        y = lthal_positions[, 2],
+        z = lthal_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+
+  lthal_cross_section <- create_cross_section_matrix(
+    list(lthal_mat, lthal_lpme_isomap_vals, lthal_pme_vals),
+    4,
+    c(0.005, 0.005, 0.005),
+    nrow = 2,
+    lhipp = lthal
+  )
+  ggsave(
+    paste0(dir_path, "/adni_lthal_cross_section.png"),
+    plot = lthal_cross_section,
+    height = 5000,
+    width = 7000,
+    units = "px",
+    dpi = 1250
+  )
+  
+  lims <- c(-rthal_range, rthal_range)
+  png(
+    paste0(dir_path, "/adni_rthal_data_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_data <- rthal_mat[almost.equal(rthal_mat[, 1], time_vals[t]), ]
+
+      scatter3D(
+        x = temp_data[, 2],
+        y = temp_data[, 3],
+        z = temp_data[, 4],
+        pch = 20,
+        col = alpha(colors[1], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = rthal_positions[, 1],
+        y = rthal_positions[, 2],
+        z = rthal_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_rthal_lpme_isomap_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_lpme <- rthal_lpme_isomap_vals[almost.equal(rthal_lpme_isomap_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_lpme[, 2],
+        y = temp_lpme[, 3],
+        z = temp_lpme[, 4],
+        pch = 15,
+        col = alpha(colors[2], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = rthal_positions[, 1],
+        y = rthal_positions[, 2],
+        z = rthal_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+  png(
+    paste0(dir_path, "/adni_rthal_pme_plot.png"),
+    res = 1000,
+    height = 3500,
+    width = 5000 * nplots
+  )
+  par(
+    oma = c(0, 0, 1, 0), 
+    mfrow = c(1, floor(length(time_vals) / 2)), 
+    mar = c(0, 0, 1, 0), 
+    mgp = c(5, 1, 0)
+  )
+
+  for (t in 1:length(time_vals)) {
+    if (mod(t, 2) > 1e-10) {
+      next
+    } else {
+      temp_pme <- rthal_pme_vals[almost.equal(rthal_pme_vals[, 1], time_vals[t]), ]
+      scatter3D(
+        x = temp_pme[, 2],
+        y = temp_pme[, 3],
+        z = temp_pme[, 4],
+        pch = 17,
+        col = alpha(colors[3], 0.3),
+        theta = 220,
+        ticktype = "detailed",
+        nticks = 1,
+        main = paste0("Time = ", round((time_vals)[t], 2)),
+        xlim = lims,
+        ylim = lims,
+        zlim = lims,
+        xlab = "",
+        ylab = "",
+        zlab = "",
+        cex.axis = 0.67,
+        cex = 0.75
+      )
+      text3D(
+        x = rthal_positions[, 1],
+        y = rthal_positions[, 2],
+        z = rthal_positions[, 3],
+        labels = plot_labels,
+        add = TRUE
+      )
+    }
+  }
+  dev.off()
+
+
+  rthal_cross_section <- create_cross_section_matrix(
+    list(rthal_mat, rthal_lpme_isomap_vals, rthal_pme_vals),
+    4,
+    c(0.005, 0.005, 0.005),
+    nrow = 2,
+    lhipp = rthal
+  )
+  ggsave(
+    paste0(dir_path, "/adni_rthal_cross_section.png"),
+    plot = rthal_cross_section,
+    height = 5000,
+    width = 7000,
+    units = "px",
+    dpi = 1250
+  )
+}
+```
+```{r}
+colors <- brewer.pal(3, "Set1")
+
+roster <- read_csv(here("data/adni_standard/ROSTER.csv"))
+roster <- roster %>% 
+  select(
+    -USERDATE,
+    -USERDATE2,
+    -update_stamp
+  )
+adni_status <- read_csv(here("data/adni_standard/ADNIMERGE.csv"))
+
+# adni_status <- full_join(
+#   adni_status,
+#   roster,
+#   by = c("Phase", "ID", "RID", "SITEID")
+# )
+
+sub_dirs <- result_dirs
+
+hipp_info <- data.frame(
+  patno = character(),
+  date = numeric(),
+  lhipp_data_vol = numeric(),
+  lhipp_vol_lpme = numeric(),
+  lhipp_vol_pme = numeric(),
+  rhipp_data_vol = numeric(),
+  rhipp_vol_lpme = numeric(),
+  rhipp_vol_pme = numeric()
+)
+
+thal_info <- data.frame(
+  patno = character(),
+  date = numeric(),
+  lthal_data_vol = numeric(),
+  lthal_vol_lpme = numeric(),
+  lthal_vol_pme = numeric(),
+  rthal_data_vol = numeric(),
+  rthal_vol_lpme = numeric(),
+  rthal_vol_pme = numeric()
+)
+
+for (dir in sub_dirs) {
+  file_list <- list.files(dir, full.names = FALSE)
+  if ("hipp_info.csv" %in% file_list) {
+    temp_hipp_info <- read_csv(paste0(dir, "/hipp_info.csv"))[, -1]
+    hipp_info <- bind_rows(hipp_info, temp_hipp_info)
+  }
+  if ("thal_info.csv" %in% file_list) {
+    temp_thal_info <- read_csv(paste0(dir, "/thal_info.csv"))[, -1]
+    thal_info <- bind_rows(thal_info, temp_thal_info)
+  }
+}
+
+hipp_bl <- hipp_info %>%
+  group_by(patno) %>%
+  summarize(
+    date_bl = min(date),
+    max_date = max(date)
+  )
+thal_bl <- thal_info %>%
+  group_by(patno) %>%
+  summarize(
+    date_bl = min(date),
+    max_date = max(date)
+  )
+
+eligible_patnos <- hipp_bl %>%
+  filter(max_date - date_bl > 2) %>%
+  select(patno) %>%
+  unlist() %>%
+  unique()
+
+hipp_info <- full_join(hipp_info, hipp_bl, by = "patno") %>%
+  mutate(time_from_bl = date - date_bl) %>%
+  filter(patno %in% eligible_patnos)
+
+thal_info <- full_join(thal_info, thal_bl, by = "patno") %>%
+  mutate(time_from_bl = date - date_bl) %>%
+  filter(patno %in% eligible_patnos)
+
+hipp_summary <- hipp_info %>%
+  group_by(patno) %>%
+  summarize(
+    lhipp_data_vol_sd = sd(lhipp_data_vol),
+    lhipp_vol_lpme_sd = sd(lhipp_vol_lpme),
+    lhipp_vol_pme_sd = sd(lhipp_vol_pme),
+    rhipp_data_vol_sd = sd(rhipp_data_vol),
+    rhipp_vol_lpme_sd = sd(rhipp_vol_lpme),
+    rhipp_vol_pme_sd = sd(rhipp_vol_pme)
+  )
+
+hipp_long <- hipp_info %>%
+  pivot_longer(
+    lhipp_data_vol:lhipp_vol_pme,
+    names_to = "lhipp_method",
+    values_to = "lhipp_volume"
+  ) %>%
+  pivot_longer(
+    rhipp_data_vol:rhipp_vol_pme,
+    names_to = "rhipp_method",
+    values_to = "rhipp_volume"
+  ) %>%
+  mutate(
+    lhipp_method = gsub("lhipp_", "", lhipp_method),
+    rhipp_method = gsub("rhipp_", "", rhipp_method)
+  ) %>%
+  filter(lhipp_method == rhipp_method) %>%
+  select(-rhipp_method) %>%
+  separate(lhipp_method, c("source", "method"), sep = "_") %>%
+  mutate(
+    source_mod = ifelse(source == "data", source, method),
+    method_mod = ifelse(source == "vol", source, method)
+  ) %>%
+  select(-source, -method) %>%
+  rename(source = source_mod, method = method_mod)
+
+thal_long <- thal_info %>%
+  pivot_longer(
+    lthal_data_vol:lthal_vol_pme,
+    names_to = "lthal_method",
+    values_to = "lthal_volume"
+  ) %>%
+  pivot_longer(
+    rthal_data_vol:rthal_vol_pme,
+    names_to = "rthal_method",
+    values_to = "rthal_volume"
+  ) %>%
+  mutate(
+    lthal_method = gsub("lthal_", "", lthal_method),
+    rthal_method = gsub("rthal_", "", rthal_method)
+  ) %>%
+  filter(lthal_method == rthal_method) %>%
+  select(-rthal_method) %>%
+  separate(lthal_method, c("source", "method"), sep = "_") %>%
+  mutate(
+    source_mod = ifelse(source == "data", source, method),
+    method_mod = ifelse(source == "vol", source, method)
+  ) %>%
+  select(-source, -method) %>%
+  rename(source = source_mod, method = method_mod)
+
+thal_info_ts <- as_tsibble(
+  thal_info,
+  key = patno,
+  index = time_from_bl,
+  regular = FALSE
+)
+
+hipp_info_ts <- as_tsibble(
+  hipp_info,
+  key = patno,
+  index = time_from_bl,
+  regular = FALSE
+)
+
+
+hipp_info_ts %>%
+  sample_n_keys(3) %>%
+  ggplot(aes(x = time_from_bl, group = patno, color = patno)) +
+  geom_line(aes(y = lhipp_data_vol), linetype = "solid") +
+  geom_line(aes(y = lhipp_vol_lpme), linetype = "dashed") +
+  geom_line(aes(y = lhipp_vol_pme), linetype = "dotted") +
+  xlab("Time from Baseline Visit (Years)") +
+  ylab("Estimated Left Hippocampus Volume")
+
+lhipp_data_vol_pred <- vector()
+lhipp_lpme_vol_pred <- vector()
+lhipp_pme_vol_pred <- vector()
+rhipp_data_vol_pred <- vector()
+rhipp_lpme_vol_pred <- vector()
+rhipp_pme_vol_pred <- vector()
+
+for (patno_val in unique(hipp_info$patno)) {
+  patno_data <- hipp_info %>%
+    filter(patno == patno_val)
+  lhipp_data_lm <- lm(lhipp_data_vol ~ date, data = patno_data)
+  lhipp_data_pred <- predict(lhipp_data_lm, newdata = patno_data)
+  lhipp_data_vol_pred <- c(lhipp_data_vol_pred, lhipp_data_pred)
+
+  lhipp_lpme_lm <- lm(lhipp_vol_lpme ~ date, data = patno_data)
+  lhipp_lpme_pred <- predict(lhipp_lpme_lm, newdata = patno_data)
+  lhipp_lpme_vol_pred <- c(lhipp_lpme_vol_pred, lhipp_lpme_pred)
+
+  lhipp_pme_lm <- lm(lhipp_vol_pme ~ date, data = patno_data)
+  lhipp_pme_pred <- predict(lhipp_pme_lm, newdata = patno_data)
+  lhipp_pme_vol_pred <- c(lhipp_pme_vol_pred, lhipp_pme_pred)
+
+  rhipp_data_lm <- lm(rhipp_data_vol ~ date, data = patno_data)
+  rhipp_data_pred <- predict(rhipp_data_lm, newdata = patno_data)
+  rhipp_data_vol_pred <- c(rhipp_data_vol_pred, rhipp_data_pred)
+
+  rhipp_lpme_lm <- lm(rhipp_vol_lpme ~ date, data = patno_data)
+  rhipp_lpme_pred <- predict(rhipp_lpme_lm, newdata = patno_data)
+  rhipp_lpme_vol_pred <- c(rhipp_lpme_vol_pred, rhipp_lpme_pred)
+
+  rhipp_pme_lm <- lm(rhipp_vol_pme ~ date, data = patno_data)
+  rhipp_pme_pred <- predict(rhipp_pme_lm, newdata = patno_data)
+  rhipp_pme_vol_pred <- c(rhipp_pme_vol_pred, rhipp_pme_pred)
+}
+
+hipp_lm_pred <- tibble(
+  lhipp_data_vol_pred,
+  lhipp_lpme_vol_pred,
+  lhipp_pme_vol_pred,
+  rhipp_data_vol_pred,
+  rhipp_lpme_vol_pred,
+  rhipp_pme_vol_pred
+)
+
+hipp_info <- bind_cols(hipp_info, hipp_lm_pred)
+
+hipp_info_sd <- hipp_info %>%
+  group_by(patno) %>%
+  summarize(
+    lhipp_data_sd = sd(lhipp_data_vol),
+    lhipp_lpme_sd = sd(lhipp_vol_lpme),
+    lhipp_pme_sd = sd(lhipp_vol_pme),
+    rhipp_data_sd = sd(rhipp_data_vol),
+    rhipp_lpme_sd = sd(rhipp_vol_lpme),
+    rhipp_pme_sd = sd(rhipp_vol_pme),
+    lhipp_data_adj_sd = sd(lhipp_data_vol - lhipp_data_vol_pred),
+    lhipp_lpme_adj_sd = sd(lhipp_vol_lpme - lhipp_lpme_vol_pred),
+    lhipp_pme_adj_sd = sd(lhipp_vol_pme - lhipp_pme_vol_pred),
+    rhipp_data_adj_sd = sd(rhipp_data_vol - rhipp_data_vol_pred),
+    rhipp_lpme_adj_sd = sd(rhipp_vol_lpme - rhipp_lpme_vol_pred),
+    rhipp_pme_adj_sd = sd(rhipp_vol_pme - rhipp_pme_vol_pred)
+  ) %>%
+  ungroup()
+
+hipp_sd_mean <- hipp_info_sd %>%
+  summarize(
+    lhipp_data_sd_mean = mean(lhipp_data_sd),
+    lhipp_lpme_sd_mean = mean(lhipp_lpme_sd),
+    lhipp_pme_sd_mean = mean(lhipp_pme_sd),
+    rhipp_data_sd_mean = mean(rhipp_data_sd),
+    rhipp_lpme_sd_mean = mean(rhipp_lpme_sd),
+    rhipp_pme_sd_mean = mean(rhipp_pme_sd),
+    lhipp_data_adj_sd_mean = mean(lhipp_data_adj_sd),
+    lhipp_lpme_adj_sd_mean = mean(lhipp_lpme_adj_sd),
+    lhipp_pme_adj_sd_mean = mean(lhipp_pme_adj_sd),
+    rhipp_data_adj_sd_mean = mean(rhipp_data_adj_sd),
+    rhipp_lpme_adj_sd_mean = mean(rhipp_lpme_adj_sd),
+    rhipp_pme_adj_sd_mean = mean(rhipp_pme_adj_sd)
+)
+
+# print(hipp_sd_mean, width = Inf)
+
+hipp_sd_med <- hipp_info_sd %>%
+  summarize(
+    lhipp_data_sd_med = median(lhipp_data_sd),
+    lhipp_lpme_sd_med = median(lhipp_lpme_sd),
+    lhipp_pme_sd_med = median(lhipp_pme_sd),
+    rhipp_data_sd_med = median(rhipp_data_sd),
+    rhipp_lpme_sd_med = median(rhipp_lpme_sd),
+    rhipp_pme_sd_med = median(rhipp_pme_sd),
+    lhipp_data_adj_sd_med = median(lhipp_data_adj_sd),
+    lhipp_lpme_adj_sd_med = median(lhipp_lpme_adj_sd),
+    lhipp_pme_adj_sd_med = median(lhipp_pme_adj_sd),
+    rhipp_data_adj_sd_med = median(rhipp_data_adj_sd),
+    rhipp_lpme_adj_sd_med = median(rhipp_lpme_adj_sd),
+    rhipp_pme_adj_sd_med = median(rhipp_pme_adj_sd)
+  )
+
+print(hipp_sd_med, width = Inf)
+
+thal_info_ts %>%
+  sample_n_keys(3) %>%
+  ggplot(aes(x = time_from_bl, group = patno, color = patno)) +
+  geom_line(aes(y = lthal_data_vol), linetype = "solid") +
+  geom_line(aes(y = lthal_vol_lpme), linetype = "dashed") +
+  geom_line(aes(y = lthal_vol_pme), linetype = "dotted") +
+  xlab("Time from Baseline Visit (Years)") +
+  ylab("Estimated Left Thalamus Volume")
+
+lthal_data_vol_pred <- vector()
+lthal_lpme_vol_pred <- vector()
+lthal_pme_vol_pred <- vector()
+rthal_data_vol_pred <- vector()
+rthal_lpme_vol_pred <- vector()
+rthal_pme_vol_pred <- vector()
+
+for (patno_val in unique(thal_info$patno)) {
+  patno_data <- thal_info %>%
+    filter(patno == patno_val)
+  lthal_data_lm <- lm(lthal_data_vol ~ date, data = patno_data)
+  lthal_data_pred <- predict(lthal_data_lm, newdata = patno_data)
+  lthal_data_vol_pred <- c(lthal_data_vol_pred, lthal_data_pred)
+
+  lthal_lpme_lm <- lm(lthal_vol_lpme ~ date, data = patno_data)
+  lthal_lpme_pred <- predict(lthal_lpme_lm, newdata = patno_data)
+  lthal_lpme_vol_pred <- c(lthal_lpme_vol_pred, lthal_lpme_pred)
+
+  lthal_pme_lm <- lm(lthal_vol_pme ~ date, data = patno_data)
+  lthal_pme_pred <- predict(lthal_pme_lm, newdata = patno_data)
+  lthal_pme_vol_pred <- c(lthal_pme_vol_pred, lthal_pme_pred)
+
+  rthal_data_lm <- lm(rthal_data_vol ~ date, data = patno_data)
+  rthal_data_pred <- predict(rthal_data_lm, newdata = patno_data)
+  rthal_data_vol_pred <- c(rthal_data_vol_pred, rthal_data_pred)
+
+  rthal_lpme_lm <- lm(rthal_vol_lpme ~ date, data = patno_data)
+  rthal_lpme_pred <- predict(rthal_lpme_lm, newdata = patno_data)
+  rthal_lpme_vol_pred <- c(rthal_lpme_vol_pred, rthal_lpme_pred)
+
+  rthal_pme_lm <- lm(rthal_vol_pme ~ date, data = patno_data)
+  rthal_pme_pred <- predict(rthal_pme_lm, newdata = patno_data)
+  rthal_pme_vol_pred <- c(rthal_pme_vol_pred, rthal_pme_pred)
+}
+
+thal_lm_pred <- tibble(
+  lthal_data_vol_pred,
+  lthal_lpme_vol_pred,
+  lthal_pme_vol_pred,
+  rthal_data_vol_pred,
+  rthal_lpme_vol_pred,
+  rthal_pme_vol_pred
+)
+
+thal_info <- bind_cols(thal_info, thal_lm_pred)
+
+
+thal_info_sd <- thal_info %>%
+  group_by(patno) %>%
+  summarize(
+    lthal_data_sd = sd(lthal_data_vol),
+    lthal_lpme_sd = sd(lthal_vol_lpme),
+    lthal_pme_sd = sd(lthal_vol_pme),
+    rthal_data_sd = sd(rthal_data_vol),
+    rthal_lpme_sd = sd(rthal_vol_lpme),
+    rthal_pme_sd = sd(rthal_vol_pme),
+    lthal_data_adj_sd = sd(lthal_data_vol - lthal_data_vol_pred),
+    lthal_lpme_adj_sd = sd(lthal_vol_lpme - lthal_lpme_vol_pred),
+    lthal_pme_adj_sd = sd(lthal_vol_pme - lthal_pme_vol_pred),
+    rthal_data_adj_sd = sd(rthal_data_vol - rthal_data_vol_pred),
+    rthal_lpme_adj_sd = sd(rthal_vol_lpme - rthal_lpme_vol_pred),
+    rthal_pme_adj_sd = sd(rthal_vol_pme - rthal_pme_vol_pred)
+  ) %>%
+  ungroup()
+
+thal_sd_mean <- thal_info_sd %>%
+  summarize(
+    lthal_data_sd_mean = mean(lthal_data_sd),
+    lthal_lpme_sd_mean = mean(lthal_lpme_sd),
+    lthal_pme_sd_mean = mean(lthal_pme_sd),
+    rthal_data_sd_mean = mean(rthal_data_sd),
+    rthal_lpme_sd_mean = mean(rthal_lpme_sd),
+    rthal_pme_sd_mean = mean(rthal_pme_sd),
+    lthal_data_adj_sd_mean = mean(lthal_data_adj_sd),
+    lthal_lpme_adj_sd_mean = mean(lthal_lpme_adj_sd),
+    lthal_pme_adj_sd_mean = mean(lthal_pme_adj_sd),
+    rthal_data_adj_sd_mean = mean(rthal_data_adj_sd),
+    rthal_lpme_adj_sd_mean = mean(rthal_lpme_adj_sd),
+    rthal_pme_adj_sd_mean = mean(rthal_pme_adj_sd)
+  )
+
+# print(thal_sd_mean, width = Inf)
+
+thal_sd_med <- thal_info_sd %>%
+  summarize(
+    lthal_data_sd_med = median(lthal_data_sd),
+    lthal_lpme_sd_med = median(lthal_lpme_sd),
+    lthal_pme_sd_med = median(lthal_pme_sd),
+    rthal_data_sd_med = median(rthal_data_sd),
+    rthal_lpme_sd_med = median(rthal_lpme_sd),
+    rthal_pme_sd_med = median(rthal_pme_sd),
+    lthal_data_adj_sd_med = median(lthal_data_adj_sd),
+    lthal_lpme_adj_sd_med = median(lthal_lpme_adj_sd),
+    lthal_pme_adj_sd_med = median(lthal_pme_adj_sd),
+    rthal_data_adj_sd_med = median(rthal_data_adj_sd),
+    rthal_lpme_adj_sd_med = median(rthal_lpme_adj_sd),
+    rthal_pme_adj_sd_med = median(rthal_pme_adj_sd)
+  )
+
+print(thal_sd_med, width = Inf)
+
+set.seed(8310)
+sampled_patnos <- hipp_info_ts %>% 
+  sample_n_keys(3) %>% 
+  .$patno %>% 
+  unique()
+
+scale_factor <- 3
+hipp_info_ts %>%
+  filter(patno %in% sampled_patnos) %>%
+  ggplot(aes(x = time_from_bl, group = patno)) +
+  geom_point(aes(y = lhipp_data_vol), shape = 16, color = colors[1]) +
+  geom_line(aes(y = lhipp_data_vol), linetype = "solid", color = colors[1]) +
+  # geom_smooth(
+  #   aes(y = lhipp_data_vol2),
+  #   color = colors[1],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
+  geom_point(aes(y = lhipp_vol_lpme), shape = 15, color = colors[2]) +
+  geom_line(aes(y = lhipp_vol_lpme), linetype = "dashed", color = colors[2]) +
+  # geom_smooth(
+  #   aes(y = lhipp_vol_lpme2),
+  #   color = colors[2],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
+  geom_point(aes(y = lhipp_vol_pme), shape = 17, color = colors[3]) +
+  geom_line(aes(y = lhipp_vol_pme), linetype = "dotted", color = colors[3]) +
+  # geom_smooth(
+  #   aes(y = lhipp_vol_pme2),
+  #   color = colors[3],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
+  facet_wrap(~patno) +
+  xlab("Time from Baseline Visit (Years)") +
+  ylab("Estimated Left Hippocampus Volume") + 
+  theme(
+    axis.title.x = element_text(size = scale_factor * 5),
+    axis.title.y = element_text(size = scale_factor * 5),
+    axis.text.x = element_text(size = scale_factor * 5),
+    axis.text.y = element_text(size = scale_factor * 5),
+    strip.text.x = element_text(size = scale_factor * 5)
+  )
+ggsave(here("paper/figures/adni_plots/adni_lhipp_volume_comp.png"), dpi = 1500)
+
+thal_info_ts %>%
+  filter(patno %in% sampled_patnos) %>% 
+  ggplot(aes(x = time_from_bl, group = patno)) +
+  geom_point(aes(y = lthal_data_vol), shape = 16, color = colors[1]) +
+  geom_line(aes(y = lthal_data_vol), linetype = "solid", color = colors[1]) +
+  # geom_smooth(
+  #   aes(y = lthal_data_vol2),
+  #   color = colors[1],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
+  geom_point(aes(y = lthal_vol_lpme), shape = 15, color = colors[2]) +
+  geom_line(aes(y = lthal_vol_lpme), linetype = "dashed", color = colors[2]) +
+  # geom_smooth(
+  #   aes(y = lthal_vol_lpme2),
+  #   color = colors[2],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
+  geom_point(aes(y = lthal_vol_pme), shape = 17, color = colors[3]) +
+  geom_line(aes(y = lthal_vol_pme), linetype = "dotted", color = colors[3]) +
+  # geom_smooth(
+  #   aes(y = lthal_vol_pme2),
+  #   color = colors[3],
+  #   method = "lm",
+  #   se = FALSE,
+  #   linetype = "dashed",
+  #   linewidth = 1
+  # ) +
+  facet_wrap(~patno) +
+  xlab("Time from Baseline Visit (Years)") +
+  ylab("Estimated Left Thalamus Volume") + 
+  guides(
+    color = guide_legend(title = "Participant ID"),
+    shape = guide_legend(title = "Estimate Source")
+  ) +
+  theme(
+    axis.title.x = element_text(size = scale_factor * 5),
+    axis.title.y = element_text(size = scale_factor * 5),
+    axis.text.x = element_text(size = scale_factor * 5),
+    axis.text.y = element_text(size = scale_factor * 5),
+    strip.text.x = element_text(size = scale_factor * 5)
+  )
+ggsave(here("paper/figures/adni_plots/adni_lthal_volume_comp.png"), dpi = 1500)
+
+adni_status %>% 
+  filter(
+    PTID %in% eligible_patnos,
+    VISCODE == "bl"
+  ) %>% 
+  group_by(DX_bl) %>% 
+  tally()
+```
+

@@ -1,4 +1,6 @@
 estimate_volume <- function(data, voxel_volume) {
+  require(Rfast, quietly = TRUE, warn.conflicts = FALSE)
+
   indices <- matrix(ncol = 3)
   data_limits <- colMinsMaxs(data)
 
@@ -11,11 +13,11 @@ estimate_volume <- function(data, voxel_volume) {
   x_mins <- matrix(nrow = length(y_seq), ncol = length(z_seq))
   x_maxs <- matrix(nrow = length(y_seq), ncol = length(z_seq))
 
-  for (y_idx in 1:length(y_seq)) {
-    for (z_idx in 1:length(z_seq)) {
+  for (y_idx in seq_along(y_seq)) {
+    for (z_idx in seq_along(z_seq)) {
       y_val <- y_seq[y_idx]
       z_val <- z_seq[z_idx]
-      data_red <- data[data[, 2] == y_val & data[, 3] == z_val, ] %>%
+      data_red <- data[data[, 2] == y_val & data[, 3] == z_val, ] |>
         matrix(ncol = ncol(data))
 
       if (nrow(data_red) == 0) {
@@ -35,11 +37,11 @@ estimate_volume <- function(data, voxel_volume) {
     }
   }
 
-  for (y_idx in 1:length(y_seq)) {
-    for (z_idx in 1:length(z_seq)) {
+  for (y_idx in seq_along(y_seq)) {
+    for (z_idx in seq_along(z_seq)) {
       y_val <- y_seq[y_idx]
       z_val <- z_seq[z_idx]
-      data_red <- data[data[, 2] == y_val & data[, 3] == z_val, ] %>%
+      data_red <- data[data[, 2] == y_val & data[, 3] == z_val, ] |>
         matrix(ncol = ncol(data))
 
       if (nrow(data_red) == 0) {
@@ -81,10 +83,12 @@ estimate_volume <- function(data, voxel_volume) {
     missing_mins <- matrix(nrow = nrow(x_mins), ncol = ncol(x_mins))
     missing_maxs <- matrix(nrow = nrow(x_maxs), ncol = ncol(x_maxs))
     n_missing <- 0
-    for (y_idx in 1:length(y_seq)) {
-      for (z_idx in 1:length(z_seq)) {
+    for (y_idx in seq_along(y_seq)) {
+      for (z_idx in seq_along(z_seq)) {
         if (is.na(x_mins[y_idx, z_idx])) {
-          data_red <- data[data[, 2] == y_seq[y_idx] & data[, 3] == z_seq[z_idx], ] %>%
+          data_red <- data[
+            data[, 2] == y_seq[y_idx] & data[, 3] == z_seq[z_idx],
+          ] |>
             matrix(ncol = ncol(data))
           if (nrow(data_red) > 0) {
             n_missing <- n_missing + 1
@@ -95,13 +99,13 @@ estimate_volume <- function(data, voxel_volume) {
           } else {
             n_present_y_lower <- x_mins[y_idx, 1:z_idx]
             n_present_y_upper <- x_mins[y_idx, z_idx:length(z_seq)]
-            if (sum(!is.na(n_present_y_lower)) > 0 & sum(!is.na(n_present_y_upper)) > 0) {
+            if ((sum(!is.na(n_present_y_lower)) > 0) && (sum(!is.na(n_present_y_upper)) > 0)) {
               n_missing <- n_missing + 1
               missing_mins[y_idx, z_idx] <- TRUE
             } else {
               n_present_z_lower <- x_mins[1:y_idx, z_idx]
               n_present_z_upper <- x_mins[y_idx:length(y_seq), z_idx]
-              if (sum(!is.na(n_present_z_lower)) > 0 & sum(!is.na(n_present_z_upper)) > 0) {
+              if ((sum(!is.na(n_present_z_lower)) > 0) && (sum(!is.na(n_present_z_upper)) > 0)) {
                 n_missing <- n_missing + 1
                 missing_mins[y_idx, z_idx] <- TRUE
               } else {
@@ -136,7 +140,7 @@ estimate_volume <- function(data, voxel_volume) {
         #   missing_maxs[y_idx, z_idx] <- FALSE
         # }
         if (is.na(x_maxs[y_idx, z_idx])) {
-          data_red <- data[data[, 2] == y_seq[y_idx] & data[, 3] == z_seq[z_idx], ] %>%
+          data_red <- data[data[, 2] == y_seq[y_idx] & data[, 3] == z_seq[z_idx], ] |>
             matrix(ncol = ncol(data))
           if (nrow(data_red) > 0) {
             n_missing <- n_missing + 1
@@ -147,13 +151,13 @@ estimate_volume <- function(data, voxel_volume) {
           } else {
             n_present_y_lower <- x_maxs[y_idx, 1:z_idx]
             n_present_y_upper <- x_maxs[y_idx, z_idx:length(z_seq)]
-            if (sum(!is.na(n_present_y_lower)) > 0 & sum(!is.na(n_present_y_upper)) > 0) {
+            if ((sum(!is.na(n_present_y_lower)) > 0) && (sum(!is.na(n_present_y_upper)) > 0)) {
               n_missing <- n_missing + 1
               missing_maxs[y_idx, z_idx] <- TRUE
             } else {
               n_present_z_lower <- x_maxs[1:y_idx, z_idx]
               n_present_z_upper <- x_maxs[y_idx:length(y_seq), z_idx]
-              if (sum(!is.na(n_present_z_lower)) > 0 & sum(!is.na(n_present_z_upper)) > 0) {
+              if ((sum(!is.na(n_present_z_lower)) > 0) && (sum(!is.na(n_present_z_upper)) > 0)) {
                 n_missing <- n_missing + 1
                 missing_maxs[y_idx, z_idx] <- TRUE
               } else {
@@ -182,12 +186,12 @@ estimate_volume <- function(data, voxel_volume) {
     }
     n_missing_prev <- n_missing
 
-    for (y_idx in 1:length(y_seq)) {
-      for (z_idx in 1:length(z_seq)) {
+    for (y_idx in seq_along(y_seq)) {
+      for (z_idx in seq_along(z_seq)) {
         if (missing_mins[y_idx, z_idx] == TRUE) {
           x_min_vals <- get_surrounding_vals(x_mins, y_idx, z_idx)
           if (sum(is.na(x_min_vals)) / length(x_min_vals) <= missingness_thresholds[threshold_idx]) {
-          # if (sum(!is.na(x_min_vals)) > 1) {
+            # if (sum(!is.na(x_min_vals)) > 1) {
             # x_mins[y_idx, z_idx] <- min(x_min_vals, na.rm = TRUE)
             x_mins[y_idx, z_idx] <- round(mean(x_min_vals, na.rm = TRUE))
             missing_mins[y_idx, z_idx] <- FALSE
@@ -197,7 +201,7 @@ estimate_volume <- function(data, voxel_volume) {
         if (missing_maxs[y_idx, z_idx] == TRUE) {
           x_max_vals <- get_surrounding_vals(x_maxs, y_idx, z_idx)
           if (sum(!is.na(x_max_vals)) / length(x_max_vals) <= missingness_thresholds[threshold_idx]) {
-          # if (sum(!is.na(x_max_vals)) > 1) {
+            # if (sum(!is.na(x_max_vals)) > 1) {
             # x_maxs[y_idx, z_idx] <- max(x_max_vals, na.rm = TRUE)
             x_maxs[y_idx, z_idx] <- round(mean(x_max_vals, na.rm = TRUE))
             missing_maxs[y_idx, z_idx] <- FALSE
@@ -247,12 +251,12 @@ estimate_volume <- function(data, voxel_volume) {
   }
 
   volume <- 0
-  for (y_idx in 1:length(y_seq)) {
-    for (z_idx in 1:length(z_seq)) {
+  for (y_idx in seq_along(y_seq)) {
+    for (z_idx in seq_along(z_seq)) {
       x_min_val <- x_mins[y_idx, z_idx]
       x_max_val <- x_maxs[y_idx, z_idx]
 
-      if (!is.na(x_min_val) & !is.na((x_max_val))) {
+      if (!is.na(x_min_val) && !is.na((x_max_val))) {
         x_vals <- seq(min(x_min_val, x_max_val), max(x_min_val, x_max_val), by = 1)
         for (x_val in x_vals) {
           fill_candidates <- rbind(
