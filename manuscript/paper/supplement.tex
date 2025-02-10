@@ -24,6 +24,8 @@
 \usepackage{tikz}
 \usepackage{url}
 
+\pdfminorversion=4
+
 \addtolength{\oddsidemargin}{-.5in}%
 \addtolength{\evensidemargin}{-1in}%
 \addtolength{\textwidth}{1in}%
@@ -71,38 +73,38 @@
     \label{fig:adni_lhipp_result}
     \begin{subfigure}{\textwidth}
       \centering
-      \includegraphics[height=3cm]{adni_plots/adni_lhipp_data_plot}
+      \includegraphics[height=3cm]{adni_lhipp_data_plot}
       \caption{Data}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
       \centering
-      \includegraphics[height=3cm]{adni_plots/adni_lhipp_lpme_isomap_plot}
+      \includegraphics[height=3cm]{adni_lhipp_lpme_isomap_plot}
       \caption{LPME}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
       \centering
-      \includegraphics[height=3cm]{adni_plots/adni_lhipp_pme_plot}
+      \includegraphics[height=3cm]{adni_lhipp_pme_plot}
       \caption{PME}
-    \end{subfigure}   
+    \end{subfigure}
   \end{subfigure}
 
   \begin{subfigure}{\textwidth}
     \label{fig:adni_lthal_result}
     \begin{subfigure}{\textwidth}
       \centering
-      \includegraphics[height=3cm]{adni_plots/adni_lthal_data_plot}
+      \includegraphics[height=3cm]{adni_lthal_data_plot}
       \caption{Data}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
       \centering
-      \includegraphics[height=3cm]{adni_plots/adni_lthal_lpme_isomap_plot}
+      \includegraphics[height=3cm]{adni_lthal_lpme_isomap_plot}
       \caption{LPME}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
       \centering
-      \includegraphics[height=3cm]{adni_plots/adni_lthal_pme_plot}
+      \includegraphics[height=3cm]{adni_lthal_pme_plot}
       \caption{PME}
-    \end{subfigure}   
+    \end{subfigure}
   \end{subfigure}
 
   \caption{Left Hippocampus (panels a-c), and Left Thalamus (panels d-f), Cognitive Healthy ADNI Participant. The raw surface data, displayed in red, show slight changes in orientation that are absent in the LPME estimates, shown in blue. The estimates obtained by the PME and LPME algorithms appear unable to accurately capture the true shape of the hippocampus at points with high levels of curvature.}
@@ -112,12 +114,12 @@
 \begin{figure}
     \centering
     \subfloat[\centering Left Hippocampus Volume Estimates]{
-      \includegraphics[height=8cm]{adni_plots/adni_lhipp_volume_comp}
+      \includegraphics[height=8cm]{adni_lhipp_volume_comp}
       \label{fig:lhipp_volume_comparison}
     }
     \vfill
     \subfloat[\centering Left Thalamus Volume Estimates]{
-      \includegraphics[height=8cm]{adni_plots/adni_lthal_volume_comp}
+      \includegraphics[height=8cm]{adni_lthal_volume_comp}
       \label{fig:lthal_volume_comparison}
     }
     \caption{Left hippocampus and left thalamus volume estimates for three ADNI participants. Volume estimates are obtained by summing the volumes of voxels contained within the structure as described by the segmented data (circles, solid line), LPME (squares, dashed line), and PME (triangles, dotted line). When PME and LPME are applied to the irregular shape of the hippocampus, there is a clear ordering of the volume estimates. Gaps in the estimated surface induce underestimates of the volume compared to the volume values estimated from the data. When applied to the thalamus, the PME-based volume estimates demonstrate similar time point-to-time point changes in the volumes estimated from the segmented data, reflecting the close fit of the PME algorithm to the regularly-shaped thalamus data. The LPME estimates appear to successfully smooth over regions with large variations in subsequent volume measures from the data and PME estimates, as seen for participant 033\_S\_0514.}
@@ -126,3 +128,4 @@
 
 
 \end{document}
+
