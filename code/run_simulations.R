@@ -22,7 +22,7 @@ source("functions/calculate_pme_reconstructions.R")
 
 durations <- c(1, 2, 5)
 intervals <- c(0.25, 0.5)
-cases <- 1:8
+cases <- 8:1
 obs_noises <- c(0.05, 0.1, 0.25, 0.5)
 amplitude_noises <- c(0.05, 0.1, 0.25, 0.5)
 period_noises <- c(0.05, 0.1, 0.25, 0.5)
