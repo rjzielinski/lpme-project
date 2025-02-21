@@ -1,0 +1,168 @@
+\documentclass{article}
+\usepackage{algorithm2e}
+\usepackage{amscd}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{authblk}
+\usepackage[english]{babel}
+\usepackage{bm}
+\usepackage{caption}
+\usepackage{color}
+\usepackage{float}
+\usepackage[perpage, symbol*]{footmisc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{mathrsfs}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{url}
+
+\newcommand{\blind}{1}
+\graphicspath{{figures/}}
+
+
+\pdfminorversion=4
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\T}{\intercal}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+
+\setcitestyle{aysep={}}
+
+
+\begin{document}
+
+\begin{center}
+\bigskip {\Large Response to the Editor}
+
+{\large Submission No.: 1}
+
+{\large \bigskip Longitudinal Principal Manifold Estimation}
+\end{center}
+
+\noindent We would like to thank the Editor and Referees for their insightful comments and helpful suggestions. In this revised version, we have addressed all the comments by the AE and Referees. Point-by-point responses to these comments are presented herein. 
+
+In responding to all the comments, we have followed the following convention: each of the comments is italicized and followed by our response to the corresponding comment; any changes in the manuscript based on the corresponding comment are presented in \textcolor{blue}{blue} beneath our response. 
+
+We have formatted the manuscript using the latex template obtained from the journal website. Particularly, while implementing the revisions suggested by the AE and Referee, we maintained the manuscript length of 24 pages, as suggested by the journal website. 
+
+\vspace{0.3in}
+
+
+\large{\textbf{Response to Editor}}
+
+\vspace{0.3in}
+
+{\it While the development of a general methodology for manifold estimation is worthwhile, you need to give more thought to how to make this general approach more suitable for the specific application. }
+
+
+\begin{enumerate}
+
+\item {\it For example, you note that your method struggles to get the shape of the hippocampus because the true shape has sharp curves in it.  Couldn't/shouldn't your methodology be modified to take account of this feature of the hippocampus?  As an analogy, when using cubic splines to fit one-dimensional curves, one can get curves that aren't differentiable by putting more than one knot at a single location.  There should be some way of doing something similar for manifold estimation.  I think it would be very interesting to try some (perhaps ad hoc) modification of your penalty function that would allow you to better fit this aspect of the hippocampus shape.}
+
+{\bf Response:}
+
+\item {\it Your methodological development is highly algorithmic with no actual model for the shapes of brain regions or for the measurement process.  In your simulations, it looks like your simulated data includes independent measurement error (but you need to make that clear).  Given the pre-processing steps in your data analysis, I suspect that the actual "errors" in your observation are spatially dependent.  If so, then you need to discuss this issue and do some simulations that try to more realistically mimic the measurement process in your actual data.}
+
+{\bf Response:}
+
+
+\item {\it Your criterion function (4) includes terms with derivatives in space and another with a derivative in time, but no terms that include mixed partials in space and time.  I am wondering what are the implications of this choice and how much your result would change if you included some kind of integral of a squared mixed partial derivative in (4).  I'm not sure how far you would want to go down this avenue, but I do think it is at least worth acknowledging that the form of (4) is somewhat arbitrary and that other forms might be worth considering.  I would also note that (4) puts no penalty on large linear trends in time, which may not be biologically realistic.}
+
+{\bf Response:}
+
+
+\item {\it I recommend you add the application to the title of your paper, so something like "Longitudinal Principal Manifold Estimation for Modeling Changes Over Time in Brain Regions".}
+
+
+\end{enumerate}
+
+
+\large{\textbf{Response to Referee 1}}
+
+\vspace{0.25in}
+
+The paper proposes a novel method called Longitudinal Principal Manifold Estimation (LPME) to fit the spatial Principal Manifolds smoothed over time for longitudinal data. I have the following comments:
+
+\begin{enumerate}
+\item In line 24 on page 3, it says "to develop smooth estimates of the surfaces of subcortical structures over time." Why not also consider cortical structure?
+
+{\bf Response:}
+
+\item In lines 30-31 on page 4, it says "the deep learning methodology used imposes costs in terms of computational requirements and interpretability". This sentence has a bias on deep learning (DL). Nowadays, GPU is almost a necessary device for brain image data analysis, due to powerful DL models in image classification and segmentation. Also, Google CoLab provides free access to GPU. DL models are very fast on GPU. For interpretability of DL, many tools have been developed. See the topic of Explainable AI.
+
+{\bf Response:}
+
+\item Line 15 on page 9 says "... by a study participant." Is this method used for the longitudinal data of a single subject, not simultaneously applied to a group of subjects?
+
+\item Also line 9 on page 10 says "for each image i". But the index i is from 1 to $I_t$, so the $x_it$ is an image, not just a 3D voxel? Is the method only for subject-level data analysis, not for group-level data analysis?
+
+\item In Eq. (3), (t,r) should be (r, t) since the domain is $R^d x R$ not $R x R^d$.
+
+\item In figure 3, the plots for time=0.3 \& 0.6, the true manifold (red curve) doesn’t well align with the scatter plot. Is it because the noise is too strong?
+And the plot for time =0.9, the LPME (blue curve) is two-mode, not as smooth as the other 2 methods and the true manifold.
+
+\item In line 19-26 on page 25, why only consider the 463 subjects from the total 800 subjects of ADNI 1?
+
+\item The MCI group is very heterogeneous. It's better to consider only the subgroup of MCI with later conversion to AD.
+
+\item Line 5 on page 25 says "...meaningful between-image errors … are introduced ..." Is "meaningful" a typo?
+
+\item For the ADNI data, you used 236 subjects from the three groups, CN, MCI, and AD,  for image segmentation, but used LPME to fit each subject individually? Where is the comparison between the 3 groups CN, AD, and MCI?
+
+\item Timing performance of the proposed method is needed for simulation and real-data analysis.
+
+\end{enumerate}
+
+\vspace{0.3in}
+
+
+\large{\textbf{Response to Referee 2}}
+
+\vspace{0.25in}
+
+{\it The authors of this manuscript propose and evaluate a longitudinal principal manifold estimation method and a novel data augmentation approach to enable principal manifold estimation on self-intersecting manifolds. The developed methodology is relatively computationally efficient and provides good approximation for the changes in the brain volume structures. The proposed method, LPME, is also applied to the data obtained from the longitudinal ADNI study.  The work undertaken is interesting and the new method and its application to the ADNI study data is a worthwhile undertaking. However, there are a few issues that should be addressed. First, the described methodology depends on a relatively strong assumption that the underlying manifold is minimally changing over time and the changes can be well described by a smooth time function. Second, it is not clear if the method proposed applies only to discrete time points or if it can be used in the continuous time setting, i.e. with irregular time intervals. Third, the simulation studies summarized indicate that the new method is advantageous is specific simulation settings. Are such settings relevant to the brain structure changes? Forth, is it feasible to estimate smooth changes over time with a very limited number of longitudinal time points. Please find additional comments below.}
+
+Specific comments
+
+\begin{enumerate}
+\item Abstract:    Need to be more specific about the type of the MRI used. I believe the authors mean the structural MRI (sMRI).
+
+\item Abstract:    The plural of “hippocampus” is “hippocampi.”
+
+\item Introduction, p.2:  References on processing of the sMRI data are dated. There has been a lot of progress in the past decade in the sMRI processing pipelines.
+
+\item Introduction, p.5: Are the monotonicity restrictions included in the modeling? For example, volumes of the brain structures should not increase over time.
+
+\item Section 3, p.9:    Justification for the use of manifolds to learn about the volume changes is not fully satisfactory as volumes are scalar quantities. One does not need to estimate the surface changes in order to obtain a volume of a 3D object.
+
+\item Section 3.1, p.11: Description of the minimization problem is unclear.
+
+\item Section 3.2.2:    The choice of the first time point for the initialization is arbitrary and prone to error. Why the longitudinal information is not used in the initialization?
+
+\item Table 2, p.23 and Table S1: While in many simulation settings (Cases), the LPME algorithm seems to perform well. Case 7 looks to be troublesome. Any specific reason why in this case PC/PS method performs the best on average?
+
+\item Figure 2, p.24:    The figure is difficult to interpret as the colors for LPME and Principal Curves are similar and the symbols are hard to differentiate among the methods.
+
+\end{enumerate}
+
+%\bibliographystyle{plain}
+%\bibliography{sample}
+
+
+
+
+\end{document}
+
+
+
+
