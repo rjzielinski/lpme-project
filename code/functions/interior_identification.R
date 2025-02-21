@@ -6,7 +6,7 @@ interior_identification <- function(embedding_map, coefs, params, x, ref) {
 
   param_centers <- map(
     seq_len(nrow(params)),
-    ~ embedding_map(params[.x, ])
+    ~ as.vector(embedding_map(params[.x, ]))
   ) |>
     reduce(rbind)
 
@@ -35,14 +35,13 @@ get_orientation <- function(embedding_map, coefs, centers, params, x) {
   d <- ncol(params)
   n <- nrow(params)
 
-  augment_x <- c(x, cart2sph(x))[-6]
   nearest_center <- map(
     seq_len(nrow(centers)),
-    ~ dist_euclidean(augment_x, as.vector(centers[.x, ]))
+    ~ dist_euclidean(x, as.vector(centers[.x, ]))
   ) |>
     reduce(c) |>
     which.min()
-  x_params <- projection_pme(augment_x, embedding_map, params[nearest_center, ])
+  x_params <- projection_pme(x, embedding_map, params[nearest_center, ])
   x_proj <- embedding_map(x_params)
 
 
@@ -60,7 +59,7 @@ get_orientation <- function(embedding_map, coefs, centers, params, x) {
     matrix(ncol = 1)
 
   orientation <- sign(
-    t(matrix(x_proj - augment_x, nrow = 1)[, 1:3]) %*% normal_vector
+    t(matrix(x_proj - x, nrow = 1)[, 1:3]) %*% normal_vector
   )
   return(orientation)
 }
