@@ -1,4 +1,7 @@
 estimate_volume_case8 <- function(sim, n_points) {
+  require(Rfast, warn.conflicts = FALSE, quietly = TRUE)
+
+  source("functions/interior_identification.R")
   sim_data <- sim$processed_data$df
   time_points <- sim_data |>
     select(time) |>
