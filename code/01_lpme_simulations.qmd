@@ -1,7 +1,7 @@
 ---
 title: "LPME Simulation Studies"
 author: "Robert Zielinski"
-date: "January 31, 2025"
+date: "February 20, 2025"
 format: html
 ---
 
@@ -24,6 +24,8 @@ library(progress)
 library(pme)
 library(princurve)
 library(Rfast)
+library(knitr)
+library(kableExtra)
 
 source("prinSurf_v3.R")
 source("functions/simulations/simulate_data.R")
@@ -34,6 +36,7 @@ source("functions/simulations/display_results.R")
 source("functions/calculate_lpme_reconstructions.R")
 source("functions/calculate_pme_reconstructions.R")
 source("functions/estimate_volume.R")
+source("functions/simulations/estimate_volume_case8.R")
 source("functions/interior_identification.R")
 ```
 ## Simulated Manifolds
@@ -751,7 +754,8 @@ write_csv(simulation_results, "../output/simulation_results.csv")
 result_case1 <- readRDS(
   file.path(
     "../output/simulations/case1",
-    "duration_1_interval_025_obs_noise_005_amplitude_noise_010_period_noise_010_time_trend_linear_time_change_010.RDS"
+    # "duration_1_interval_025_obs_noise_005_amplitude_noise_010_period_noise_010_time_trend_linear_time_change_010.RDS"
+    "duration_1_interval_025_obs_noise_005_amplitude_noise_005_period_noise_005_time_trend_linear_time_change_005.RDS"
     # "duration_1_interval_050_obs_noise_010_amplitude_noise_025_period_noise_010_time_trend_linear_time_change_010.RDS"
     # "duration_1_interval_025_obs_noise_005_amplitude_noise_005_period_noise_005_time_trend_constant_time_change_025.RDS"
   )
@@ -844,26 +848,123 @@ The proposed use case for the LPME algorithm is to obtain smooth estimates of th
 
 Analogous to the proposed application, the LPME estimate can be used to approximate the volume of the simulated sphere. Unlike the application, the volume of the true sphere is known and provides a ground truth, allowing us to evaluate the performance of the smoothing in the presence of data generating patterns commonly found in neuroimaging data.
 
-```{r}
+For the spherical data, we consider two approaches to fitting the LPME and PME algorithms in a way that avoids self-intersections in the estimated manifold. The first approach augments the observed data with spherical coordinates, estimating a mapping between the low-dimensional manifold and the augmented ambient space. In this case, volumes are estimated by counting the voxels falling into the interior of the estimated manifold, then multiplying by the volume of each individual voxel. 
+
+The second approach partitions the sphere into a grid of voxels, estimating the volume of the manifold by counting the number of voxels that intersect the estimated manifold. The second approach partitions the observed data into two sets and estimates a manifold separately for each partition. Volumes are then estimated using a Monte Carlo simulation, where points are randomly sampled from a predefined range in three-dimensional ambient space, and the interior identification approach can be used to determine whether each point is in the interior of the estimated manifolds. The proportion of interior points is then multiplied by the volume of the predefined range to reach a volume estimate.
+
+```{r, echo=FALSE}
 dir_case8 <- "../output/simulations/case8"
 files_case8 <- list.files(dir_case8)
+```
 
-file_name <- files_case8[1]
+
+```{r, eval=FALSE, echo=FALSE}
+sim_run <- vector(mode = "numeric", length = 0)
+duration <- vector(mode = "numeric", length = 0)
+interval <- vector(mode = "numeric", length = 0)
+obs_noise <- vector(mode = "numeric", length = 0)
+amplitude_noise <- vector(mode = "numeric", length = 0)
+period_noise <- vector(mode = "numeric", length = 0)
+time_trend <- vector(mode = "character", length = 0)
+time_change <- vector(mode = "numeric", length = 0)
+
+time <- vector(mode = "numeric", length = 0)
+observed_volume <- vector(mode = "numeric", length = 0)
+true_volume <- vector(mode = "numeric", length = 0)
+lpme_aug_volume <- vector(mode = "numeric", length = 0)
+pme_aug_volume <- vector(mode = "numeric", length = 0)
+lpme_partitioned_volume <- vector(mode = "numeric", length = 0)
+pme_partitioned_volume <- vector(mode = "numeric", length = 0)
+
+for (file_idx in seq_along(files_case8)) {
+  file_name <- files_case8[file_idx]
+  file_stripped <- str_replace(file_name, ".RDS", "")
+  file_parsed <- str_split(file_stripped, "_")
+
+  duration_val <- as.numeric(file_parsed[[1]][2])
+  interval_val <- as.numeric(file_parsed[[1]][4]) / 100
+  obs_noise_val <- as.numeric(file_parsed[[1]][7]) / 100
+  amplitude_noise_val <- as.numeric(file_parsed[[1]][10]) / 100
+  period_noise_val <- as.numeric(file_parsed[[1]][[13]])
+  time_trend_val <- file_parsed[[1]][16]
+  time_change_val <- as.numeric(file_parsed[[1]][19]) / 100
+
+  sim <- readRDS(file.path(dir_case8, file_name))
+  sim_volume <- estimate_volume_case8(sim, n_points = 10000)
+
+  n_obs <- length(sim_volume$times)
+  sim_run <- c(sim_run, rep(file_idx, n_obs))
+  duration <- c(duration, rep(duration_val, n_obs))
+  interval <- c(interval, rep(interval_val, n_obs))
+  obs_noise <- c(obs_noise, rep(obs_noise_val, n_obs))
+  amplitude_noise <- c(amplitude_noise, rep(amplitude_noise_val, n_obs))
+  period_noise <- c(period_noise, rep(period_noise_val, n_obs))
+  time_trend <- c(time_trend, rep(time_trend_val, n_obs))
+  time_change <- c(time_change, rep(time_change_val, n_obs))
+
+  time <- c(time, sim_volume$times)
+  observed_volume <- c(observed_volume, sim_volume$observed)
+  true_volume <- c(true_volume, sim_volume$true)
+  lpme_aug_volume <- c(lpme_aug_volume, sim_volume$lpme_augmented)
+  pme_aug_volume <- c(pme_aug_volume, sim_volume$pme_augmented)
+  lpme_partitioned_volume <- c(lpme_partitioned_volume, sim_volume$lpme_part)
+  pme_partitioned_volume <- c(pme_partitioned_volume, sim_volume$pme_part)
+}
+
+sim_volume_df <- tibble(
+  run = sim_run,
+  duration = duration,
+  interval = interval,
+  obs_noise = obs_noise,
+  amplitude_noise = amplitude_noise,
+  period_noise = period_noise,
+  time_trend = time_trend,
+  time_change = time_change,
+  time = time,
+  observed_volume = observed_volume,
+  true_volume = true_volume,
+  lpme_aug_volume = lpme_aug_volume,
+  pme_aug_volume = pme_aug_volume,
+  lpme_partitioned_volume = lpme_partitioned_volume,
+  pme_partitioned_volume = pme_partitioned_volume
+)
+
+write_csv(sim_volume_df, "../output/simulation_volume_case8.csv")
+```
+
+
+```{r, echo=FALSE}
+sim_volume_df <- read_csv("../output/simulation_volume_case8.csv")
+```
+```{r, echo=FALSE}
+file_name <- files_case8[11]
 file_stripped <- str_replace(file_name, ".RDS", "")
 file_parsed <- str_split(file_stripped, "_")
 
 duration_val <- as.numeric(file_parsed[[1]][2])
 interval_val <- as.numeric(file_parsed[[1]][4]) / 100
+obs_noise_val <- as.numeric(file_parsed[[1]][7]) / 100
+amplitude_noise_val <- as.numeric(file_parsed[[1]][10]) / 100
+period_noise_val <- as.numeric(file_parsed[[1]][[13]])
 time_trend_val <- file_parsed[[1]][16]
 time_change_val <- as.numeric(file_parsed[[1]][19]) / 100
 
+
+
 sim <- readRDS(file.path(dir_case8, file_name))
+n_points <- 1000
 
 sim_data <- sim$processed_data$df
 time_points <- sim_data |>
   select(time) |>
   unlist() |>
   unique()
+
+observed_times <- sim$data$df |>
+  select(time) |>
+  unlist() |>
+  unique() |>
+  sort()
 
 sim_mat <- sim$processed_data$df_observed |>
   select(time, contains("X")) |>
@@ -893,131 +994,575 @@ if (max(time_adjustments) == 0) {
 }
 # subtract from initial amplitude to replicate effects of atrophy
 true_radii <- 1 - time_adjustments_scaled
-true_volumes <- (4 / 3) * pi * true_radii^3
-```
+true_volumes <- (4 / 3) * pi * true_radii^3 
 
-```{r}
-lpme_interior_points <- matrix(ncol = ncol(sim_mat))
-lpme_volume <- vector(mode = "numeric", length = length(time_points))
-pme_interior_points <- matrix(ncol = ncol(sim_mat))
-pme_volumes <- vector(mode = "numeric", length = length(time_points))
+## Calcalate volumes from partitioned models
 
-df_observed <- sim$processed_data$df_observed |>
-  select(time, contains("X")) |>
-  as.matrix()
-df_true <- sim$processed_data$df_true |>
-  select(time, contains("X")) |>
-  as.matrix()
-df_lpme <- sim$models$lpme$reconstructions[, 1:4]
-df_pme <- sim$models$pme$reconstructions[, 1:4]
-
-for (time_idx in seq_along(time_points)) {
-  temp_observed <- df_observed[df_observed[, 1] == time_points[time_idx], -1]
-  temp_true <- df_true[df_true[, 1] == time_points[time_idx], -1]
-  temp_lpme <- df_lpme[df_lpme[, 1] == time_points[time_idx], -1]
-  temp_pme <- df_pme[df_pme[, 1] == time_points[time_idx], -1]
-
-  scaling_factor <- 0.01
-  temp_observed_scaled <- round(temp_observed / scaling_factor)
-  temp_true_scaled <- round(temp_true / scaling_factor)
-  temp_lpme_scaled <- round(temp_lpme / scaling_factor)
-  temp_pme_scaled <- round(temp_pme / scaling_factor)
-}
-```
-
-
-```{r, eval=FALSE}
-lpme_interior_points <- matrix(ncol = ncol(sim_mat))
 lpme_volumes <- vector(mode = "numeric", length = length(time_points))
-
-pme_interior_points <- matrix(ncol = ncol(sim_mat))
 pme_volumes <- vector(mode = "numeric", length = length(time_points))
 
-for (time_idx in seq_along(time_points)) {
-  temp_data <- sim_mat[sim_mat[, 1] == time_points[time_idx], -1]
+lpme_part_volumes <- vector(mode = "numeric", length = length(time_points))
+pme_part_volumes <- vector(mode = "numeric", length = length(time_points))
 
+scaling_factors <- sim$data$df |>
+  select(contains("X")) |>
+  select(!contains("true")) |>
+  colMinsMaxs()
+x_scale <- max(abs(scaling_factors[, 1]))
+y_scale <- max(abs(scaling_factors[, 2]))
+z_scale <- max(abs(scaling_factors[, 3]))
+
+lpme_est <- sim$models$lpme$lpme
+lpme_params <- lpme_est$parameterization_list[[which.min(lpme_est$msd)]] 
+
+lpme_part_voxels <- matrix(data = NA, ncol = 4)
+pme_part_voxels <- matrix(data = NA, ncol = 4)
+
+lpme_aug_voxels <- matrix(data = NA, ncol = 4)
+pme_aug_voxels <- matrix(data = NA, ncol = 4)
+
+lpme_aug_reconstructions <- matrix(data = NA, ncol = 4)
+pme_aug_reconstructions <- matrix(data = NA, ncol = 4)
+
+for (time_idx in seq_along(time_points)) {
+  observed_data <- sim$data$df |>
+    filter(time == observed_times[time_idx]) |>
+    select(contains("X")) |>
+    select(!contains("true")) |>
+    as.matrix()
+  obs_limits <- colMinsMaxs(observed_data)
+  limit_scaler <- 0.05
+  obs_x_range <- obs_limits[2, 1] - obs_limits[1, 1]
+  obs_y_range <- obs_limits[2, 2] - obs_limits[1, 2]
+  obs_z_range <- obs_limits[2, 3] - obs_limits[1, 3]
+
+  obs_x_scale <- max(abs(obs_limits[, 1]))
+  obs_y_scale <- max(abs(obs_limits[, 2]))
+  obs_z_scale <- max(abs(obs_limits[, 3]))
+
+  full_volume <- (obs_x_range * (1 + (2 * limit_scaler))) *
+    (obs_y_range * (1 + (2 * limit_scaler))) *
+    (obs_z_range * (1 + (2 * limit_scaler)))
+
+  temp_data <- sim_mat[sim_mat[, 1] == time_points[time_idx], -1]
   data_limits <- colMinsMaxs(temp_data)
 
-  limit_scaler <- 0.1
-  x_seq <- seq(
-    data_limits[1, 1] - abs(data_limits[1, 1] * limit_scaler),
-    data_limits[2, 1] + abs(data_limits[2, 1] * limit_scaler),
-    by = 0.1
-  )
-  y_seq <- seq(
-    data_limits[1, 2] - abs(data_limits[1, 2] * limit_scaler),
-    data_limits[2, 2] + abs(data_limits[2, 2] * limit_scaler),
-    by = 0.1
-  )
-  z_seq <- seq(
-    data_limits[1, 3] - abs(data_limits[1, 3] * limit_scaler),
-    data_limits[2, 3] + abs(data_limits[2, 3] * limit_scaler),
-    by = 0.1
-  )
+  x_range <- data_limits[2, 1] - data_limits[1, 1]
+  y_range <- data_limits[2, 2] - data_limits[1, 2]
+  z_range <- data_limits[2, 3] - data_limits[1, 3]
 
-  point_volume <- 0.1^3
+  x_min <- data_limits[1, 1] - (limit_scaler * x_range)
+  x_max <- data_limits[2, 1] + (limit_scaler * x_range)
+  y_min <- data_limits[1, 2] - (limit_scaler * y_range)
+  y_max <- data_limits[2, 2] + (limit_scaler * y_range)
+  z_min <- data_limits[1, 3] - (limit_scaler * z_range)
+  z_max <- data_limits[2, 3] + (limit_scaler * z_range)
 
-  lpme_candidates  <- expand.grid(x = x_seq, y = y_seq, z = z_seq) |>
-    as.matrix()
-  pme_candidates <- expand.grid(x = x_seq, y = y_seq, z = z_seq) |>
-    as.matrix()
+  x_candidates <- runif(n = n_points, min = x_min, max = x_max)
+  y_candidates <- runif(n = n_points, min = y_min, max = y_max)
+  z_candidates <- runif(n = n_points, min = z_min, max = z_max)
 
-  temp_pme <- sim$models$pme$pme[[time_idx]]
-  temp_pme_embedding <- temp_pme$embedding_map
-  temp_pme_coefs <- temp_pme$coefs[[which.min(temp_pme$MSD)]]
-  temp_pme_params <- temp_pme$parameterization[[which.min(temp_pme$MSD)]]
+  candidates <- cbind(x_candidates, y_candidates, z_candidates)
 
-  lpme_est <- sim$models$lpme$lpme
-  temp_lpme_coefs <- lpme_est$sol_coef_functions[[
-    which.min(lpme_est$msd)
+  # Use partitioned models with interior identification
+  temp_pme_part1 <- sim$models$pme_part$pme[[1]][[time_idx]]
+  temp_pme_part2 <- sim$models$pme_part$pme[[2]][[time_idx]]
+  temp_pme_embedding_part1 <- temp_pme_part1$embedding_map
+  temp_pme_embedding_part2 <- temp_pme_part2$embedding_map
+  temp_pme_coefs_part1 <- temp_pme_part1$coefs[[which.min(temp_pme_part1$MSD)]]
+  temp_pme_coefs_part2 <- temp_pme_part2$coefs[[which.min(temp_pme_part2$MSD)]]
+  temp_pme_params_part1 <- temp_pme_part1$parameterization[[which.min(temp_pme_part1$MSD)]]
+  temp_pme_params_part2 <- temp_pme_part2$parameterization[[which.min(temp_pme_part2$MSD)]]
+
+  lpme_est_part1 <- sim$models$lpme_part$lpme[[1]]
+  lpme_est_part2 <- sim$models$lpme_part$lpme[[2]]
+
+  temp_lpme_coefs_part1 <- lpme_est_part1$sol_coef_functions[[
+    which.min(lpme_est_part1$msd)
   ]](time_points[time_idx])
-  temp_lpme_params <- lpme_est$parameterization_list[[which.min(lpme_est$msd)]]
-  temp_lpme_params <- temp_lpme_params[
-    temp_lpme_params[, 1] == time_points[time_idx],
+  temp_lpme_coefs_part2 <- lpme_est_part2$sol_coef_functions[[
+    which.min(lpme_est_part2$msd)
+  ]](time_points[time_idx])
+
+  temp_lpme_params_part1 <- lpme_est_part1$parameterization_list[[which.min(lpme_est_part1$msd)]]
+  temp_lpme_params_part2 <- lpme_est_part2$parameterization_list[[which.min(lpme_est_part2$msd)]]
+  temp_lpme_params_part1 <- temp_lpme_params_part1[
+    temp_lpme_params_part1[, 1] == time_points[time_idx],
     -1
   ]
-  lpme_n_knots <- nrow(temp_lpme_params)
-  d <- ncol(temp_lpme_params)
-  coef_mat <- matrix(
-    temp_lpme_coefs,
-    lpme_n_knots + d + 1,
+  temp_lpme_params_part2 <- temp_lpme_params_part2[
+    temp_lpme_params_part2[, 1] == time_points[time_idx],
+    -1
+  ]
+
+  lpme_n_knots_part1 <- nrow(temp_lpme_params_part1)
+  lpme_n_knots_part2 <- nrow(temp_lpme_params_part2)
+  d <- ncol(temp_lpme_params_part1)
+  coef_mat_part1 <- matrix(
+    temp_lpme_coefs_part1,
+    lpme_n_knots_part1 + d + 1,
+    byrow = TRUE
+  )
+  coef_mat_part2 <- matrix(
+    temp_lpme_coefs_part2,
+    lpme_n_knots_part2 + d + 1,
     byrow = TRUE
   )
 
-  temp_lpme_embedding <- function(r) {
-    t(coef_mat[1:lpme_n_knots, ]) %*% pme::etaFunc(r, temp_lpme_params, 4 - d) +
-      t(coef_mat[(lpme_n_knots + 1):(lpme_n_knots + d + 1), ]) %*%
+  temp_lpme_embedding_part1 <- function(r) {
+    t(coef_mat_part1[1:lpme_n_knots_part1, ]) %*% pme::etaFunc(r, temp_lpme_params_part1, 4 - d) +
+      t(coef_mat_part1[(lpme_n_knots_part1 + 1):(lpme_n_knots_part1 + d + 1), ]) %*%
         matrix(c(1, r), ncol = 1)
   }
 
-  lpme_interior_voxels <- interior_identification(
-    temp_lpme_embedding,
-    coef_mat,
-    temp_lpme_params,
-    lpme_candidates,
+  temp_lpme_embedding_part2 <- function(r) {
+    t(coef_mat_part2[1:lpme_n_knots_part2, ]) %*% pme::etaFunc(r, temp_lpme_params_part2, 4 - d) +
+      t(coef_mat_part2[(lpme_n_knots_part2 + 1):(lpme_n_knots_part2 + d + 1), ]) %*%
+        matrix(c(1, r), ncol = 1)
+  }
+
+  lpme_interior_part1 <- interior_identification(
+    temp_lpme_embedding_part1,
+    coef_mat_part1,
+    temp_lpme_params_part1,
+    candidates[candidates[, 1] > 0, ],
     c(0, 0, 0)
   )
-  pme_interior_voxels <- interior_identification(
-    temp_pme_embedding,
-    temp_pme_coefs,
-    temp_pme_params,
-    pme_candidates,
+  lpme_interior_part2 <- interior_identification(
+    temp_lpme_embedding_part2,
+    coef_mat_part2,
+    temp_lpme_params_part2,
+    candidates[candidates[, 1] <= 0, ],
     c(0, 0, 0)
   )
 
-  lpme_interior <- cbind(
-    time_points[time_idx],
-    lpme_candidates[lpme_interior_voxels, ]
-  )
-  lpme_interior_points <- rbind(lpme_interior_points, lpme_interior)
-  lpme_volumes[time_idx] <- nrow(lpme_interior) * point_volume
+  lpme_interior <- c(lpme_interior_part1, lpme_interior_part2)
 
-  pme_interior <- cbind(
-    time_points[time_idx],
-    pme_candidates[pme_interior_voxels, ]
+  lpme_interior_candidates <- rbind(
+    candidates[candidates[, 1] > 0, ][lpme_interior_part1, ],
+    candidates[candidates[, 1] <= 0, ][lpme_interior_part2, ]
   )
-  pme_interior_points <- rbind(pme_interior_points, pme_interior)
-  pme_volumes[time_idx] <- nrow(pme_interior) * point_volume
+
+  lpme_part_voxels <- rbind(
+    lpme_part_voxels, 
+    cbind(time_points[time_idx], lpme_interior_candidates)
+  )
+  
+  pme_interior_part1 <- interior_identification(
+    temp_pme_embedding_part1,
+    temp_pme_coefs_part1,
+    temp_pme_params_part1,
+    candidates[candidates[, 1] > 0, ],
+    c(0, 0, 0)
+  )
+  pme_interior_part2 <- interior_identification(
+    temp_pme_embedding_part2,
+    temp_pme_coefs_part2,
+    temp_pme_params_part2,
+    candidates[candidates[, 1] <= 0, ],
+    c(0, 0, 0)
+  )
+
+  pme_interior <- c(pme_interior_part1, pme_interior_part2)
+  pme_interior_candidates <- rbind(
+    candidates[candidates[, 1] > 0, ][pme_interior_part1, ],
+    candidates[candidates[, 1] <= 0, ][pme_interior_part2, ]
+  )
+
+  pme_part_voxels <- rbind(
+    pme_part_voxels, 
+    cbind(time_points[time_idx], pme_interior_candidates)
+  )
+
+  lpme_part_volumes[time_idx] <- mean(lpme_interior) * full_volume
+  pme_part_volumes[time_idx] <- mean(pme_interior) * full_volume
+
+
+  temp_pme <- sim$models$pme$pme[[time_idx]]
+  temp_pme_params <- temp_pme$parameterization[[which.min(temp_pme$MSD)]]
+
+  temp_lpme_params <- lpme_params[lpme_params[, 1] == time_points[time_idx], -1]
+
+  pme_param_limits <- colMinsMaxs(temp_pme_params)
+  lpme_param_limits <- colMinsMaxs(temp_lpme_params)
+
+  pme_param_candidates1 <- runif(
+    n = n_points, 
+    min = pme_param_limits[1, 1], 
+    max = pme_param_limits[2, 1]
+  )
+  pme_param_candidates2 <- runif(
+    n = n_points, 
+    min = pme_param_limits[1, 2], 
+    max = pme_param_limits[2, 2]
+  )
+  lpme_param_candidates1 <- runif(
+    n = n_points,
+    min = lpme_param_limits[1, 1],
+    max = lpme_param_limits[2, 1]
+  )
+  lpme_param_candidates2 <- runif(
+    n = n_points,
+    min = lpme_param_limits[1, 2],
+    max = lpme_param_limits[2, 2]
+  )
+
+  temp_lpme_reconstructions <- map(
+    seq_len(n_points),
+    ~ lpme_est$embedding_map(
+      c(
+        time_points[time_idx], 
+        lpme_param_candidates1[.x], 
+        lpme_param_candidates2[.x]
+      )
+    )
+  ) |>
+    reduce(rbind)
+
+  lpme_aug_reconstructions <- rbind(
+    lpme_aug_reconstructions, 
+    temp_lpme_reconstructions[, 1:4]
+  )
+  temp_lpme_reconstructions <- temp_lpme_reconstructions[, 2:4]
+
+  temp_pme_reconstructions <- map(
+    seq_len(n_points),
+    ~ temp_pme$embedding_map(
+      c(
+        pme_param_candidates1[.x],
+        pme_param_candidates2[.x]
+      )
+    )
+  ) |>
+    reduce(rbind)
+  pme_aug_reconstructions <- rbind(
+    pme_aug_reconstructions, 
+    cbind(time_points[time_idx], temp_pme_reconstructions[, 1:3])
+  )
+  temp_pme_reconstructions <- temp_pme_reconstructions[, 1:3]
+
+  temp_lpme_reconstructions[, 1] <- temp_lpme_reconstructions[, 1] * x_scale
+  temp_lpme_reconstructions[, 2] <- temp_lpme_reconstructions[, 2] * y_scale
+  temp_lpme_reconstructions[, 3] <- temp_lpme_reconstructions[, 3] * z_scale
+
+  temp_pme_reconstructions[, 1] <- temp_pme_reconstructions[, 1] * x_scale
+  temp_pme_reconstructions[, 2] <- temp_pme_reconstructions[, 2] * y_scale
+  temp_pme_reconstructions[, 3] <- temp_pme_reconstructions[, 3] * z_scale
+
+  temp_lpme_volume <- estimate_volume(
+    round(temp_lpme_reconstructions, 1),
+    voxel_volume = 0.1^3
+  )
+  temp_pme_volume <- estimate_volume(
+    round(temp_pme_reconstructions, 1),
+    voxel_volume = 0.1^3
+  )
+
+  lpme_aug_voxels <- rbind(
+    lpme_aug_voxels,
+    cbind(time_points[time_idx], as.matrix(temp_lpme_volume$interior_voxels))
+  )
+  pme_aug_voxels <- rbind(
+    pme_aug_voxels,
+    cbind(time_points[time_idx], as.matrix(temp_pme_volume$interior_voxels))
+  )
+
+  lpme_volumes[time_idx] <- temp_lpme_volume$volume
+  pme_volumes[time_idx] <- temp_pme_volume$volume
 }
+
+lpme_aug_reconstructions <- lpme_aug_reconstructions[-1, ]
+lpme_aug_reconstructions[, 2] <- lpme_aug_reconstructions[, 2] * x_scale
+lpme_aug_reconstructions[, 3] <- lpme_aug_reconstructions[, 3] * y_scale
+lpme_aug_reconstructions[, 4] <- lpme_aug_reconstructions[, 4] * z_scale
+
+lpme_aug_voxels <- lpme_aug_voxels[-1, ]
+lpme_aug_voxels[, 2] <- lpme_aug_voxels[, 2] * x_scale
+lpme_aug_voxels[, 3] <- lpme_aug_voxels[, 3] * y_scale
+lpme_aug_voxels[, 4] <- lpme_aug_voxels[, 4] * z_scale
+
+lpme_part_voxels <- lpme_part_voxels[-1, ]
+lpme_part_voxels[, 2] <- lpme_part_voxels[, 2] * x_scale
+lpme_part_voxels[, 3] <- lpme_part_voxels[, 3] * y_scale
+lpme_part_voxels[, 4] <- lpme_part_voxels[, 4] * z_scale
+
+pme_aug_reconstructions <- pme_aug_reconstructions[-1, ]
+pme_aug_reconstructions[, 2] <- pme_aug_reconstructions[, 2] * x_scale
+pme_aug_reconstructions[, 3] <- pme_aug_reconstructions[, 3] * y_scale
+pme_aug_reconstructions[, 4] <- pme_aug_reconstructions[, 4] * z_scale
+
+pme_aug_voxels <- pme_aug_voxels[-1, ]
+pme_aug_voxels[, 2] <- pme_aug_voxels[, 2] * x_scale
+pme_aug_voxels[, 3] <- pme_aug_voxels[, 3] * y_scale
+pme_aug_voxels[, 4] <- pme_aug_voxels[, 4] * z_scale
+
+pme_part_voxels <- pme_part_voxels[-1, ]
+pme_part_voxels[, 2] <- pme_part_voxels[, 2] * x_scale
+pme_part_voxels[, 3] <- pme_part_voxels[, 3] * y_scale
+pme_part_voxels[, 4] <- pme_part_voxels[, 4] * z_scale
 ```
+
+```{r, echo=FALSE}
+sim_df <- sim$data$df
+sim_df <- sim_df |>
+  mutate(time = time / max(time))
+
+p_data <- plot_ly(
+  sim_df, 
+  x = ~X1, 
+  y = ~X2, 
+  z = ~X3, 
+  frame = ~time, 
+  type = "scatter3d", 
+  mode = "markers", 
+  marker = list(size = 3, color = "black"),
+  name = "Observed Data"
+) |>
+  add_markers(
+    x = ~X_true1,
+    y = ~X_true2,
+    z = ~X_true3,
+    frame = ~time,
+    marker = list(size = 3, color = "red"),
+    name = "True Data"
+  ) |>
+  layout(title = "Simulated Data")
+p_data
+```
+
+```{r, echo=FALSE}
+p_aug_reconstructions <- plot_ly(
+  x = lpme_aug_reconstructions[, 2],
+  y = lpme_aug_reconstructions[, 3],
+  z = lpme_aug_reconstructions[, 4],
+  frame = lpme_aug_reconstructions[, 1],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "blue"),
+  name = "LPME"
+) |>
+  add_markers(
+    x = pme_aug_reconstructions[, 2],
+    y = pme_aug_reconstructions[, 3],
+    z = pme_aug_reconstructions[, 4],
+    frame = pme_aug_reconstructions[, 1],
+    marker = list(size = 3, color = "green"),
+    name = "PME"
+  ) |>
+  layout(title = "LPME and PME Manifold Estimates (Augmented)")
+p_aug_reconstructions
+```
+
+```{r, echo=FALSE}
+p_aug_interiors <- plot_ly(
+  sim_df, 
+  x = ~X1, 
+  y = ~X2, 
+  z = ~X3, 
+  frame = ~time, 
+  type = "scatter3d", 
+  mode = "markers", 
+  marker = list(size = 3, color = "black"),
+  name = "Observed Data"
+) |>
+  add_markers(
+    x = ~X_true1,
+    y = ~X_true2,
+    z = ~X_true3,
+    frame = ~time,
+    marker = list(size = 3, color = "red"),
+    name = "True Data"
+  ) |>
+  add_markers(
+    x = lpme_aug_voxels[, 2],
+    y = lpme_aug_voxels[, 3],
+    z = lpme_aug_voxels[, 4],
+    frame = lpme_aug_voxels[, 1],
+    marker = list(size = 3, color = "blue", alpha = 0.5),
+    name = "LPME"
+  ) |>
+  add_markers(
+    x = pme_aug_voxels[, 2],
+    y = pme_aug_voxels[, 3],
+    z = pme_aug_voxels[, 4],
+    frame = pme_aug_voxels[, 1],
+    marker = list(size = 3, color = "green", alpha = 0.5),
+    name = "PME"
+  ) |>
+  layout(title = "Estimated LPME and PME Interiors (Augmented)")
+p_aug_interiors
+```
+
+```{r, echo=FALSE}
+p_part_interiors <- plot_ly(
+  sim_df, 
+  x = ~X1, 
+  y = ~X2, 
+  z = ~X3, 
+  frame = ~time, 
+  type = "scatter3d", 
+  mode = "markers", 
+  marker = list(size = 3, color = "black"),
+  name = "Observed Data"
+) |>
+  add_markers(
+    x = ~X_true1,
+    y = ~X_true2,
+    z = ~X_true3,
+    frame = ~time,
+    marker = list(size = 3, color = "red"),
+    name = "True Data"
+  ) |>
+  add_markers(
+    x = lpme_part_voxels[, 2],
+    y = lpme_part_voxels[, 3],
+    z = lpme_part_voxels[, 4],
+    frame = lpme_part_voxels[, 1],
+    marker = list(size = 3, color = "blue", alpha = 0.5),
+    name = "LPME"
+  ) |>
+  add_markers(
+    x = pme_part_voxels[, 2],
+    y = pme_part_voxels[, 3],
+    z = pme_part_voxels[, 4],
+    frame = pme_part_voxels[, 1],
+    marker = list(size = 3, color = "green", alpha = 0.5),
+    name = "PME"
+  ) |>
+  layout(title = "Estimated LPME and PME Interiors (Partitioned)")
+p_part_interiors
+```
+
+An example plot depicting the estimated volumes from four simulation runs is shown below, with the true volume of the sphere with no between-visit or between-observation error added shown in red, the volumes of the error-adjusted simulated spheres shown in black, LPME estimates shown in blue, and PME estimates shown in green. A solid sline depicts volume estimates from the partitioned LPME and PME estimates, while a dashed line depicts volume estimates from the augmented LPME and PME estimates.
+
+Frankly, I am having difficulty understanding how these results are appearing. Visual inspection of the model fitting results indicates that the partitioned models seem to fit more reliably to the data. While there is usually a sort of "seam" along the partition boundary, the models for each partition appear to fit to the data extremely closely. Meanwhile, the models fit using the augmented data will show irregularities near the "poles" of the sphere, where the manifold is supposed to reconnect with itself. Additionally, we can sometimes see gaps in the estimated spheres where the manifold does not fully wrap around the complete surface. While the volume estimation approach I have designed for these estimates is able to account for most of these irregularities, there still appear to be extra points included toward the poles of the sphere when approximating the interior of the sphere. This example corresponds to the top left panel of the volume plot below. The extra points included in the interior of the augmented LPME estimate would suggest that the volume estimates for this model would overestimate the true volume, but this is not the case.
+
+
+```{r}
+sim_volume_plot <- sim_volume_df |>
+  pivot_longer(
+    cols = contains("volume"),
+    names_to = "source",
+    values_to = "volume"
+  ) |>
+  mutate(
+    source = gsub("_volume", "", source),
+    approach = ifelse(
+      source %in% c("observed", "true"), 
+      "Simulation",
+      ifelse(
+        source %in% c("lpme_aug", "pme_aug"),
+        "Augmented",
+        ifelse(
+          source %in% c("lpme_partitioned", "pme_partitioned"),
+          "Partitioned",
+          "Unknown"
+        )
+      )
+    ),
+    source = gsub("_", " ", source),
+    source = str_to_title(source),
+    source = gsub("Pme", "PME", source),
+    source = gsub("Lpme", "LPME", source),
+    source = gsub("Aug", "", source),
+    source = gsub("Partitioned", "", source)
+  )
+```
+
+```{r, echo=FALSE}
+colors <- c("blue", "black", "green", "red")
+
+ggplot(
+  filter(sim_volume_plot, run %in% c(11, 38, 53, 76)),
+  aes(x = time, y = volume, color = source, linetype = approach)
+) +
+  geom_line() +
+  facet_wrap(~run) +
+  xlab("Visit Time") +
+  ylab("Volume") +
+  scale_color_manual(values = colors)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+ggplot(filter(sim_volume_df, run %in% c(11, 38, 53, 76))) +
+  geom_line(aes(x = time, y = observed_volume), color = "black") +
+  geom_line(aes(x = time, y = true_volume), color = "red") +
+  geom_line(aes(x = time, y = lpme_partitioned_volume), color = "blue") +
+  geom_line(aes(x = time, y = pme_partitioned_volume), color = "green") +
+  geom_line(aes(x = time, y = lpme_aug_volume), color = "blue", linetype = 2) +
+  geom_line(aes(x = time, y = pme_aug_volume), color = "green", linetype = 2) + 
+  facet_wrap(~run) +
+  xlab("Visit Time") +
+  ylab("Volume")
+
+```
+
+The PME results, shown in green, largely reflect these patterns. Because the PME algorithm is designed to fit as closely to the observed data as possible, we want to see that the estiamted volume tracks with the volume of the observed sphere as closely as possible. The partitioned PME volumes (dotted green lines) follow the observed volumes nearly exactly, while the volumes from the augmented models (solid green lines) appear to underestimate the volume somewhat. Given the observed imperfections in model fit using the augmented data and the fact that the volume estimation method used for the augmented models is less theoretically grounded than the interior identification used for the partitioned models, I largely expected these results.
+
+However, the LPME results show different trends. Because we want to see the LPME model mitigate the effects of between-visit error, we expect to see the LPME-estimated volumes smooth over the PME results, more closely following the true volumes (shown in red). Based on the example plots above and the summary table and plot below, the augmented LPME models show lower errors than the partitioned LPME models. While these results are based on a limited set of 84 preliminary simulation runs, it is striking that the performance of augmentation versus partitioning may differ between PME and LPME models when applied to spherical data.
+
+```{r, echo=FALSE}
+sim_volume_df <- sim_volume_df |>
+  rename(
+    time_trend = time_trned,
+    true = true_volume
+  )
+
+sim_volume_long <- sim_volume_df |>
+  pivot_longer(
+    cols = contains("volume"), 
+    names_to = "source", 
+    values_to = "volume"
+  )
+
+sim_volume_long <- sim_volume_long |>
+  mutate(
+    error = volume - true,
+    error_pct = (volume - true) / true,
+    source = gsub("_volume", "", source),
+    source = gsub("_", " ", source),
+    source = str_to_title(source),
+    source = gsub("Pme", "PME", source),
+    source = gsub("Lpme", "LPME", source),
+    source = gsub("Aug", "Augmented", source)
+  )
+```
+
+```{r, echo=FALSE}
+ggplot(sim_volume_long) + 
+  geom_boxplot(aes(x = error_pct, y = time_trend, fill = source)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Percent Error from True Volume") +
+  ylab("Time Trend")
+```
+
+```{r, echo=FALSE}
+volume_summary <- sim_volume_long |>
+  group_by(time_trend, source) |>
+  summarize(
+    root_mean_sq_error = sqrt(mean(error^2)),
+    root_median_sq_error = sqrt(median(error^2)),
+    sd_error = sd(error),
+  ) |>
+  ungroup() |>
+  select(-time_trend) |>
+  rename(
+    "Error Source" = source,
+    "Root Mean Sq. Error" = root_mean_sq_error,
+    "Root Median Sq. Error" = root_median_sq_error,
+    "SD of Error" = sd_error
+  )
+
+
+kable(volume_summary, format = "markdown", digits = 3) |>
+  pack_rows("Constant Volume", start_row = 1, end_row = 5) |>
+  pack_rows("Linear Change in Volume", start_row = 6, end_row = 10) |>
+  pack_rows("Quadratic Change in Volume", start_row = 11, end_row = 15) |>
+  row_spec(c(1, 6, 11), bold = TRUE)
+```
+
+As we move on to the hippocampus, I expect partitioning to perform much better than the augmented models for two reasons:
+
+1. Augmenting spherical data with spherical coordinates helps to avoid self-intersections in the underlying manifold, but the same is not necessarily true with the irregularly shaped hippocampus.
+2. The voxel-counting volume estimation approach I have designed for the augmented models assumes some level of symmetry in the data as it corrects for imperfections in the manifold estimate (e.g. gaps in the manifold). This assumption holds for spherical data, but will not be as effective with the hippocampal data. However, the extent of the error this will introduce to hippocampal volume estimates is unknown.
 
