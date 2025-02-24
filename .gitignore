@@ -4,3 +4,11 @@
 .Ruserdata
 
 output/
+code/01_lpme_simulations_files/
+
+manuscript/paper/.latexmk
+manuscript/paper/*.synctex.gz
+
+*.png
+*.qmd.otter.R
+*.qmd.otter.yml
