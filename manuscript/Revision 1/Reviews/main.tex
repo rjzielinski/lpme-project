@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[12pt]{article}
 \usepackage{algorithm2e}
 \usepackage{amscd}
 \usepackage{amsfonts}
@@ -25,6 +25,12 @@
 \newcommand{\blind}{1}
 \graphicspath{{figures/}}
 
+\addtolength{\oddsidemargin}{-.5in}%
+\addtolength{\evensidemargin}{-1in}%
+\addtolength{\textwidth}{1in}%
+\addtolength{\textheight}{1.7in}%
+\addtolength{\topmargin}{-1in}%
+
 
 \pdfminorversion=4
 
@@ -35,6 +41,9 @@
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
+
+\newcommand{\revision}[1]{\textcolor{blue}{#1}}
+
 
 \setcitestyle{aysep={}}
 
@@ -49,11 +58,11 @@
 {\large \bigskip Longitudinal Principal Manifold Estimation}
 \end{center}
 
-\noindent We would like to thank the Editor and Referees for their insightful comments and helpful suggestions. In this revised version, we have addressed all the comments by the AE and Referees. Point-by-point responses to these comments are presented herein. 
+\noindent We would like to thank the Editor and Referees for their insightful comments and helpful suggestions. In this revised version, we have addressed all the comments by the Editor and Referees. Point-by-point responses to these comments are presented herein. 
 
 In responding to all the comments, we have followed the following convention: each of the comments is italicized and followed by our response to the corresponding comment; any changes in the manuscript based on the corresponding comment are presented in \textcolor{blue}{blue} beneath our response. 
 
-We have formatted the manuscript using the latex template obtained from the journal website. Particularly, while implementing the revisions suggested by the AE and Referee, we maintained the manuscript length of 24 pages, as suggested by the journal website. 
+We have formatted the manuscript using the latex template obtained from the journal website. Particularly, while implementing the revisions suggested by the AE and Referee, we maintained the manuscript length of 35 pages, as suggested by the journal website. 
 
 \vspace{0.3in}
 
@@ -83,6 +92,10 @@ We have formatted the manuscript using the latex template obtained from the jour
 
 \item {\it I recommend you add the application to the title of your paper, so something like "Longitudinal Principal Manifold Estimation for Modeling Changes Over Time in Brain Regions".}
 
+{\bf Response:}
+
+  We appreciate your recommendation to include the application in the title of the paper, and we have revised the title as follows: ``\revision{Noise-corrected hippocampal shape and volume trajectories in Alzheimer's disease using longitudinal principal manifold estimation}.
+
 
 \end{enumerate}
 
@@ -94,32 +107,69 @@ We have formatted the manuscript using the latex template obtained from the jour
 The paper proposes a novel method called Longitudinal Principal Manifold Estimation (LPME) to fit the spatial Principal Manifolds smoothed over time for longitudinal data. I have the following comments:
 
 \begin{enumerate}
-\item In line 24 on page 3, it says "to develop smooth estimates of the surfaces of subcortical structures over time." Why not also consider cortical structure?
+\item \textit{In line 24 on page 3, it says "to develop smooth estimates of the surfaces of subcortical structures over time." Why not also consider cortical structure?}
 
 {\bf Response:}
 
-\item In lines 30-31 on page 4, it says "the deep learning methodology used imposes costs in terms of computational requirements and interpretability". This sentence has a bias on deep learning (DL). Nowadays, GPU is almost a necessary device for brain image data analysis, due to powerful DL models in image classification and segmentation. Also, Google CoLab provides free access to GPU. DL models are very fast on GPU. For interpretability of DL, many tools have been developed. See the topic of Explainable AI.
+\item \textit{In lines 30-31 on page 4, it says "the deep learning methodology used imposes costs in terms of computational requirements and interpretability". This sentence has a bias on deep learning (DL). Nowadays, GPU is almost a necessary device for brain image data analysis, due to powerful DL models in image classification and segmentation. Also, Google CoLab provides free access to GPU. DL models are very fast on GPU. For interpretability of DL, many tools have been developed. See the topic of Explainable AI.}
+
+{\bf Response:} We agree, recent developments in deep learning methods have helped to alleviate some of the
+computational burden and interpretability concerns associated with these approaches. However, deep learning methods
+still typically require training data in quantities that are often unavailable for the neuroimaging settings in which we
+are interested. While it may be possible to pretrain a model on a larger general-purpose dataset and fine-tune it using
+data from a smaller Alzheimer's disease study population, model behavior in these circumstances is still difficult to
+characterize. In any case, the approach developed by \cite{louis2019Riemannian} relies on assumptions relevant to the
+disease progression context, limiting its utility for our application even if deep learning methods are appropriate in
+this setting. We highlight a core assumption in the following
+sentence added to the introduction:
+
+\revision{However, this approach assumes that the progression trajectory for each subject must be parallel to a straight reference trajectory in some latent space, which may be overly restrictive in the case of heterogeneous conditions like AD.}
+
+\item \textit{Line 15 on page 9 says "... by a study participant." Is this method used for the longitudinal data of a single subject, not simultaneously applied to a group of subjects?}
+
+{\bf Response:}
+Due to the extent of the differences in subcortical structures between individuals, in this work we applied the LPME
+method to the longitudinal data of each subject individually. We recognize that this is a significant limitation to the
+approach we have taken in this paper, and our future work will address this concern.
+
+\item \textit{Also line 9 on page 10 says "for each image i". But the index i is from 1 to $I_t$, so the $x_it$ is an image, not just a 3D voxel? Is the method only for subject-level data analysis, not for group-level data analysis?}
 
 {\bf Response:}
 
-\item Line 15 on page 9 says "... by a study participant." Is this method used for the longitudinal data of a single subject, not simultaneously applied to a group of subjects?
 
-\item Also line 9 on page 10 says "for each image i". But the index i is from 1 to $I_t$, so the $x_it$ is an image, not just a 3D voxel? Is the method only for subject-level data analysis, not for group-level data analysis?
+\item \textit{In Eq. (3), (t,r) should be (r, t) since the domain is $R^d x R$ not $R x R^d$.}
 
-\item In Eq. (3), (t,r) should be (r, t) since the domain is $R^d x R$ not $R x R^d$.
+{\bf Response:}
 
-\item In figure 3, the plots for time=0.3 \& 0.6, the true manifold (red curve) doesn’t well align with the scatter plot. Is it because the noise is too strong?
-And the plot for time =0.9, the LPME (blue curve) is two-mode, not as smooth as the other 2 methods and the true manifold.
 
-\item In line 19-26 on page 25, why only consider the 463 subjects from the total 800 subjects of ADNI 1?
+\item \textit{In figure 3, the plots for time=0.3 \& 0.6, the true manifold (red curve) doesn’t well align with the scatter plot. Is it because the noise is too strong? And the plot for time =0.9, the LPME (blue curve) is two-mode, not as smooth as the other 2 methods and the true manifold.}
 
-\item The MCI group is very heterogeneous. It's better to consider only the subgroup of MCI with later conversion to AD.
+{\bf Response:}
 
-\item Line 5 on page 25 says "...meaningful between-image errors … are introduced ..." Is "meaningful" a typo?
 
-\item For the ADNI data, you used 236 subjects from the three groups, CN, MCI, and AD,  for image segmentation, but used LPME to fit each subject individually? Where is the comparison between the 3 groups CN, AD, and MCI?
+\item \textit{In line 19-26 on page 25, why only consider the 463 subjects from the total 800 subjects of ADNI 1?}
 
-\item Timing performance of the proposed method is needed for simulation and real-data analysis.
+{\bf Response:}
+
+
+\item tii \textit{In line 27 on page 25, it says "The LPME method was applied to the 236 subjects from the three groups, CN, MCI, and AD, for image segmentation." But the LPME is for longitudinal data analysis, not for image segmentation.}
+
+{\bf Response:}
+
+
+\item \textit{Line 5 on page 25 says "...meaningful between-image errors … are introduced ..." Is "meaningful" a typo?}
+
+{\bf Response:}
+
+
+\item \textit{For the ADNI data, you used 236 subjects from the three groups, CN, MCI, and AD,  for image segmentation, but used LPME to fit each subject individually? Where is the comparison between the 3 groups CN, AD, and MCI?}
+
+{\bf Response:}
+
+
+\item \textit{Timing performance of the proposed method is needed for simulation and real-data analysis.}
+
+{\bf Response:}
 
 \end{enumerate}
 
@@ -135,30 +185,60 @@ And the plot for time =0.9, the LPME (blue curve) is two-mode, not as smooth as 
 Specific comments
 
 \begin{enumerate}
-\item Abstract:    Need to be more specific about the type of the MRI used. I believe the authors mean the structural MRI (sMRI).
+\item \textit{Abstract:    Need to be more specific about the type of the MRI used. I believe the authors mean the structural MRI (sMRI).}
 
-\item Abstract:    The plural of “hippocampus” is “hippocampi.”
+{\bf Response:}
+You are correct, we did use structural MRI data in this work. To ensure this is clear, we included this information in
+the first sentence of the abstract.
 
-\item Introduction, p.2:  References on processing of the sMRI data are dated. There has been a lot of progress in the past decade in the sMRI processing pipelines.
+\item \textit{Abstract:    The plural of “hippocampus” is “hippocampi.”}
 
-\item Introduction, p.5: Are the monotonicity restrictions included in the modeling? For example, volumes of the brain structures should not increase over time.
+{\bf Response:}
+Thank you for the clarification. We have corrected the plural of ``hippocampus" as ``\revision{hippocampi}" in the abstract, and changed the plural form of ``thalamus" to ``\revision{thalami}" for consistency.
 
-\item Section 3, p.9:    Justification for the use of manifolds to learn about the volume changes is not fully satisfactory as volumes are scalar quantities. One does not need to estimate the surface changes in order to obtain a volume of a 3D object.
+\item \textit{Introduction, p.2:  References on processing of the sMRI data are dated. There has been a lot of progress in the past decade in the sMRI processing pipelines.}
 
-\item Section 3.1, p.11: Description of the minimization problem is unclear.
+{\bf Response:}
+While sMRI processing pipelines have certainly progressed in recent years, our review of the relevant literature
+indicates that similar issues persist. For example, \cite{akudjedu2018comparative} and \cite{quilis-sancho2020comparative} each consider the accuracy or self-consistency of segmentation methods for sMRI data, finding that consistency tends to vary by brain region, with performance for the hippocampus lower than other regions. We have included the following sentences in the introduction to reflect this information:
 
-\item Section 3.2.2:    The choice of the first time point for the initialization is arbitrary and prone to error. Why the longitudinal information is not used in the initialization?
+\revision{Similarly, \cite{akudjedu2018comparative} found that FIRST and FreeSurfer showed strong correlation with manual segmentation for the caudate, but relatively poor absolute agreement and moderate relative consistency when applied to the hippocampus. When comparing estimated subcortical volumes obtained using FIRST and FreeSurfer in two consecutive yearly study visits, \cite{quilis-sancho2020comparative} found that considerable variability was present in the relative differences in subcortical volume estimates, even after removing outliers from analysis. Furthermore, this variability was much greater for FIRST than FreeSurfer, with standard deviations for relative volumetric difference in the left and right hippocampus reaching 12.2\% and 11.3\%, respectively \citep{quilis-sancho2020comparative}.}
 
-\item Table 2, p.23 and Table S1: While in many simulation settings (Cases), the LPME algorithm seems to perform well. Case 7 looks to be troublesome. Any specific reason why in this case PC/PS method performs the best on average?
+\item \textit{Introduction, p.5: Are the monotonicity restrictions included in the modeling? For example, volumes of the brain structures should not increase over time.}
 
-\item Figure 2, p.24:    The figure is difficult to interpret as the colors for LPME and Principal Curves are similar and the symbols are hard to differentiate among the methods.
+{\bf Response:}
+
+
+\item \textit{Section 3, p.9:    Justification for the use of manifolds to learn about the volume changes is not fully satisfactory as volumes are scalar quantities. One does not need to estimate the surface changes in order to obtain a volume of a 3D object.}
+
+{\bf Response:}
+
+
+\item \textit{Section 3.1, p.11: Description of the minimization problem is unclear.}
+
+{\bf Response:}
+
+
+\item \textit{Section 3.2.2:    The choice of the first time point for the initialization is arbitrary and prone to error. Why the longitudinal information is not used in the initialization?}
+
+{\bf Response:}
+
+
+\item \textit{Table 2, p.23 and Table S1: While in many simulation settings (Cases), the LPME algorithm seems to perform well. Case 7 looks to be troublesome. Any specific reason why in this case PC/PS method performs the best on average?}
+
+{\bf Response:}
+
+
+\item \textit{Figure 2, p.24:    The figure is difficult to interpret as the colors for LPME and Principal Curves are similar and the symbols are hard to differentiate among the methods.}
+
+{\bf Response:}
+
 
 \end{enumerate}
 
-%\bibliographystyle{plain}
+\bibliographystyle{jasa}
 %\bibliography{sample}
-
-
+\bibliography{references}
 
 
 \end{document}
