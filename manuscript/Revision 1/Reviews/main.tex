@@ -71,14 +71,20 @@ We have formatted the manuscript using the latex template obtained from the jour
 
 \vspace{0.3in}
 
-{\it While the development of a general methodology for manifold estimation is worthwhile, you need to give more thought to how to make this general approach more suitable for the specific application. }
-
-
 \begin{enumerate}
 
-\item {\it For example, you note that your method struggles to get the shape of the hippocampus because the true shape has sharp curves in it.  Couldn't/shouldn't your methodology be modified to take account of this feature of the hippocampus?  As an analogy, when using cubic splines to fit one-dimensional curves, one can get curves that aren't differentiable by putting more than one knot at a single location.  There should be some way of doing something similar for manifold estimation.  I think it would be very interesting to try some (perhaps ad hoc) modification of your penalty function that would allow you to better fit this aspect of the hippocampus shape.}
+\item {\it While the development of a general methodology for manifold estimation is worthwhile, you need to give more thought to how to make this general approach more suitable for the specific application. For example, you note that your method struggles to get the shape of the hippocampus because the true shape has sharp curves in it.  Couldn't/shouldn't your methodology be modified to take account of this feature of the hippocampus?  As an analogy, when using cubic splines to fit one-dimensional curves, one can get curves that aren't differentiable by putting more than one knot at a single location.  There should be some way of doing something similar for manifold estimation.  I think it would be very interesting to try some (perhaps ad hoc) modification of your penalty function that would allow you to better fit this aspect of the hippocampus shape.}
 
 {\bf Response:}
+We appreciate your thoughts on this topic, as a key point of discussion throughout our work was how to balance creating a method that met the needs of our specific application with the goal developing an approach that would be useful in additional settings. Our testing of the proposed algorithm on a variety of structures indicates that the likely reason we struggled to fit the shape of the hippocampus was due to the presence of intersections in the surface that our data augmentation approach did not successfully eliminate, rather than the smoothing introduced during the manifold estimation process. While it may be possible to circumvent this by adapting the penalty function, we believe that properly eliminating self-intersections in all settings will more directly address the underlying issue causing the poor fit. 
+
+As a result, we have focused our efforts on partitioning the hippocampus data to definitively remove self-intersections. We discuss cases in which the data augmentation approach may be insufficient in Section 3.3, including the following:
+
+\revision{However, it is important to note that because this augmentation relies on the use of polar or spherical coordinates to avoid self-intersections, it will not be appropriate in some situations. If the structure of interest strays too far from a circular or spherical shape, the added dimensions may also include intersections. In these cases, the partitioning approach described above serves as a reliable option.} 
+
+Additionally, we have restructured the analysis of simulation case 8 to compare the data augmentation and partitioning approaches directly using spherical data. These changes are shown throughout Section 4, and the results demonstrating that augmentation results in some inconsistencies in manifold fit even when used with spherical data while the estimates from partitioned data appear to faithfully recover the true manifold. However, in this setting, the volume estimates obtained from partitioned data show higher error than those found using augmentation.
+
+We also updated our analysis of the ADNI data to include the partitioning approach, and a comparison of the results of the two processing approaches is given in Section 5.
 
 \item {\it Your methodological development is highly algorithmic with no actual model for the shapes of brain regions or for the measurement process.  In your simulations, it looks like your simulated data includes independent measurement error (but you need to make that clear).  Given the pre-processing steps in your data analysis, I suspect that the actual "errors" in your observation are spatially dependent.  If so, then you need to discuss this issue and do some simulations that try to more realistically mimic the measurement process in your actual data.}
 
@@ -94,7 +100,7 @@ We have formatted the manuscript using the latex template obtained from the jour
 
 {\bf Response:}
 
-  We appreciate your recommendation to include the application in the title of the paper, and we have revised the title as follows: ``\revision{Noise-corrected hippocampal shape and volume trajectories in Alzheimer's disease using longitudinal principal manifold estimation}.
+We appreciate your recommendation to include the application in the title of the paper, and we have revised the title as follows: ``\revision{Noise-corrected hippocampal shape and volume trajectories in Alzheimer's disease using longitudinal principal manifold estimation}".
 
 
 \end{enumerate}
@@ -110,6 +116,7 @@ The paper proposes a novel method called Longitudinal Principal Manifold Estimat
 \item \textit{In line 24 on page 3, it says "to develop smooth estimates of the surfaces of subcortical structures over time." Why not also consider cortical structure?}
 
 {\bf Response:}
+While we focused on subcortical structures in this work, the method we proposed could reasonably be applied to reach smooth estimates of cortical structure as well, and this may also yield interesting findings. Our focus on subcortical structures in this paper, and on the hippocampus in particular, was motivated by the popularity of hippocampal atrophy as a measure of Alzheimer's disease progression, and the known variability in automated segmentation methods. For these reasons, we believe our interest in describing subcortical structures will be highly relevant to the Alzheimer's disease research community.
 
 \item \textit{In lines 30-31 on page 4, it says "the deep learning methodology used imposes costs in terms of computational requirements and interpretability". This sentence has a bias on deep learning (DL). Nowadays, GPU is almost a necessary device for brain image data analysis, due to powerful DL models in image classification and segmentation. Also, Google CoLab provides free access to GPU. DL models are very fast on GPU. For interpretability of DL, many tools have been developed. See the topic of Explainable AI.}
 
@@ -141,6 +148,7 @@ approach we have taken in this paper, and our future work will address this conc
 
 {\bf Response:}
 
+Thank you for the correction. We have incorporated the change in the equation notation accordingly.
 
 \item \textit{In figure 3, the plots for time=0.3 \& 0.6, the true manifold (red curve) doesn’t well align with the scatter plot. Is it because the noise is too strong? And the plot for time =0.9, the LPME (blue curve) is two-mode, not as smooth as the other 2 methods and the true manifold.}
 
@@ -152,7 +160,7 @@ approach we have taken in this paper, and our future work will address this conc
 {\bf Response:}
 
 
-\item tii \textit{In line 27 on page 25, it says "The LPME method was applied to the 236 subjects from the three groups, CN, MCI, and AD, for image segmentation." But the LPME is for longitudinal data analysis, not for image segmentation.}
+\item \textit{In line 27 on page 25, it says "The LPME method was applied to the 236 subjects from the three groups, CN, MCI, and AD, for image segmentation." But the LPME is for longitudinal data analysis, not for image segmentation.}
 
 {\bf Response:}
 
@@ -207,7 +215,9 @@ indicates that similar issues persist. For example, \cite{akudjedu2018comparativ
 \item \textit{Introduction, p.5: Are the monotonicity restrictions included in the modeling? For example, volumes of the brain structures should not increase over time.}
 
 {\bf Response:}
+We have not included any monotonicity constraints in the modeling. Throughout the process of developing our methods, we sought to capture the characteristics of the data without imposing assumptions that would make it difficult to use a similar approach in other settings. For example, while we would not expect the volume of a brain structure to increase over time in the aging population we consider here, the same would not be true in a child development dataset.
 
+Even for someone with Alzheimer's disease, including a strict monotonicity restriction could overemphasize the images collected at the study's baseline visit or at other early visits, which themselves may underestimate the volume of the structure of interest. By taking the unconstrained smoothing approach we propose, we hope to mitigate most of these unwanted effects in practice while retaining flexibility to overcome this sort of situation.
 
 \item \textit{Section 3, p.9:    Justification for the use of manifolds to learn about the volume changes is not fully satisfactory as volumes are scalar quantities. One does not need to estimate the surface changes in order to obtain a volume of a 3D object.}
 
@@ -242,7 +252,4 @@ indicates that similar issues persist. For example, \cite{akudjedu2018comparativ
 
 
 \end{document}
-
-
-
 
