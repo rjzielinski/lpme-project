@@ -1,7 +1,7 @@
 ---
 title: "LPME Simulation Studies"
 author: "Robert Zielinski"
-date: "February 20, 2025"
+date: "February 24, 2025"
 format: html
 ---
 
@@ -537,7 +537,7 @@ result_plot
 The code chunks below specify the combinations of simulation parameters and runs the simulations in parallel. Note that due to computational demands, these simulations are not run in the process of compiling this notebook. This was handled by the `code/run_simulations.R` script. However, the code chunk below will yield identical results, and those same results are discussed later in the notebook.
 
 ```{r, eval=FALSE}
-#| label: simulation_parameters
+#| label: run_simulations 
 
 # set possible values of simulation parameters as discussed above
 durations <- c(1, 2, 5)
@@ -572,11 +572,7 @@ error_df <- tibble(
 
 # save the seed state that was set when each simulation was run
 seed_states <- list()
-```
 
-
-```{r, eval=FALSE}
-#| label: run_simulations
 print("Starting Simulations...")
 
 cl <- makeCluster(parallel::detectCores() - 1)
@@ -856,82 +852,6 @@ The second approach partitions the sphere into a grid of voxels, estimating the 
 dir_case8 <- "../output/simulations/case8"
 files_case8 <- list.files(dir_case8)
 ```
-
-
-```{r, eval=FALSE, echo=FALSE}
-sim_run <- vector(mode = "numeric", length = 0)
-duration <- vector(mode = "numeric", length = 0)
-interval <- vector(mode = "numeric", length = 0)
-obs_noise <- vector(mode = "numeric", length = 0)
-amplitude_noise <- vector(mode = "numeric", length = 0)
-period_noise <- vector(mode = "numeric", length = 0)
-time_trend <- vector(mode = "character", length = 0)
-time_change <- vector(mode = "numeric", length = 0)
-
-time <- vector(mode = "numeric", length = 0)
-observed_volume <- vector(mode = "numeric", length = 0)
-true_volume <- vector(mode = "numeric", length = 0)
-lpme_aug_volume <- vector(mode = "numeric", length = 0)
-pme_aug_volume <- vector(mode = "numeric", length = 0)
-lpme_partitioned_volume <- vector(mode = "numeric", length = 0)
-pme_partitioned_volume <- vector(mode = "numeric", length = 0)
-
-for (file_idx in seq_along(files_case8)) {
-  file_name <- files_case8[file_idx]
-  file_stripped <- str_replace(file_name, ".RDS", "")
-  file_parsed <- str_split(file_stripped, "_")
-
-  duration_val <- as.numeric(file_parsed[[1]][2])
-  interval_val <- as.numeric(file_parsed[[1]][4]) / 100
-  obs_noise_val <- as.numeric(file_parsed[[1]][7]) / 100
-  amplitude_noise_val <- as.numeric(file_parsed[[1]][10]) / 100
-  period_noise_val <- as.numeric(file_parsed[[1]][[13]])
-  time_trend_val <- file_parsed[[1]][16]
-  time_change_val <- as.numeric(file_parsed[[1]][19]) / 100
-
-  sim <- readRDS(file.path(dir_case8, file_name))
-  sim_volume <- estimate_volume_case8(sim, n_points = 10000)
-
-  n_obs <- length(sim_volume$times)
-  sim_run <- c(sim_run, rep(file_idx, n_obs))
-  duration <- c(duration, rep(duration_val, n_obs))
-  interval <- c(interval, rep(interval_val, n_obs))
-  obs_noise <- c(obs_noise, rep(obs_noise_val, n_obs))
-  amplitude_noise <- c(amplitude_noise, rep(amplitude_noise_val, n_obs))
-  period_noise <- c(period_noise, rep(period_noise_val, n_obs))
-  time_trend <- c(time_trend, rep(time_trend_val, n_obs))
-  time_change <- c(time_change, rep(time_change_val, n_obs))
-
-  time <- c(time, sim_volume$times)
-  observed_volume <- c(observed_volume, sim_volume$observed)
-  true_volume <- c(true_volume, sim_volume$true)
-  lpme_aug_volume <- c(lpme_aug_volume, sim_volume$lpme_augmented)
-  pme_aug_volume <- c(pme_aug_volume, sim_volume$pme_augmented)
-  lpme_partitioned_volume <- c(lpme_partitioned_volume, sim_volume$lpme_part)
-  pme_partitioned_volume <- c(pme_partitioned_volume, sim_volume$pme_part)
-}
-
-sim_volume_df <- tibble(
-  run = sim_run,
-  duration = duration,
-  interval = interval,
-  obs_noise = obs_noise,
-  amplitude_noise = amplitude_noise,
-  period_noise = period_noise,
-  time_trend = time_trend,
-  time_change = time_change,
-  time = time,
-  observed_volume = observed_volume,
-  true_volume = true_volume,
-  lpme_aug_volume = lpme_aug_volume,
-  pme_aug_volume = pme_aug_volume,
-  lpme_partitioned_volume = lpme_partitioned_volume,
-  pme_partitioned_volume = pme_partitioned_volume
-)
-
-write_csv(sim_volume_df, "../output/simulation_volume_case8.csv")
-```
-
 
 ```{r, echo=FALSE}
 sim_volume_df <- read_csv("../output/simulation_volume_case8.csv")
@@ -1438,7 +1358,7 @@ An example plot depicting the estimated volumes from four simulation runs is sho
 Frankly, I am having difficulty understanding how these results are appearing. Visual inspection of the model fitting results indicates that the partitioned models seem to fit more reliably to the data. While there is usually a sort of "seam" along the partition boundary, the models for each partition appear to fit to the data extremely closely. Meanwhile, the models fit using the augmented data will show irregularities near the "poles" of the sphere, where the manifold is supposed to reconnect with itself. Additionally, we can sometimes see gaps in the estimated spheres where the manifold does not fully wrap around the complete surface. While the volume estimation approach I have designed for these estimates is able to account for most of these irregularities, there still appear to be extra points included toward the poles of the sphere when approximating the interior of the sphere. This example corresponds to the top left panel of the volume plot below. The extra points included in the interior of the augmented LPME estimate would suggest that the volume estimates for this model would overestimate the true volume, but this is not the case.
 
 
-```{r}
+```{r, echo = FALSE}
 sim_volume_plot <- sim_volume_df |>
   pivot_longer(
     cols = contains("volume"),
@@ -1499,12 +1419,12 @@ ggplot(filter(sim_volume_df, run %in% c(11, 38, 53, 76))) +
 
 The PME results, shown in green, largely reflect these patterns. Because the PME algorithm is designed to fit as closely to the observed data as possible, we want to see that the estiamted volume tracks with the volume of the observed sphere as closely as possible. The partitioned PME volumes (dotted green lines) follow the observed volumes nearly exactly, while the volumes from the augmented models (solid green lines) appear to underestimate the volume somewhat. Given the observed imperfections in model fit using the augmented data and the fact that the volume estimation method used for the augmented models is less theoretically grounded than the interior identification used for the partitioned models, I largely expected these results.
 
-However, the LPME results show different trends. Because we want to see the LPME model mitigate the effects of between-visit error, we expect to see the LPME-estimated volumes smooth over the PME results, more closely following the true volumes (shown in red). Based on the example plots above and the summary table and plot below, the augmented LPME models show lower errors than the partitioned LPME models. While these results are based on a limited set of 84 preliminary simulation runs, it is striking that the performance of augmentation versus partitioning may differ between PME and LPME models when applied to spherical data.
+However, the LPME results show different trends. Because we want to see the LPME model mitigate the effects of between-visit error, we expect to see the LPME-estimated volumes smooth over the PME results, more closely following the true volumes (shown in red). Based on the example plots above and the summary table and plot below, the augmented LPME models show lower errors than the partitioned LPME models. While these results are based on a limited set of 929 preliminary simulation runs, it is striking that the performance of augmentation versus partitioning may differ between PME and LPME models when applied to spherical data.
+
 
 ```{r, echo=FALSE}
 sim_volume_df <- sim_volume_df |>
   rename(
-    time_trend = time_trned,
     true = true_volume
   )
 
@@ -1528,13 +1448,51 @@ sim_volume_long <- sim_volume_long |>
   )
 ```
 
+
+
 ```{r, echo=FALSE}
 ggplot(sim_volume_long) + 
-  geom_boxplot(aes(x = error_pct, y = time_trend, fill = source)) + 
+  geom_violin(aes(x = error_pct, y = time_trend, fill = source)) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   xlab("Percent Error from True Volume") +
   ylab("Time Trend")
 ```
+
+
+```{r}
+ggplot(sim_volume_long) + 
+  geom_violin(aes(x = error_pct, y = as.factor(obs_noise), fill = source)) +
+  xlab("Percent Error from True Volume") +
+  ylab("Observation Noise")
+```
+
+```{r}
+ggplot(sim_volume_long) + 
+  geom_violin(aes(x = error_pct, y = as.factor(amplitude_noise), fill = source)) +
+  xlab("Percent Error from True Volume") +
+  ylab("Amplitude Noise")
+```
+
+```{r}
+ggplot(sim_volume_long) + 
+  geom_violin(aes(x = error_pct, y = as.factor(period_noise), fill = source)) +
+  xlab("Percent Error from True Volume") +
+  ylab("Period Noise")
+```
+
+
+Also interesting is the fact that the distribution of the errors for the models fit to partitioned or augmented data
+differ substantially, with the partitioned models having errors that are higher than the augmented models at all
+quantiles, but particularly at the right tail. This pattern is particularly prevalent when comparing the PME results
+between augmented and partitioned datasets, as the temporal smoothing in the LPME algorithm seems to address some of the
+inconsistency in the volume estimates. 
+
+I will need to further explore whether the cases showing high levels of error are
+failing to fit at a limited number of time points, or whether the error is more pervasive. However, the fact that the
+median root squared error is also substantially higher for the partitioned models indicates that the partitioning
+approach is routinely underperforming the augmented models. This contradicts what I had originally expected, as I considered it more
+likely that the augmentation process would be less consistent in removing self-intersections in the data, resulting in
+higher errors.
 
 ```{r, echo=FALSE}
 volume_summary <- sim_volume_long |>
@@ -1559,6 +1517,17 @@ kable(volume_summary, format = "markdown", digits = 3) |>
   pack_rows("Linear Change in Volume", start_row = 6, end_row = 10) |>
   pack_rows("Quadratic Change in Volume", start_row = 11, end_row = 15) |>
   row_spec(c(1, 6, 11), bold = TRUE)
+```
+
+
+```{r}
+sim_errors <- sim_volume_df |>
+  mutate(
+    lpme_part_pct = (lpme_partitioned_volume - true) / true,
+    pme_part_pct = (pme_partitioned_volume - true) / true,
+    lpme_aug_pct = (lpme_aug_volume - true) / true,
+    pme_aug_pct = (pme_aug_volume - true) / true
+  )
 ```
 
 As we move on to the hippocampus, I expect partitioning to perform much better than the augmented models for two reasons:
