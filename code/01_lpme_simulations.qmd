@@ -1,7 +1,7 @@
 ---
 title: "LPME Simulation Studies"
 author: "Robert Zielinski"
-date: "February 24, 2025"
+date: "February 25, 2025"
 format: html
 ---
 
@@ -382,7 +382,7 @@ Demonstrations of this analysis pipeline for several simulation cases can be fou
 
 ### Simulation Demonstrations
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 #| label: demo_case1
 set.seed(100)
 sim_data <- simulate_data(
@@ -419,7 +419,7 @@ result_plot
 ```
 
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 #| label: demo_case3
 set.seed(300)
 sim_data <- simulate_data(
@@ -457,7 +457,7 @@ result_plot
 ```
 
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 #| label: demo_case7
 set.seed(700)
 sim_data <- simulate_data(
@@ -495,7 +495,7 @@ result_plot
 ```
 
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 #| label: demo_case8
 set.seed(800)
 sim_data <- simulate_data(
@@ -872,7 +872,7 @@ time_change_val <- as.numeric(file_parsed[[1]][19]) / 100
 
 
 sim <- readRDS(file.path(dir_case8, file_name))
-n_points <- 1000
+n_points <- 10000
 
 sim_data <- sim$processed_data$df
 time_points <- sim_data |>
@@ -1250,6 +1250,10 @@ p_data <- plot_ly(
 p_data
 ```
 
+The plot above shows the observed data for one of the simulation cases, given in black, and true points on the manifold, given in red. We can see that the size and shape of the manifold itself do not change over time, but noise within and between time points is present. The plot below depicts the estimated manifolds obtained using the LPME (blue) and PME (green) algorithms. Both methods capture the shape of the sphere well at most points on the structure, but it is clear that the estimated manifolds do not fully enclose. 
+
+Meanwhile, the following plot depicts the manifold estimates found using the partitioning approach, with LPME estimates shown in blue and yellow, and PME estimates shown in green and orange. Here, we can see that both methods appropriately capture the spherical shape without the gaps in manifold fit seen in the augmentation estiamtes.
+
 ```{r, echo=FALSE}
 p_aug_reconstructions <- plot_ly(
   x = lpme_aug_reconstructions[, 2],
@@ -1272,6 +1276,58 @@ p_aug_reconstructions <- plot_ly(
   layout(title = "LPME and PME Manifold Estimates (Augmented)")
 p_aug_reconstructions
 ```
+
+
+```{r, echo=FALSE}
+lpme_part_reconstructions <- sim$models$lpme_part$reconstructions
+lpme_reconstructions_part1 <- lpme_part_reconstructions[lpme_part_reconstructions[, 2] > 0, ]
+lpme_reconstructions_part2 <- lpme_part_reconstructions[lpme_part_reconstructions[, 2] <= 0, ]
+
+pme_part_reconstructions <- sim$models$pme_part$reconstructions
+pme_reconstructions_part1 <- pme_part_reconstructions[pme_part_reconstructions[, 2] > 0, ]
+pme_reconstructions_part2 <- pme_part_reconstructions[pme_part_reconstructions[, 2] <= 0, ]
+
+p_part_reconstructions <- plot_ly(
+  x = lpme_reconstructions_part1[, 2],
+  y = lpme_reconstructions_part1[, 3],
+  z = lpme_reconstructions_part1[, 4],
+  frame = lpme_reconstructions_part1[, 1],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "blue"),
+  name = "LPME (Partition 1)"
+) |>
+  add_markers(
+    x = lpme_reconstructions_part2[, 2],
+    y = lpme_reconstructions_part2[, 3],
+    z = lpme_reconstructions_part2[, 4],
+    frame = lpme_reconstructions_part2[, 1],
+    marker = list(size = 3, color = "yellow"),
+    name = "LPME (Partition 2)"
+  ) |>
+  add_markers(
+    x = pme_reconstructions_part1[, 2],
+    y = pme_reconstructions_part1[, 3],
+    z = pme_reconstructions_part1[, 4],
+    frame = pme_reconstructions_part1[, 1],
+    marker = list(size = 3, color = "green"),
+    name = "PME (Partition 1)"
+  ) |>
+  add_markers(
+    x = pme_reconstructions_part2[, 2],
+    y = pme_reconstructions_part2[, 3],
+    z = pme_reconstructions_part2[, 4],
+    frame = pme_reconstructions_part2[, 1],
+    marker = list(size = 3, color = "orange"),
+    name = "PME (Partition 2)"
+  )
+
+p_part_reconstructions
+```
+
+The plots below show the interior estimates associated with the manifold estimates shown above. First, we have a plot of the interior estiamtes for the augmented LPME and PME models in blue and green, along with the observed data and true structure in black and red, respectively. While the volume estimation method I use is able to account for the gap that extends along the full height of the estimated manifold, there are still some points at the poles of the sphere that are incorrectly included in the interior. This should result in overestimates of the sphere's volume. 
+
+The following plot shows the interior points estimated using the partitioned models. Because the same points are generated for both algorithms, the interior points overlap, meaning that it is necessary to click on the "PME" label in the plot's legend to see the LPME estimate's interior points. For both algorithms, the interior points appear confined to the true interior of the sphere. This indicates that we should expect the associated volume estimates to be either more accurate or to underestimate the true volume.
 
 ```{r, echo=FALSE}
 p_aug_interiors <- plot_ly(
@@ -1353,9 +1409,9 @@ p_part_interiors <- plot_ly(
 p_part_interiors
 ```
 
-An example plot depicting the estimated volumes from four simulation runs is shown below, with the true volume of the sphere with no between-visit or between-observation error added shown in red, the volumes of the error-adjusted simulated spheres shown in black, LPME estimates shown in blue, and PME estimates shown in green. A solid sline depicts volume estimates from the partitioned LPME and PME estimates, while a dashed line depicts volume estimates from the augmented LPME and PME estimates.
+An example plot depicting the estimated volumes from four simulation runs is shown below, with the true volume of the sphere with no between-visit or between-observation error added shown in red, the volumes of the error-adjusted simulated spheres shown in black, LPME estimates shown in blue, and PME estimates shown in green. A solid line depicts volume estimates from the partitioned LPME and PME estimates, while a dashed line depicts volume estimates from the augmented LPME and PME estimates. The top left panel shows the volume estimates from the same simulation run highlighted above.
 
-Frankly, I am having difficulty understanding how these results are appearing. Visual inspection of the model fitting results indicates that the partitioned models seem to fit more reliably to the data. While there is usually a sort of "seam" along the partition boundary, the models for each partition appear to fit to the data extremely closely. Meanwhile, the models fit using the augmented data will show irregularities near the "poles" of the sphere, where the manifold is supposed to reconnect with itself. Additionally, we can sometimes see gaps in the estimated spheres where the manifold does not fully wrap around the complete surface. While the volume estimation approach I have designed for these estimates is able to account for most of these irregularities, there still appear to be extra points included toward the poles of the sphere when approximating the interior of the sphere. This example corresponds to the top left panel of the volume plot below. The extra points included in the interior of the augmented LPME estimate would suggest that the volume estimates for this model would overestimate the true volume, but this is not the case.
+I am having some difficulty understanding how these results are appearing. Visual inspection of the model fitting results indicates that the partitioned models seem to fit more reliably to the data. While there is usually a sort of "seam" along the partition boundary, the models for each partition appear to fit to the data extremely closely. Meanwhile, the models fit using the augmented data will show irregularities near the "poles" of the sphere, where the manifold is supposed to reconnect with itself. Additionally, we can sometimes see gaps in the estimated spheres where the manifold does not fully wrap around the complete surface. While the volume estimation approach I have designed for these estimates is able to account for most of these irregularities, there still appear to be extra points included toward the poles of the sphere when approximating the interior of the sphere. This example corresponds to the top left panel of the volume plot below. The extra points included in the interior of the augmented LPME estimate would suggest that the volume estimates for this model would overestimate the true volume, but this is not the case.
 
 
 ```{r, echo = FALSE}
@@ -1449,7 +1505,6 @@ sim_volume_long <- sim_volume_long |>
 ```
 
 
-
 ```{r, echo=FALSE}
 ggplot(sim_volume_long) + 
   geom_violin(aes(x = error_pct, y = time_trend, fill = source)) + 
@@ -1459,21 +1514,23 @@ ggplot(sim_volume_long) +
 ```
 
 
-```{r}
+Also interesting is the fact that the distribution of the errors for the models fit to partitioned or augmented data differ substantially, with the partitioned models having errors that are higher than the augmented models at all quantiles, but particularly at the right tail. This pattern is particularly prevalent when comparing the PME results between augmented and partitioned datasets, as the temporal smoothing in the LPME algorithm seems to address some of the inconsistency in the volume estimates. The plots below indicate that this difference is present at all error levels, but is particularly prevalent at high levels of within-image observation-level noise. Visual inspection in the cases with the highest error showed that observation-level noise was so high that it was difficult for the models to recover the shape of the generated structure. Paritioning exacerbated this issue, but I do not expect it to be a problem when working with real data, as we are not primarily concerned with observation-level noise in those cases.
+
+```{r, echo=FALSE}
 ggplot(sim_volume_long) + 
   geom_violin(aes(x = error_pct, y = as.factor(obs_noise), fill = source)) +
   xlab("Percent Error from True Volume") +
   ylab("Observation Noise")
 ```
 
-```{r}
+```{r, echo=FALSE}
 ggplot(sim_volume_long) + 
   geom_violin(aes(x = error_pct, y = as.factor(amplitude_noise), fill = source)) +
   xlab("Percent Error from True Volume") +
   ylab("Amplitude Noise")
 ```
 
-```{r}
+```{r, echo=FALSE}
 ggplot(sim_volume_long) + 
   geom_violin(aes(x = error_pct, y = as.factor(period_noise), fill = source)) +
   xlab("Percent Error from True Volume") +
@@ -1481,18 +1538,8 @@ ggplot(sim_volume_long) +
 ```
 
 
-Also interesting is the fact that the distribution of the errors for the models fit to partitioned or augmented data
-differ substantially, with the partitioned models having errors that are higher than the augmented models at all
-quantiles, but particularly at the right tail. This pattern is particularly prevalent when comparing the PME results
-between augmented and partitioned datasets, as the temporal smoothing in the LPME algorithm seems to address some of the
-inconsistency in the volume estimates. 
 
-I will need to further explore whether the cases showing high levels of error are
-failing to fit at a limited number of time points, or whether the error is more pervasive. However, the fact that the
-median root squared error is also substantially higher for the partitioned models indicates that the partitioning
-approach is routinely underperforming the augmented models. This contradicts what I had originally expected, as I considered it more
-likely that the augmentation process would be less consistent in removing self-intersections in the data, resulting in
-higher errors.
+The fact that the median root squared error is also substantially higher for the partitioned models indicates that the partitioning approach is routinely underperforming the augmented models. This is not all that surprising, since the augmentation approach should perform best on spherical data, but it does contradict my expectations given the fact that the estimated manifold did not properly enclose in the augmentation cases.
 
 ```{r, echo=FALSE}
 volume_summary <- sim_volume_long |>
