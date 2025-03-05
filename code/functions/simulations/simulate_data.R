@@ -21,6 +21,7 @@ simulate_data <- function(
     period_noise,
     time_trend,
     time_change,
+  visit_noise = 0.1,
     N = 1000) {
   # instead of using set interval between visits consider using a parameter
   # for the expected number of follow up visits within the study
@@ -129,6 +130,9 @@ simulate_data <- function(
   # case if using exp_follow_up
   # n_follow_up <- rpois(1, exp_follow_up)
   # time_points <- c(0, runif(n_follow_up, min = 0, max = duration))
+  time_noise <- rnorm(n = length(time_points) - 1, mean = 0, sd = visit_noise)
+  time_noise <- c(0, time_noise)
+  time_points <- time_points + time_noise
 
   # specify systematic changes in amplitude over time
   time_adjustments <- case_when(
@@ -197,12 +201,17 @@ simulate_data <- function(
     # for now assume that voxel-level errors are spatially-independent
     # to incorporate spatial dependencies, allow sd to vary by
     # parameter values
-    obs_noise_vals <- rnorm(N * D, mean = 0, sd = obs_noise) |>
-      matrix(nrow = N, ncol = D)
+    # obs_noise_vals <- rnorm(N * D, mean = 0, sd = obs_noise) |>
+    #   matrix(nrow = N, ncol = D)
 
-    # to incorporate spatially-dependent noise, possibly simulate from
-    # a mean-zero Gaussian process? Adjusting the covariance kernel will
-    # adjust the error characteristics
+    # test assumption that the level of voxel-level measurement error varies
+    # spatially by simulating GP to determine variance of random noise
+    gp_sigma <- calculate_sigma(r, d, obs_noise, bandwidth = 1)
+    obs_noise_adjustment <- MASS::mvrnorm(n = 1, mu = rep(0, N), Sigma = gp_sigma)
+    obs_noise_adjusted <- (obs_noise) * (1 + obs_noise_adjustment)
+    obs_noise_adjusted <- rep(obs_noise_adjusted, each = D)
+    obs_noise_vals <- rnorm(N * D, mean = 0, sd = obs_noise_adjusted) |>
+      matrix(nrow = N, ncol = D, byrow = TRUE)
 
     # use true underlying amplitude and period values to generate
     # denoised observations
@@ -255,4 +264,33 @@ simulate_data <- function(
   )
 
   return(simulation_out)
+}
+
+calculate_sigma <- function(r, d, sd, bandwidth) {
+  # creates a covariance matrix using the squared exponential kernel
+
+  if (d == 1) {
+    sigma_mat <- matrix(NA, nrow = nrow(r), ncol = nrow(r))
+    for (i in seq_len(nrow(r))) {
+      for (j in seq_len(nrow(r))) {
+        dist <- r[i, 1] - r[j, 1]
+        sigma_mat[i, j] <- sd^2 * exp(- (dist^2) / (2 * bandwidth^2))
+      }
+    }
+  } else if (d == 2) {
+    sigma_mat1 <- matrix(NA, nrow = nrow(r), ncol = nrow(r))
+    sigma_mat2 <- matrix(NA, nrow = nrow(r), ncol = nrow(r))
+    for (i in seq_len(nrow(r))) {
+      for (j in seq_len(nrow(r))) {
+        dist1 <- r[i, 1] - r[j, 1]
+        dist2 <- r[i, 2] - r[j, 2]
+        sigma_mat1[i, j] <- sd^2 * exp(- (dist1^2) / (2 * bandwidth^2))
+        sigma_mat2[i, j] <- sd^2 * exp(- (dist2^2) / (2 * bandwidth^2))
+      }
+    }
+    sigma_mat <- sigma_mat1 * sigma_mat2
+  }
+  
+
+  return(sigma_mat)
 }
