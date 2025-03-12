@@ -20,6 +20,8 @@ evaluate_models <- function(data, models, case, d, D) {
     unlist() |>
     mean()
 
+  lpme_time <- models$lpme$fit_time$toc - models$lpme$fit_time$tic
+
   pme_error <- map(
     seq_len(nrow(true_values)),
     ~ dist_euclidean(
@@ -28,6 +30,13 @@ evaluate_models <- function(data, models, case, d, D) {
   ) |>
     unlist() |>
     mean()
+
+  pme_time <- map(
+    seq_along(models$pme$fit_time),
+    ~ models$pme$fit_time[[.x]]$toc - models$pme$fit_time[[.x]]$tic
+  ) |>
+    reduce(c) |>
+    sum()
 
   if (!is.null(models$pc$reconstructions)) {
     principal_curve_error <- map(
@@ -38,8 +47,16 @@ evaluate_models <- function(data, models, case, d, D) {
     ) |>
       unlist() |>
       mean()
+
+    principal_curve_time <- map(
+      seq_along(models$pc$fit_time),
+      ~ models$pc$fit_time[[.x]]$toc - models$pc$fit_time[[.x]]$tic
+    ) |>
+      reduce(c) |>
+      sum()
   } else {
     principal_curve_error <- NA
+    principal_curve_time <- NA
   }
 
   if (!is.null(models$lpme_part$reconstructions)) {
@@ -51,8 +68,16 @@ evaluate_models <- function(data, models, case, d, D) {
     ) |>
       unlist() |>
       mean()
+
+    lpme_part_time <- map(
+      seq_along(models$lpme_part$fit_time),
+      ~ models$lpme_part$fit_time[[.x]]$toc - models$lpme_part$fit_time[[.x]]$tic
+    ) |>
+      reduce(c) |>
+      sum()
   } else {
     lpme_part_error <- NA
+    lpme_part_time <- NA
   }
 
   if (!is.null(models$pme_part$reconstructions)) {
@@ -64,8 +89,24 @@ evaluate_models <- function(data, models, case, d, D) {
     ) |>
       unlist() |>
       mean()
+
+    pme_part_time1 <- map(
+      seq_along(models$pme_part$fit_time[[1]]),
+      ~ models$pme_part$fit_time[[1]][[.x]]$toc - models$pme_part$fit_time[[1]][[.x]]$tic
+    ) |>
+      reduce(c) |>
+      sum()
+    pme_part_time2 <- map(
+      seq_along(models$pme_part$fit_time[[2]]),
+      ~ models$pme_part$fit_time[[2]][[.x]]$toc - models$pme_part$fit_time[[2]][[.x]]$tic
+    ) |>
+      reduce(c) |>
+      sum()
+    pme_part_time <- pme_part_time1 + pme_part_time2
+
   } else {
     pme_part_error <- NA
+    pme_part_time <- NA
   }
 
   if (!is.null(models$pc_part$reconstructions)) {
@@ -77,8 +118,24 @@ evaluate_models <- function(data, models, case, d, D) {
     ) |>
       unlist() |>
       mean()
+
+    principal_curve_part_time1 <- map(
+      seq_along(models$pc_part$fit_time[[1]]),
+      ~ models$pc_part$fit_time[[1]][[.x]]$toc - models$pc_part$fit_time[[1]][[.x]]$tic
+    ) |>
+      reduce(c) |>
+      sum()
+    principal_curve_part_time2 <- map(
+      seq_along(models$pc_part$fit_time[[2]]),
+      ~ models$pc_part$fit_time[[2]][[.x]]$toc - models$pc_part$fit_time[[2]][[.x]]$tic
+    ) |>
+      reduce(c) |>
+      sum()
+    principal_curve_part_time <- principal_curve_part_time1 + principal_curve_part_time2
+
   } else {
     principal_curve_part_error <- NA
+    principal_curve_part_time <- NA
   }
 
   data_error <- map(
@@ -95,7 +152,13 @@ evaluate_models <- function(data, models, case, d, D) {
     lpme_part_error = lpme_part_error,
     pme_part_error = pme_part_error,
     principal_curve_part_error = principal_curve_part_error,
-    data_error = data_error
+    data_error = data_error,
+    lpme_time = lpme_time,
+    pme_time = pme_time,
+    principal_curve_time = principal_curve_time,
+    lpme_part_time = lpme_part_time,
+    pme_part_time = pme_part_time,
+    principal_curve_part_time = principal_curve_part_time
   )
 
   return(error_list)

@@ -4,6 +4,7 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
   require(pme, quietly = TRUE, warn.conflicts = FALSE)
   require(princurve, quietly = TRUE, warn.conflicts = FALSE)
   require(purrr, quietly = TRUE, warn.conflicts = FALSE)
+  require(tictoc, quietly = TRUE, warn.conflicts = FALSE)
 
   mat <- as.matrix(data$df_observed)
 
@@ -12,7 +13,9 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
   }
 
   # fit LPME algorithm and calculate reconstructions
+  tic()
   lpme_result <- lpme(mat, d, verbose = FALSE, print_plots = FALSE)
+  lpme_time <- toc()
   lpme_reconstructions <- calculate_lpme_reconstructions(
     lpme_result,
     mat
@@ -26,12 +29,17 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
   pme_reconstruction_list <- list()
   pc_reconstruction_list <- list()
 
+  pme_time_list <- list()
+  pc_time_list <- list()
+
   smoothing_options <- c("smooth_spline", "lowess", "periodic_lowess")
 
   time_values <- unique(data$df$time)
   for (time_idx in seq_along(time_values)) {
     temp_data <- mat[mat[, 1] == time_values[time_idx], -1]
+    tic()
     pme_result_list[[time_idx]] <- pme(temp_data, d = d)
+    pme_time_list[[time_idx]] <- toc()
     pme_reconstruction_list[[time_idx]] <- calculate_pme_reconstructions(
       pme_result_list[[time_idx]],
       temp_data
@@ -42,12 +50,15 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
     )
     if (d == 1) {
       principal_curves <- list()
+      pc_times <- list()
       pc_error <- vector()
       for (smoother_idx in seq_along(smoothing_options)) {
+        tic()
         principal_curves[[smoother_idx]] <- principal_curve(
           temp_data,
           smoother = smoothing_options[[smoother_idx]]
         )
+        pc_times[[smoother_idx]] <- toc()
         pc_error[smoother_idx] <- principal_curves[[smoother_idx]]$dist
       }
       opt_principal_curve <- which.min(pc_error)
@@ -56,9 +67,12 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
         time_values[time_idx],
         pc_result_list[[time_idx]]$s
       )
+      pc_time_list[[time_idx]] <- pc_times[[opt_principal_curve]]
     } else if (d == 2) {
       if (dim(temp_data)[2] == 3) {
+        tic()
         principal_surface <- prinSurf(temp_data)
+        pc_time_list[[time_idx]] <- toc()
         surface_mse <- map(
           seq_along(principal_surface),
           ~ principal_surface[[.x]]$MSE
@@ -76,6 +90,7 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
         # This is not the case when considering augmented data
         pc_result_list[[time_idx]] <- NULL
         pc_reconstruction_list[[time_idx]] <- NULL
+        pc_time_list[[time_idx]] <- NULL
       }
     }
   }
@@ -89,17 +104,20 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
 
   lpme_out <- list(
     lpme = lpme_result,
-    reconstructions = lpme_reconstructions
+    reconstructions = lpme_reconstructions,
+    fit_time = lpme_time
   )
 
   pme_out <- list(
     pme = pme_result_list,
-    reconstructions = pme_reconstructions
+    reconstructions = pme_reconstructions,
+    fit_time = pme_time_list
   )
 
   pc_out <- list(
     pc = pc_result_list,
-    reconstructions = pc_reconstructions
+    reconstructions = pc_reconstructions,
+    fit_time = pc_time_list
   )
 
   model_out <- list(
@@ -151,22 +169,38 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
       simplify = FALSE
     )
 
+    lpme_part_times <- replicate(2, NULL, simplify = FALSE)
+    pme_part_times <- replicate(
+      2,
+      replicate(length(time_values), NULL, simplify = FALSE), 
+      simplify = FALSE
+    )
+    pc_part_times <- replicate(
+      2,
+      replicate(length(time_values), NULL, simplify = FALSE),
+      simplify = FALSE
+    )
+
+    tic()
     lpme_part_results[[1]] <- lpme(
       mat_part1, 
       d, 
       verbose = FALSE, 
       print_plots = FALSE
     )
+    lpme_part_times[[1]] <- toc()
     lpme_part_reconstructions[[1]] <- calculate_lpme_reconstructions(
       lpme_part_results[[1]],
       mat_part1
     )
+    tic()
     lpme_part_results[[2]] <- lpme(
       mat_part2,
       d,
       verbose = FALSE,
       print_plots = FALSE
     )
+    lpme_part_times[[2]] <- toc()
     lpme_part_reconstructions[[2]] <- calculate_lpme_reconstructions(
       lpme_part_results[[2]],
       mat_part2
@@ -176,12 +210,16 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
       temp_data_part1 <- mat_part1[mat_part1[, 1] == time_values[time_idx], -1]
       temp_data_part2 <- mat_part2[mat_part2[, 1] == time_values[time_idx], -1]
 
+      tic()
       pme_part_results[[1]][[time_idx]] <- pme(temp_data_part1, d = d)
+      pme_part_times[[1]][[time_idx]] <- toc()
       pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
         pme_part_results[[1]][[time_idx]],
         temp_data_part1
       )
+      tic()
       pme_part_results[[2]][[time_idx]] <- pme(temp_data_part2, d = d)
+      pme_part_times[[2]][[time_idx]] <- toc()
       pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
         pme_part_results[[2]][[time_idx]],
         temp_data_part2
@@ -196,7 +234,9 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
         pme_part_reconstructions[[2]][[time_idx]]
       )
 
+      tic()
       principal_surface_part1 <- prinSurf(temp_data_part1)
+      pc_part_times[[1]][[time_idx]] <- toc()
       surface_mse_part1 <- map(
         seq_along(principal_surface_part1),
         ~ principal_surface_part1[[.x]]$MSE
@@ -210,7 +250,9 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
         principal_surface_part1[[opt_surface_part1 + 2]]$PS
       )
 
+      tic()
       principal_surface_part2 <- prinSurf(temp_data_part2)
+      pc_part_times[[2]][[time_idx]] <- toc()
       surface_mse_part2 <- map(
         seq_along(principal_surface_part2),
         ~ principal_surface_part2[[.x]]$MSE
@@ -272,15 +314,18 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
 
     lpme_part_out <- list(
       lpme = lpme_part_results,
-      reconstructions = lpme_part_reconstructions
+      reconstructions = lpme_part_reconstructions,
+      fit_time = lpme_part_times
     )
     pme_part_out <- list(
       pme = pme_part_results,
-      reconstructions = pme_part_reconstructions
+      reconstructions = pme_part_reconstructions,
+      fit_time = pme_part_times
     )
     pc_part_out <- list(
       pc = pc_part_results,
-      reconstructions = pc_part_reconstructions
+      reconstructions = pc_part_reconstructions,
+      fit_time = pc_part_times
     )
 
     part_out <- list(
