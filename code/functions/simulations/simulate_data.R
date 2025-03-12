@@ -21,7 +21,7 @@ simulate_data <- function(
     period_noise,
     time_trend,
     time_change,
-  visit_noise = 0.1,
+    visit_noise = 0.1,
     N = 1000) {
   # instead of using set interval between visits consider using a parameter
   # for the expected number of follow up visits within the study
