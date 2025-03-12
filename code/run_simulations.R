@@ -71,7 +71,8 @@ error_df <- foreach(
   ),
   .packages = c("tidyverse", "pme"),
   .combine = rbind,
-  .options.snow = opts
+  .options.snow = opts,
+  .errorhandling = "remove"
 ) %dopar% {
   seed_val <- .Random.seed
   seed_states[[row_idx]] <- seed_val
