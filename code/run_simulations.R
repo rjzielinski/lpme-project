@@ -41,12 +41,7 @@ parameter_df <- expand_grid(
   time_change = time_changes
 )
 
-error_df <- tibble(
-  lpme_error = vector(mode = "numeric", length = nrow(parameter_df)),
-  pme_error = vector(mode = "numeric", length = nrow(parameter_df)),
-  pc_error = vector(mode = "numeric", length = nrow(parameter_df)),
-  data_error = vector(mode = "numeric", length = nrow(parameter_df))
-)
+
 
 seed_states <- list()
 
@@ -60,7 +55,7 @@ registerDoRNG(611492)
 pb  <- txtProgressBar(max = nrow(parameter_df), style = 3)
 progress <- function(n) setTxtProgressBar(pb, n)
 opts <- list(progress = progress)
-error_df <- foreach(
+error_list <- foreach(
   row_idx = seq_len(nrow(parameter_df)),
   .export = c(
     "simulate_data",
@@ -70,9 +65,10 @@ error_df <- foreach(
     "display_results"
   ),
   .packages = c("tidyverse", "pme"),
-  .combine = rbind,
+  # .combine = rbind,
+  .inorder = TRUE,
   .options.snow = opts,
-  .errorhandling = "remove"
+  .errorhandling = "pass"
 ) %dopar% {
   seed_val <- .Random.seed
   seed_states[[row_idx]] <- seed_val
@@ -80,7 +76,7 @@ error_df <- foreach(
   duration_value <- parameter_df$duration[row_idx]
   interval_value <- parameter_df$interval[row_idx]
   case_value <- parameter_df$case[row_idx]
-  obs_noise_value <- parameter_df$obs_noise[row_idx]
+  obs_noise_value<- parameter_df$obs_noise[row_idx]
   amplitude_noise_value <- parameter_df$amplitude_noise[row_idx]
   period_noise_value <- parameter_df$period_noise[row_idx]
   trend_value <- parameter_df$time_trend[row_idx]
@@ -204,11 +200,21 @@ error_df <- foreach(
 
 stopCluster(cl)
 
-error_df <- error_df %>%
+run_include <- vector(mode = "logical", length = length(error_list))
+for (i in seq_along(error_list)) {
+  if (class(error_list[[i]]) == "numeric") {
+    run_include[i] <- TRUE
+  } else {
+    run_include[i] <- FALSE
+  }
+}
+
+error_df <- error_list[run_include] |>
+  reduce(rbind) |>
   as_tibble()
-print(error_df)
 
 print("Simulations Complete")
 
-simulation_results <- bind_cols(parameter_df, error_df)
+simulation_results <- bind_cols(parameter_df[run_include, ], error_df)
 write_csv(simulation_results, "../output/simulation_results.csv")
+
