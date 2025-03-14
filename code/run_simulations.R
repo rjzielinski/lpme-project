@@ -45,8 +45,6 @@ parameter_df <- expand_grid(
 
 seed_states <- list()
 
-print("Starting Simulations...")
-
 cl <- makeCluster(parallel::detectCores() - 1)
 registerDoSNOW(cl)
 
@@ -141,7 +139,6 @@ error_list <- foreach(
     D = D_value
   )
 
-
   model_errors <- evaluate_models(
     sim_processed,
     sim_models,
@@ -212,8 +209,6 @@ for (i in seq_along(error_list)) {
 error_df <- error_list[run_include] |>
   reduce(rbind) |>
   as_tibble()
-
-print("Simulations Complete")
 
 simulation_results <- bind_cols(parameter_df[run_include, ], error_df)
 write_csv(simulation_results, "../output/simulation_results.csv")
