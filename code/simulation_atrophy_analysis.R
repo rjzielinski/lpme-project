@@ -13,8 +13,8 @@ files_case8 <- list.files(dir_case8)
 
 files_case8 <- files_case8[1:24]
 
-# ncores <- parallel::detectCores()
-plan(multisession)
+ncores <- parallel::detectCores()
+plan(multisession, workers = ncores)
 
 calc_volumes <- function(files_case8) {
   # p <- progressor(along = files_case8)
