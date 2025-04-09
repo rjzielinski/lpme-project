@@ -199,7 +199,7 @@ stopCluster(cl)
 
 run_include <- vector(mode = "logical", length = length(error_list))
 for (i in seq_along(error_list)) {
-  if (class(error_list[[i]]) == "numeric") {
+  if ("numeric" %in% class(error_list[[i]])) {
     run_include[i] <- TRUE
   } else {
     run_include[i] <- FALSE

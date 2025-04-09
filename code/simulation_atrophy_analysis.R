@@ -1,10 +1,13 @@
+library(doFuture)
+library(stringr)
 library(tidyverse)
 
-source("code/functions/estimate_volume.R")
-source("code/functions/simulations/estimate_volume_case8.R")
+setwd("code")
+source("functions/estimate_volume.R")
+source("functions/simulations/estimate_volume_case8.R")
 
 
-dir_case8 <- "output/simulations/case8"
+dir_case8 <- "../output/simulations/case8"
 files_case8 <- list.files(dir_case8)
 
 sim_run <- vector(mode = "numeric", length = 0)
@@ -24,7 +27,15 @@ pme_aug_volume <- vector(mode = "numeric", length = 0)
 lpme_partitioned_volume <- vector(mode = "numeric", length = 0)
 pme_partitioned_volume <- vector(mode = "numeric", length = 0)
 
-for (file_idx in seq_along(files_case8)) {
+ncores <- parallel::detectCores()
+plan(multisession)
+
+volume_mat <- foreach(
+  file_idx = seq_along(files_case8),
+  .packages("stringr")
+  .export = c("files_case8")
+) %dofuture% {
+
   file_name <- files_case8[file_idx]
   file_stripped <- str_replace(file_name, ".RDS", "")
   file_parsed <- str_split(file_stripped, "_")
@@ -58,7 +69,10 @@ for (file_idx in seq_along(files_case8)) {
   lpme_partitioned_volume <- c(lpme_partitioned_volume, sim_volume$lpme_part)
   pme_partitioned_volume <- c(pme_partitioned_volume, sim_volume$pme_part)
 
-  cat("\rFinished", file_idx, "of", length(files_case8))
+
+  vol_out <- list(
+
+  )
 }
 
 sim_volume_df <- tibble(
