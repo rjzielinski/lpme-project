@@ -383,17 +383,18 @@ Visualizations of the results from one example simulated case, truncated for con
     \hline
     Case & Data & LPME & PME & PC/PS \\
     \hline
-    1 & 0.146 (0.233) & {\bf 0.074 (0.122)} & 0.131 (0.258) & 0.118 (0.206) \\
-    2 & 0.467 (0.665) & {\bf 0.248 (0.516)} & 0.516 (0.750) & 0.564 (0.419) \\
-    3 & 0.291 (0.601) & {\bf 0.239 (0.564)} & 0.317 (0.640) & 0.264 (0.584) \\
-    4 & 4.26 (21.2) & {\bf 3.29 (13.0)} & 4.23 (21.1) & 4.22 (21.2) \\
-    5 & 0.895 (1.33) & {\bf 0.584 (1.08)} & 0.894 (1.36) & 0.821 (1.22) \\
-    6 & 0.284 (1.06) & {\bf 0.273 (0.891)} & 0.316 (1.04) & 0.557 (0.387) \\
-    7 & 0.145 (0.552) & 2.96 (4.65) & 6.92 (1.17) & {\bf 1.58 (0.514)} \\
-    8 & 0.110 (0.325) & {\bf 0.074 (0.208)} & 0.115 (0.331) & 0.172 (0.234) \\
+    1 & 0.033 (0.03) & {\bf 0.024 (0.025); 228.7} & 0.030 (0.031); 994.1 & 0.034 (0.026); 2.2 \\
+    2 & 0.095 (0.167) & {\bf 0.099 (0.155); 250.1} & 0.116 (0.173); 436.5 & 0.106 (0.147); 3.0 \\
+    3 & 0.059 (0.058) & {\bf 0.041 (0.062); 274.8} & 0.049 (0.060); 551.1 & 0.048 (0.059); 1.9 \\
+    4 & 0.033 (0.031) & {\bf 0.020 (0.023); 260.9} & 0.031 (0.031); 1406.0 & 0.029 (0.027); 1.2 \\
+    5 & 0.173 (0.325) & 0.213 (0.336); 292.3 & 0.234 (0.368); 548.5 & {\bf 0.167 (0.316); 4.3} \\
+    6 & 0.085 (0.056) & {\bf 0.072 (0.051); 287.5} & 0.082 (0.054); 1496.5 & 0.155 (0.073); 710.3 \\
+    7 & 0.026 (0.033) & 0.048 (0.032); 364.3 & {\bf 0.043 (0.020); 105.38} & 0.043 (0.028); 992.8 \\
+    8A & 0.063 (0.057) & {\bf 0.046 (0.044); 369.2} & 0.054 (0.038); 133.0 & N/A (N/A); N/A \\
+    8P & 0.063 (0.057) & {\bf 0.053 (0.062); 331.55} & 0.063 (0.057); 1166.4 & 0.102 (0.027); 995.1 \\
     \hline
   \end{tabular}
-  \caption{{\footnotesize Mean Squared Distance comparison of simulated data, longitudinal principal manifold estimation (LPME)-, principal manifold estimation (PME)-, and principal curve / surface-based estimates to true values, Median (IQR). The lowest algorithm-specific median (IQR) are highlighted in bold.}}
+  \caption{{\footnotesize Mean Squared Distance comparison of simulated data, longitudinal principal manifold estimation (LPME)-, principal manifold estimation (PME)-, and principal curve / surface-based estimates to true values, Median (IQR)\revision{; Run Time}. The lowest algorithm-specific median (IQR)\revision{; time} are highlighted in bold\revision{, and times are given in seconds. Cases 8A and 8P indicate simulation results for case 8 when the data augmentation and partitioning approaches were used, respectively. Results are unavailable for the principal surface algorithm in case 8A because it is restricted to cases where $d = 2$.}}}
   \label{table:simulation_results_median}
 \end{table}
 
