@@ -3,6 +3,9 @@ library(progressr)
 library(stringr)
 library(tidyverse)
 
+handlers(global = TRUE)
+handlers("progress")
+
 setwd("code")
 source("functions/estimate_volume.R")
 source("functions/simulations/estimate_volume_case8.R")
@@ -11,19 +14,22 @@ source("functions/simulations/estimate_volume_case8.R")
 dir_case8 <- "../output/simulations/case8"
 files_case8 <- list.files(dir_case8)
 
-files_case8 <- files_case8[1:24]
+files_case8 <- files_case8[1:12]
 
 ncores <- parallel::detectCores()
 plan(multisession, workers = ncores)
 
 calc_volumes <- function(files_case8) {
-  # p <- progressor(along = files_case8)
+  p <- progressor(along = files_case8)
   volume_dfs <- foreach(
-    file_idx = seq_along(files_case8)
+    file_idx = seq_along(files_case8),
+    .options.future = list(seed = TRUE)
   ) %dofuture% {
     file_name <- files_case8[file_idx]
     file_stripped <- str_replace(file_name, ".RDS", "")
     file_parsed <- str_split(file_stripped, "_")
+
+
 
     duration_val <- as.numeric(file_parsed[[1]][2])
     interval_val <- as.numeric(file_parsed[[1]][4]) / 100
@@ -61,7 +67,6 @@ calc_volumes <- function(files_case8) {
     lpme_partitioned_volume <- sim_volume$lpme_part
     pme_partitioned_volume <- sim_volume$pme_part
 
-
     vol_df <- tibble(
       run = sim_run,
       duration = duration,
@@ -79,8 +84,8 @@ calc_volumes <- function(files_case8) {
       lpme_partitioned_volume = lpme_partitioned_volume,
       pme_partitioned_volume = pme_partitioned_volume
     )
+    p(sprintf("run: %g", file_idx))
 
-    # p(sprintf("run: %s", file_name))
     vol_df
   }
   df_full <- reduce(volume_dfs, bind_rows)
