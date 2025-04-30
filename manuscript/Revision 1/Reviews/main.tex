@@ -152,12 +152,14 @@ Thank you for the correction. We have incorporated the change in the equation no
 
 \item \textit{In figure 3, the plots for time=0.3 \& 0.6, the true manifold (red curve) doesn’t well align with the scatter plot. Is it because the noise is too strong? And the plot for time =0.9, the LPME (blue curve) is two-mode, not as smooth as the other 2 methods and the true manifold.}
 
-{\bf Response:}
+{\bf Response:} In the cases you highlighted, the discrepancies between the true manifold and the observed data are due to high levels of noise. While noise to this extent is likely not present in the imaging data we are directly interested in, we sought to understand how the LPME method would perform in cases where this level of noise is present. Regarding the plot when time = 0.9, we cannot say with certainty why the LPME estimate is bi-modal or shows less smoothness than the other methods, but it is likely that these characteristics result from the temporal smoothing, which will cause the LPME estimate to incorporate information from adjacent time points, which were not shown in this figure due to space constraints. Note that since the the simulations have been rerun with an updated data generation process to address other comments, figure 3 has been changed to reflect the new results.
 
 
 \item \textit{In line 19-26 on page 25, why only consider the 463 subjects from the total 800 subjects of ADNI 1?}
 
-{\bf Response:}
+  {\bf Response:} To download the ADNI data, we rely on the Image \& Data Archive, run by the Laboratory of Neuro Imaging at the USC Mark and Mary Stevens Neuroimaging and Informatics Institute. We ran a search for all T1-weighted MRI images from the ADNI 1 study, and limited our analysis to images with descriptions containing ``MPRAGE" or ``MP-RAGE", as these images were taken according to the same specifications and provide a high resolution view of the structures of interest. However, this search did not include images for all subjects enrolled in the study, resulting in the discrepancy. We have since incorporated data from the ADNI 2 and ADNI 3 cohorts as well, with similar differences between the number of subjects for whom MP-RAGE images are available and the total number subjects enrolled in the study. We have updated Section 5 of the paper to describe this reasoning as follows: 
+
+\revision{.}
 
 
 \item \textit{In line 27 on page 25, it says "The LPME method was applied to the 236 subjects from the three groups, CN, MCI, and AD, for image segmentation." But the LPME is for longitudinal data analysis, not for image segmentation.}
@@ -203,8 +205,8 @@ the first sentence of the abstract.
 
 \item \textit{Abstract:    The plural of “hippocampus” is “hippocampi.”}
 
-{\bf Response:}
-Thank you for the clarification. We have corrected the plural of ``hippocampus" as ``\revision{hippocampi}" in the abstract, and changed the plural form of ``thalamus" to ``\revision{thalami}" for consistency.
+ {\bf Response:}
+ Thank you for the clarification. We have corrected the plural of ``hippocampus" as ``\revision{hippocampi}" in the abstract, and changed the plural form of ``thalamus" to ``\revision{thalami}" for consistency.
 
 \item \textit{Introduction, p.2:  References on processing of the sMRI data are dated. There has been a lot of progress in the past decade in the sMRI processing pipelines.}
 
@@ -224,7 +226,7 @@ Even for someone with Alzheimer's disease, including a strict monotonicity restr
 \item \textit{Section 3, p.9:    Justification for the use of manifolds to learn about the volume changes is not fully satisfactory as volumes are scalar quantities. One does not need to estimate the surface changes in order to obtain a volume of a 3D object.}
 
 {\bf Response:}
-We agree, it is not necessary to estimate the surface of a structure to approximate its volume. In this sense, the manifold estimation approach we propose in this paper is more complicated than is needed for the problem we identify. However, estimating the surface structure has benefits beyond volume estimation that may prove valuable for other problems. Namely, the volume of a subcortical structure like the hippocampus is a blunt summary of its shape, while estimating the surface of the structure provides a much more informative description. Given the importance of the hippocampus in functions related to memory and learning, we believe that characterizing \textit{how} the hippocampus atrophies in those with Alzheimer's disease may be as important as quantifying the extent of this atrophy, and the manifold estimates we obtain are better suited to answering this question. Due to the greater focus on hippocampal volume at the present time, we decided to address a problem with a direct impact on this line of work while establishing an approach that can easily extend to more informative measures of hippocampal change in future work. %Because interest currently centers on hippocampal volume, we went with this approach, or something to that effect...
+We agree, it is not necessary to estimate the surface of a structure to approximate its volume. In this sense, the manifold estimation approach we propose in this paper is more complicated than is needed for the problem we identify. However, estimating the surface structure has benefits beyond volume estimation that may prove valuable for other problems. Namely, the volume of a subcortical structure like the hippocampus is a blunt summary of its shape, while estimating the surface of the structure provides a much more informative description. Given the importance of the hippocampus in functions related to memory and learning, we believe that characterizing \textit{how} the hippocampus atrophies in those with Alzheimer's disease may be as important as quantifying the extent of this atrophy, and the manifold estimates we obtain are better suited to answering this question. Due to the greater focus on hippocampal volume at the present time, we decided to address a problem with a direct impact on this line of work while establishing an approach that can easily extend to more informative measures of hippocampal change in future work.
 
 
 \item \textit{Section 3.1, p.11: Description of the minimization problem is unclear.}

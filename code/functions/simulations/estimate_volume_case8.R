@@ -1,4 +1,4 @@
-estimate_volume_case8 <- function(sim, n_points) {
+estimate_volume_case8 <- function(sim, time_trend_val, time_change_val, n_points) {
   require(Rfast, warn.conflicts = FALSE, quietly = TRUE)
 
   source("functions/interior_identification.R")
