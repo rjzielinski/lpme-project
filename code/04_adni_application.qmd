@@ -1,0 +1,15 @@
+---
+title: "LPME Simulation Studies"
+author: "Robert Zielinski"
+date: "May 1, 2025"
+format: html
+---
+
+This notebook contains the code necessary to run the PME and LPME algorithms on the processed MRI data from the ADNI study. The code assumes that the data for the left and right hippoocampi and left and right thalamuses of all participants of interest are stored in the following files:
+
+- `data/lhipp_surface_fsl.csv`
+- `data/rhipp_surface_fsl.csv`
+- `data/lthal_surface_fsl.csv`
+- `data/rthal_surface_fsl.csv`
+
+The previous notebook, `code/03_adni_mri_preprocess.qmd`, includes the code used to preprocess the MRI data into the required format.
