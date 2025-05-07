@@ -37,6 +37,7 @@ source(here("code/functions/calculate_lpme_reconstructions.R"))
 source(here("code/functions/calculate_pme_reconstructions.R"))
 source(here("code/functions/estimate_volume.R"))
 source(here("code/functions/interior_identification.R"))
+source(here("code/prinSurf_v3.R"))
 ```
 
 

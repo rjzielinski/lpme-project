@@ -15,6 +15,7 @@ source(here("code/functions/calculate_lpme_reconstructions.R"))
 source(here("code/functions/calculate_pme_reconstructions.R"))
 source(here("code/functions/estimate_volume.R"))
 source(here("code/functions/interior_identification.R"))
+source(here("code/prinSurf_v3.R"))
 
 lhipp_surface <- read_csv(here("data/lhipp_surface_fsl.csv"))
 rhipp_surface <- read_csv(here("data/rhipp_surface_fsl.csv"))
@@ -38,10 +39,8 @@ lthal_surface <- lthal_surface |>
   left_join(adni_info, by = join_by(scan_id == image_id))
 rthal_surface <- rthal_surface |>
   left_join(adni_info, by = join_by(scan_id == image_id))
-```
 
 
-```{r}
 lhipp_surface <- lhipp_surface |>
   mutate(
     date = decimal_date(date)
