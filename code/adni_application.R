@@ -1,25 +1,3 @@
----
-title: "LPME Simulation Studies"
-author: "Robert Zielinski"
-date: "May 1, 2025"
-format: html
----
-
-This notebook contains the code necessary to run the PME and LPME algorithms on the processed MRI data from the ADNI study. The code assumes that the data for the left and right hippoocampi and left and right thalamuses of all participants of interest are stored in the following files:
-
-- `data/lhipp_surface_fsl.csv`
-- `data/rhipp_surface_fsl.csv`
-- `data/lthal_surface_fsl.csv`
-- `data/rthal_surface_fsl.csv`
-
-The previous notebook, `code/03_adni_mri_preprocess.qmd`, includes the code used to preprocess the MRI data into the required format.
-
-```{r}
-knitr::opts_chunk$set(eval = FALSE)
-```
-
-
-```{r}
 library(here)
 library(lubridate)
 # library(mirai)
@@ -37,11 +15,7 @@ source(here("code/functions/calculate_lpme_reconstructions.R"))
 source(here("code/functions/calculate_pme_reconstructions.R"))
 source(here("code/functions/estimate_volume.R"))
 source(here("code/functions/interior_identification.R"))
-```
 
-
-
-```{r}
 lhipp_surface <- read_csv(here("data/lhipp_surface_fsl.csv"))
 rhipp_surface <- read_csv(here("data/rhipp_surface_fsl.csv"))
 lthal_surface <- read_csv(here("data/lthal_surface_fsl.csv"))
@@ -87,10 +61,7 @@ rthal_surface <- rthal_surface |>
   mutate(
     date = decimal_date(date)
   )
-```
 
-
-```{r}
 lhipp_centers <- lhipp_surface |>
   group_by(subid, date, scan_id) |>
   summarise(
@@ -138,10 +109,8 @@ rthal_centers <- rthal_surface |>
     max_z = max(abs(z))
   ) |>
   ungroup()
-```
 
 
-```{r}
 lhipp_bl <- lhipp_surface |>
   group_by(subid) |>
   arrange(date) |>
@@ -177,10 +146,8 @@ rthal_bl <- rthal_surface |>
     date_max = max(date)
   ) |>
   mutate(duration = date_max - date_bl)
-```
 
 
-```{r}
 lhipp_surface <- lhipp_surface |>
   left_join(lhipp_centers, by = c("subid", "date", "scan_id")) |>
   left_join(lhipp_bl, by = "subid") |>
@@ -224,10 +191,8 @@ rthal_surface <- rthal_surface |>
     time_from_bl = (date - date_bl) / duration
   ) |>
   filter(duration > 2)
-```
 
 
-```{r}
 lhipp_surface_spherical <- lhipp_surface |>
   select(x, y, z) |>
   as.matrix() |>
@@ -251,26 +216,20 @@ rthal_surface_spherical <- rthal_surface |>
   as.matrix() |>
   cart2sph() |>
   as_tibble()
-```
 
 
-```{r}
 lhipp_surface <- bind_cols(lhipp_surface, lhipp_surface_spherical)
 rhipp_surface <- bind_cols(rhipp_surface, rhipp_surface_spherical)
 lthal_surface <- bind_cols(lthal_surface, lthal_surface_spherical)
 rthal_surface <- bind_cols(rthal_surface, rthal_surface_spherical)
-```
 
 
-```{r}
 write_csv(lhipp_surface, here("data/lhipp_surface_fsl_processed.csv"))
 write_csv(rhipp_surface, here("data/rhipp_surface_fsl_processed.csv"))
 write_csv(lthal_surface, here("data/lthal_surface_fsl_processed.csv"))
 write_csv(rthal_surface, here("data/rthal_surface_fsl_processed.csv"))
-```
 
 
-```{r}
 patnos <- unique(lhipp_surface$subid)
 patnos <- patnos[1:5]
 cores <- parallel::detectCores()
@@ -546,11 +505,8 @@ for (patno_idx in seq_along(patnos)) {
 }
 
 lhipp_results <- map(lhipp_results, ~ value(.x))
-```
 
 
-
-```{r}
 plan(multisession, workers = cores)
 
 rhipp_results <- list()
@@ -824,10 +780,7 @@ for (patno_idx in seq_along(patnos)) {
 
 rhipp_results <- map(rhipp_results, ~ value(.x))
 
-```
 
-
-```{r}
 plan(multisession, workers = cores)
 
 lthal_results <- list()
@@ -1101,10 +1054,7 @@ for (patno_idx in seq_along(patnos)) {
 
 lthal_results <- map(lthal_results, ~ value(.x))
 
-```
 
-
-```{r}
 plan(multisession, workers = cores)
 
 rthal_results <- list()
@@ -1377,4 +1327,4 @@ for (patno_idx in seq_along(patnos)) {
 }
 
 rthal_results <- map(rthal_results, ~ value(.x))
-```
+
