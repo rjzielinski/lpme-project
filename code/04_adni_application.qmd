@@ -404,14 +404,14 @@ for (patno_idx in seq_along(patnos)) {
 
 
         tic()
-        lhipp_pme_part[[1]][[time_idx]] <- pme(temp_lhipp_pt1, d = d)
+        lhipp_pme_part[[1]][[time_idx]] <- pme(temp_lhipp_pt1, d = 2)
         lhipp_pme_part_times[[1]][[time_idx]] <- toc()
         lhipp_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           lhipp_pme_part[[1]][[time_idx]],
           temp_lhipp_pt1[temp_lhipp_pt1[, 3] > 0, ]
         )
         tic()
-        lhipp_pme_part[[2]][[time_idx]] <- pme(temp_lhipp_pt2, d = d)
+        lhipp_pme_part[[2]][[time_idx]] <- pme(temp_lhipp_pt2, d = 2)
         lhipp_pme_part_times[[2]][[time_idx]] <- toc()
         lhipp_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           lhipp_pme_part[[2]][[time_idx]],
@@ -681,14 +681,14 @@ for (patno_idx in seq_along(patnos)) {
 
 
         tic()
-        rhipp_pme_part[[1]][[time_idx]] <- pme(temp_rhipp_pt1, d = d)
+        rhipp_pme_part[[1]][[time_idx]] <- pme(temp_rhipp_pt1, d = 2)
         rhipp_pme_part_times[[1]][[time_idx]] <- toc()
         rhipp_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           rhipp_pme_part[[1]][[time_idx]],
           temp_rhipp_pt1[temp_rhipp_pt1[, 3] > 0, ]
         )
         tic()
-        rhipp_pme_part[[2]][[time_idx]] <- pme(temp_rhipp_pt2, d = d)
+        rhipp_pme_part[[2]][[time_idx]] <- pme(temp_rhipp_pt2, d = 2)
         rhipp_pme_part_times[[2]][[time_idx]] <- toc()
         rhipp_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           rhipp_pme_part[[2]][[time_idx]],
@@ -958,14 +958,14 @@ for (patno_idx in seq_along(patnos)) {
 
 
         tic()
-        lthal_pme_part[[1]][[time_idx]] <- pme(temp_lthal_pt1, d = d)
+        lthal_pme_part[[1]][[time_idx]] <- pme(temp_lthal_pt1, d = 2)
         lthal_pme_part_times[[1]][[time_idx]] <- toc()
         lthal_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           lthal_pme_part[[1]][[time_idx]],
           temp_lthal_pt1[temp_lthal_pt1[, 3] > 0, ]
         )
         tic()
-        lthal_pme_part[[2]][[time_idx]] <- pme(temp_lthal_pt2, d = d)
+        lthal_pme_part[[2]][[time_idx]] <- pme(temp_lthal_pt2, d = 2)
         lthal_pme_part_times[[2]][[time_idx]] <- toc()
         lthal_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           lthal_pme_part[[2]][[time_idx]],
@@ -1235,14 +1235,14 @@ for (patno_idx in seq_along(patnos)) {
 
 
         tic()
-        rthal_pme_part[[1]][[time_idx]] <- pme(temp_rthal_pt1, d = d)
+        rthal_pme_part[[1]][[time_idx]] <- pme(temp_rthal_pt1, d = 2)
         rthal_pme_part_times[[1]][[time_idx]] <- toc()
         rthal_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           rthal_pme_part[[1]][[time_idx]],
           temp_rthal_pt1[temp_rthal_pt1[, 3] > 0, ]
         )
         tic()
-        rthal_pme_part[[2]][[time_idx]] <- pme(temp_rthal_pt2, d = d)
+        rthal_pme_part[[2]][[time_idx]] <- pme(temp_rthal_pt2, d = 2)
         rthal_pme_part_times[[2]][[time_idx]] <- toc()
         rthal_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           rthal_pme_part[[2]][[time_idx]],
