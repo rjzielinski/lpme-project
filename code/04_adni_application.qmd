@@ -22,7 +22,7 @@ knitr::opts_chunk$set(eval = FALSE)
 ```{r}
 library(here)
 library(lubridate)
-# library(mirai)
+library(mirai)
 library(future)
 library(plotly)
 library(plot3D)

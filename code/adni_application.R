@@ -1,6 +1,6 @@
 library(here)
 library(lubridate)
-# library(mirai)
+library(mirai)
 library(future)
 library(plotly)
 library(plot3D)
