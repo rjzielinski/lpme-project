@@ -253,6 +253,8 @@ We agree, it is not necessary to estimate the surface of a structure to approxim
 
 {\bf Response:}
 
+\question{I feel like this comment is pretty broadly stated, and it isn't clear to me whether there is anything specific the reviewer would like more clarity on, or if they feel the entire minimization problem itself is ill-posed.}
+
 
 \item \textit{Section 3.2.2:    The choice of the first time point for the initialization is arbitrary and prone to error. Why the longitudinal information is not used in the initialization?}
 
@@ -261,13 +263,14 @@ We agree, it is not necessary to estimate the surface of a structure to approxim
 
 \item \textit{Table 2, p.23 and Table S1: While in many simulation settings (Cases), the LPME algorithm seems to perform well. Case 7 looks to be troublesome. Any specific reason why in this case PC/PS method performs the best on average?}
 
-{\bf Response:}
+{\bf Response:} In the previously submitted simulation results, we included some simulation runs with very high levels of noise that are likely unrealistic in an applied setting, with the goal of demonstrating where the LPME algorithm is able to obtain an adequete fit to the data, and when it begins to struggle. Simulation case 7 uses the Swiss Roll manifold to generate the data, and sufficient levels of noise can cause the structural integrity of the manifold to degrade. We believe that the principal surface method performed better than the PME-based methods in these settings, but do not expect those results to be highly relevant in an applied setting. More broadly, the relative performance of manifold learning methods changes with the properties of the manifolds to which they are applied. While the PME and LPME algorithms are extensions of the principal surface method, there are differences in the implementation of the methods (e.g. the Isomap initialization used by PME and LPME) that may cause one to outperform the other in a given setting.
+
+In the revised manuscript, we have adjusted the simulation parameters to keep noise levels closer to what may realistically be observed in neuroimaging data. While this does not make the limits of the performance of the LPME algorithm as clear, we believe it presents a more realistic picture of how LPME will perform in comparison to the alternative methods. LPME tends to show the greatest improvement in performance over the alternative methods when high levels of between-image noise are present, so by limiting the extent of the noise between time points, we believe the revised simulations understate the improvements of the LPME method compared to the original simulation approach.
 
 
 \item \textit{Figure 2, p.24:    The figure is difficult to interpret as the colors for LPME and Principal Curves are similar and the symbols are hard to differentiate among the methods.}
 
-{\bf Response:}
-
+  {\bf Response:} We agree that the figure is difficult to interpret. We have made changes to ensure that it is easier to differentiate between the methods being used. \question{I am still working on making these changes, but they should be available for the simulation results shortly.}
 
 \end{enumerate}
 
