@@ -152,7 +152,9 @@ approach we have taken in this paper, and our future work will address this conc
 
 \item \textit{Also line 9 on page 10 says "for each image i". But the index i is from 1 to $I_t$, so the $x_it$ is an image, not just a 3D voxel? Is the method only for subject-level data analysis, not for group-level data analysis?}
 
-{\bf Response:}
+  {\bf Response:} Thank you for the clarification. The index $i$ should denote each individual observation (voxel) $i$ within the image recorded at time point $t$. Thus, the algorithm is applied to point clouds of voxels available for each of the images recorded from a single individual. While group-level analysis is an important and relevant goal, in the neuroimaging setting, we expect that there is enough variability between individuals that a group-level analysis should more explicitly account for this variability to be effective. We seek to incorporate this consideration into our algorithmic framework in future work. We have corrected our discussion of the notation used in the paper as follows:
+
+\revision{Let $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_t$ observations in $\mathbb{R}^D$ (i.e., each $x_{it}\in\mathbb{R}^D$) for each participant, where $I_t$ denotes the total number of observations available within the image recorded at time point $t$, with $T$ total time points.}
 
 
 \item \textit{In Eq. (3), (t,r) should be (r, t) since the domain is $R^d x R$ not $R x R^d$.}
