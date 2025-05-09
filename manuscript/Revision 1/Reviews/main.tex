@@ -146,9 +146,13 @@ sentence added to the introduction:
 \item \textit{Line 15 on page 9 says "... by a study participant." Is this method used for the longitudinal data of a single subject, not simultaneously applied to a group of subjects?}
 
 {\bf Response:}
-Due to the extent of the differences in subcortical structures between individuals, in this work we applied the LPME
-method to the longitudinal data of each subject individually. We recognize that this is a significant limitation to the
-approach we have taken in this paper, and our future work will address this concern.
+Due to the extent of the differences in subcortical structures between individuals, in this work we applied the LPME algorithm to the longitudinal data of each subject individually. While group-level estimation is an important goal, we believe that in the neuroimaging setting it is effectively distinct from the goal of obtaining individual-level estimates and will thus require alternate approaches. 
+
+Individual-level differences in brain structure have been found to be reliably present and relevant to behavioral outcomes, even among healthy individuals \citep{takao2015Brain, llera2019Interindividual}. This interest in individual-level variation transfers to studies of Alzheimer's disease and other neurodegenerative conditions, which often display differences in disease progression and outcomes \citep{vogel2021Four}. The magnitude and hypothesized biological importance of these individual-level differences provide motivation for obtaining estimates of subcortical structures at the individual level.
+
+Our work was also motivated by noise introduced during the image segmentation process, which is typically incorporated into larger image processing pipelines which are commonly conducted at the level of the image or individual, depending on how the images are registered for comparison. We believe that appplying the LPME algorithm at the individual level will allow it to integrate more flexibly with established pipelines. 
+
+Again, while we focus here on individual-level estimates, we agree that group-level inference could help to answer a number of interesting research questions, and we plan to address this topic more fully in future work.
 
 \item \textit{Also line 9 on page 10 says "for each image i". But the index i is from 1 to $I_t$, so the $x_it$ is an image, not just a 3D voxel? Is the method only for subject-level data analysis, not for group-level data analysis?}
 
