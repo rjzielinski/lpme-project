@@ -52,7 +52,7 @@ get_orientation <- function(embedding_map, coefs, centers, params, x) {
     (param_diff * ((2 * log(param_diff_norms)) + 1)) +
     t(coefs[(n + 1):(n + d + 1), ][-1, ])
 
-  normal_vector <- cross(
+  normal_vector <- pracma::cross(
     as.vector(jacobian[1:3, 1]),
     as.vector(jacobian[1:3, 2])
   ) %>%
