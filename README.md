@@ -16,7 +16,7 @@ This project is intended to create a longitudinal extension of the Principal Man
 
 The code in these files often depend on helper functions, which can be found in the `code/functions` directory.
 
-## Dependency installation:
+## Dependency installation
 
 We used the [renv package](https://rstudio.github.io/renv/) to manage this project's dependency environment. To install most of the necessary dependencies, use the following steps:
 
@@ -36,8 +36,8 @@ To demonstrate the use of the LPME algorithm for a real dataset, we considered t
 
 - Log in to the Data Archive, accessed [here](https://ida.loni.usc.edu/login.jsp?project=ADNI).
 - Under the "Download" tab at the top of the page, select "Image Collections".
-- Select "Advanced Search", and check the boxes for the ADNI 1 project phase, MRI modality, and T1 weighting. Then search for the relevant images.
+- Select "Advanced Search", and check the boxes for the ADNI 1, ADNI 2, and ADNI 3 project phases, MRI modality, Sagittal acquisition plane, 3D acquisition type, and T1 weighting. We can then use the image description option to search for the relevant images. First, enter "MP-RAGE" in the image description box and click search.
 - Select all of the images returned in the search results and add to a collection.
-- Navigate to your collection under the "Data Collections" tab and select all the images. Then hit the "1-Click Download" button, and click the "Zip File 1" link on the subsequent window to initiate the download process. Note that this will be a large download and will likely take a long time to complete.
+- Repeat this process for the image descriptions, "MPRAGE", "MP-RAGE REPEAT", and "MPRAGE REPEAT".
+- Navigate to your collection under the "Data Collections" tab and select all the images. Then hit the "Advanced Download" button, configure the number of zip files to meet your needs. Note that these will be large downloads and will likely take a long time to complete.
 - Move your downloaded dataset to the `data/` directory and unzip the file to `data/adni`. Now you are ready to proceed to the image preprocessing steps in `code/03_adni_mri_preprocess.qmd`.
-
