@@ -16,6 +16,9 @@ source(here("code/functions/calculate_pme_reconstructions.R"))
 source(here("code/functions/estimate_volume.R"))
 source(here("code/functions/interior_identification.R"))
 source(here("code/prinSurf_v3.R"))
+source(here("code/functions/estimate_volume_interior.R"))
+
+
 
 lhipp_surface <- read_csv(here("data/lhipp_surface_fsl.csv"))
 rhipp_surface <- read_csv(here("data/rhipp_surface_fsl.csv"))
@@ -40,6 +43,8 @@ lthal_surface <- lthal_surface |>
 rthal_surface <- rthal_surface |>
   left_join(adni_info, by = join_by(scan_id == image_id))
 
+voxel_vol <- 1.2 * 0.9375 * 0.9375
+
 
 lhipp_surface <- lhipp_surface |>
   mutate(
@@ -61,15 +66,16 @@ rthal_surface <- rthal_surface |>
     date = decimal_date(date)
   )
 
+
 lhipp_centers <- lhipp_surface |>
   group_by(subid, date, scan_id) |>
   summarise(
     mean_x = mean(x),
     mean_y = mean(y),
     mean_z = mean(z),
-    max_x = max(abs(x)),
-    max_y = max(abs(y)),
-    max_z = max(abs(z))
+    max_x = max(abs(x - mean_x)),
+    max_y = max(abs(y - mean_y)),
+    max_z = max(abs(z - mean_z))
   ) |>
   ungroup()
 
@@ -79,9 +85,9 @@ rhipp_centers <- rhipp_surface |>
     mean_x = mean(x),
     mean_y = mean(y),
     mean_z = mean(z),
-    max_x = max(abs(x)),
-    max_y = max(abs(y)),
-    max_z = max(abs(z))
+    max_x = max(abs(x - mean_x)),
+    max_y = max(abs(y - mean_y)),
+    max_z = max(abs(z - mean_z))
   ) |>
   ungroup()
 
@@ -91,9 +97,9 @@ lthal_centers <- lthal_surface |>
     mean_x = mean(x),
     mean_y = mean(y),
     mean_z = mean(z),
-    max_x = max(abs(x)),
-    max_y = max(abs(y)),
-    max_z = max(abs(z))
+    max_x = max(abs(x - mean_x)),
+    max_y = max(abs(y - mean_y)),
+    max_z = max(abs(z - mean_z))
   ) |>
   ungroup()
 
@@ -103,9 +109,9 @@ rthal_centers <- rthal_surface |>
     mean_x = mean(x),
     mean_y = mean(y),
     mean_z = mean(z),
-    max_x = max(abs(x)),
-    max_y = max(abs(y)),
-    max_z = max(abs(z))
+    max_x = max(abs(x - mean_x)),
+    max_y = max(abs(y - mean_y)),
+    max_z = max(abs(z - mean_z))
   ) |>
   ungroup()
 
@@ -245,8 +251,17 @@ for (patno_idx in seq_along(patnos)) {
         select(time_from_bl, x, y, z, theta, phi) |>
         mutate(
           partition = z > 0,
-          partition1 = z > -0.025,
-          partition2 = z < 0.025
+          partition1 = z > -0.15,
+          partition2 = z < 0.15
+        )
+
+      patno_lhipp_centers <- lhipp_centers |>
+        filter(subid == patno) |>
+        group_by(date) |>
+        summarize(
+          max_x = max(max_x),
+          max_y = max(max_y),
+          max_z = max(max_z)
         )
 
       lhipp_aug <- patno_lhipp |>
@@ -312,6 +327,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       lhipp_lpme_aug_time <- toc()
+      lhipp_lpme_aug_time <- lhipp_lpme_aug_time$toc - lhipp_lpme_aug_time$tic
 
       lhipp_lpme_aug_reconstructions <- calculate_lpme_reconstructions(
         lhipp_lpme_aug,
@@ -326,6 +342,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       lhipp_lpme_part_times[[1]] <- toc()
+      lhipp_lpme_part_times[[1]] <- lhipp_lpme_part_times[[1]]$toc - lhipp_lpme_part_times[[1]]$tic
       lhipp_lpme_part_reconstructions[[1]] <- calculate_lpme_reconstructions(
         lhipp_lpme_part[[1]],
         lhipp_pt1[lhipp_pt1[, 4] > 0, ]
@@ -338,6 +355,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       lhipp_lpme_part_times[[2]] <- toc()
+      lhipp_lpme_part_times[[2]] <- lhipp_lpme_part_times[[2]]$toc - lhipp_lpme_part_times[[2]]$tic
       lhipp_lpme_part_reconstructions[[2]] <- calculate_lpme_reconstructions(
         lhipp_lpme_part[[2]],
         lhipp_pt2[lhipp_pt2[, 4] <= 0, ]
@@ -351,6 +369,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         lhipp_pme_aug_list[[time_idx]] <- pme(temp_lhipp, d = 2)
         lhipp_pme_aug_time_list[[time_idx]] <- toc()
+        lhipp_pme_aug_time_list[[time_idx]] <- lhipp_pme_aug_time_list[[time_idx]]$toc - lhipp_pme_aug_time_list[[time_idx]]$tic
         lhipp_pme_aug_reconstruction_list[[time_idx]] <- calculate_pme_reconstructions(
           lhipp_pme_aug_list[[time_idx]],
           temp_lhipp
@@ -364,6 +383,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         lhipp_pme_part[[1]][[time_idx]] <- pme(temp_lhipp_pt1, d = 2)
         lhipp_pme_part_times[[1]][[time_idx]] <- toc()
+        lhipp_pme_part_times[[1]][[time_idx]] <- lhipp_pme_part_times[[1]][[time_idx]]$toc - lhipp_pme_part_times[[1]][[time_idx]]$tic
         lhipp_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           lhipp_pme_part[[1]][[time_idx]],
           temp_lhipp_pt1[temp_lhipp_pt1[, 3] > 0, ]
@@ -371,6 +391,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         lhipp_pme_part[[2]][[time_idx]] <- pme(temp_lhipp_pt2, d = 2)
         lhipp_pme_part_times[[2]][[time_idx]] <- toc()
+        lhipp_pme_part_times[[2]][[time_idx]] <- lhipp_pme_part_times[[2]][[time_idx]]$toc - lhipp_pme_part_times[[2]][[time_idx]]$tic
         lhipp_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           lhipp_pme_part[[2]][[time_idx]],
           temp_lhipp_pt2[temp_lhipp_pt2[, 3] <= 0, ]
@@ -388,6 +409,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part1 <- prinSurf(temp_lhipp_pt1)
         lhipp_pc_part_times[[1]][[time_idx]] <- toc()
+        lhipp_pc_part_times[[1]][[time_idx]] <- lhipp_pc_part_times[[1]][[time_idx]]$toc - lhipp_pc_part_times[[1]][[time_idx]]$tic
         surface_mse_part1 <- map(
           seq_along(principal_surface_part1),
           ~ principal_surface_part1[[.x]]$MSE
@@ -405,6 +427,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part2 <- prinSurf(temp_lhipp_pt2)
         lhipp_pc_part_times[[2]][[time_idx]] <- toc()
+        lhipp_pc_part_times[[2]][[time_idx]] <- lhipp_pc_part_times[[2]][[time_idx]]$toc - lhipp_pc_part_times[[2]][[time_idx]]$tic
         surface_mse_part2 <- map(
           seq_along(principal_surface_part2),
           ~ principal_surface_part2[[.x]]$MSE
@@ -425,9 +448,19 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      lhipp_lpme_part_times <- reduce(
+        lhipp_lpme_part_times,
+        sum 
+      )
+
       lhipp_pme_aug_reconstructions  <- reduce(
         lhipp_pme_aug_reconstruction_list,
         rbind
+      )
+
+      lhipp_pme_aug_time_list <- reduce(
+        lhipp_pme_aug_time_list,
+        sum
       )
 
       lhipp_pme_part_reconstructions <- map(
@@ -439,6 +472,15 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      lhipp_pme_part_times <- map(
+        seq_along(lhipp_pme_part_times),
+        ~ reduce(lhipp_pme_part_times[[.x]], sum)
+      )
+      lhipp_pme_part_times <- reduce(
+        lhipp_pme_part_times,
+        sum
+      )
+
       lhipp_pc_part_reconstructions <- map(
         seq_along(lhipp_pc_part_reconstructions),
         ~ reduce(lhipp_pc_part_reconstructions[[.x]], rbind)
@@ -448,32 +490,160 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      lhipp_pc_part_times <- map(
+        seq_along(lhipp_pc_part_times),
+        ~ reduce(lhipp_pc_part_times[[.x]], sum)
+      )
+      lhipp_pc_part_times <- reduce(
+        lhipp_pc_part_times,
+        sum
+      )
+
+      lhipp_lpme_aug_reconstructions_scaled <- list()
+      lhipp_pme_aug_reconstructions_scaled <- list()
+      lhipp_pc_part_reconstructions_scaled <- list()
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- lhipp_lpme_aug_reconstructions[lhipp_lpme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pme_reconstructions <- lhipp_pme_aug_reconstructions[lhipp_pme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pc_reconstructions <- lhipp_pc_part_reconstructions[lhipp_pc_part_reconstructions[, 1] == time_values[time_idx], 1:4]
+        x_scale <- as.numeric(patno_lhipp_centers[time_idx, 2])
+        y_scale <- as.numeric(patno_lhipp_centers[time_idx, 3])
+        z_scale <- as.numeric(patno_lhipp_centers[time_idx, 4])
+
+        temp_lpme_reconstructions[, 2] <- temp_lpme_reconstructions[, 2] * x_scale
+        temp_lpme_reconstructions[, 3] <- temp_lpme_reconstructions[, 3] * y_scale
+        temp_lpme_reconstructions[, 4] <- temp_lpme_reconstructions[, 4] * z_scale
+        temp_pme_reconstructions[, 2] <- temp_pme_reconstructions[, 2] * x_scale
+        temp_pme_reconstructions[, 3] <- temp_pme_reconstructions[, 3] * y_scale
+        temp_pme_reconstructions[, 4] <- temp_pme_reconstructions[, 4] * z_scale
+        temp_pc_reconstructions[, 2] <- temp_pc_reconstructions[, 2] * x_scale
+        temp_pc_reconstructions[, 3] <- temp_pc_reconstructions[, 3] * y_scale
+        temp_pc_reconstructions[, 4] <- temp_pc_reconstructions[, 4] * z_scale
+
+        lhipp_lpme_aug_reconstructions_scaled[[time_idx]] <- temp_lpme_reconstructions
+        lhipp_pme_aug_reconstructions_scaled[[time_idx]] <- temp_pme_reconstructions
+        lhipp_pc_part_reconstructions_scaled[[time_idx]] <- temp_pc_reconstructions
+      }
+      lhipp_lpme_aug_reconstructions_scaled <- reduce(
+        lhipp_lpme_aug_reconstructions_scaled,
+        rbind
+      )
+      lhipp_pme_aug_reconstructions_scaled <- reduce(
+        lhipp_pme_aug_reconstructions_scaled,
+        rbind
+      )
+      lhipp_pc_part_reconstructions_scaled <- reduce(
+        lhipp_pc_part_reconstructions_scaled,
+        rbind
+      )
+
+      lhipp_lpme_part_volumes <- estimate_volume_interior_lpme(
+        lhipp_lpme_part,
+        list(lhipp_pt1, lhipp_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_lhipp_centers,
+        limit_scaler = 0.05
+      )
+
+      lhipp_pme_part_volumes <- estimate_volume_interior_pme(
+        lhipp_pme_part,
+        list(lhipp_pt1, lhipp_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_lhipp_centers,
+        limit_scaler = 0.05
+      )
+
+      lhipp_lpme_aug_volumes <- vector()
+      lhipp_pme_aug_volumes <- vector()
+      lhipp_pc_part_volumes <- vector()
+
+      lhipp_lpme_aug_interior <- list()
+      lhipp_pme_aug_interior <- list()
+      lhipp_pc_part_interior <- list()
+      
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- lhipp_lpme_aug_reconstructions_scaled[lhipp_lpme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pme_reconstructions <- lhipp_pme_aug_reconstructions_scaled[lhipp_pme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pc_reconstructions <- lhipp_pc_part_reconstructions_scaled[lhipp_pc_part_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+
+
+        temp_lpme_volume <- estimate_volume(
+          round(temp_lpme_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        lhipp_lpme_aug_volumes[time_idx] <- temp_lpme_volume$volume
+        lhipp_lpme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_lpme_volume$interior_voxels
+        )
+
+        temp_pme_volume <- estimate_volume(
+          round(temp_pme_reconstructions, 1),
+          voxel_volume = 0.1^3
+        )
+        lhipp_pme_aug_volumes[time_idx] <- temp_pme_volume$volume
+        lhipp_pme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_pme_volume$interior_voxels
+        )
+
+        temp_pc_volume <- estimate_volume(
+          round(temp_pc_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        lhipp_pc_part_volumes[time_idx] <- temp_pc_volume$volume
+        lhipp_pc_part_interior[[time_idx]] <- cbind(
+          time_values[time_idx], 
+          temp_pc_volume$interior_voxels
+        )
+      }
+
+      lhipp_lpme_aug_volumes <- list(
+        volumes = lhipp_lpme_aug_volumes,
+        interior_voxels = reduce(lhipp_lpme_aug_interior, rbind)
+      )
+      lhipp_pme_aug_volumes <- list(
+        volumes = lhipp_pme_aug_volumes,
+        interior_voxels = reduce(lhipp_pme_aug_interior, rbind)
+      )
+      lhipp_pc_part_volumes <- list(
+        volumes = lhipp_pc_part_volumes,
+        interior_voxels = reduce(lhipp_pc_part_interior, rbind)
+      )
+
       lhipp_lpme_aug_out <- list(
         lpme = lhipp_lpme_aug,
         reconstructions = lhipp_lpme_aug_reconstructions,
+        volumes = lhipp_lpme_aug_volumes,
         fit_time = lhipp_lpme_aug_time
       )
       lhipp_pme_aug_out <- list(
         pme = lhipp_pme_aug_list,
         reconstructions = lhipp_pme_aug_reconstructions,
+        volumes = lhipp_pme_aug_volumes,
         fit_time = lhipp_pme_aug_time_list
       )
 
       lhipp_lpme_part_out <- list(
         lpme = lhipp_lpme_part,
         reconstructions = lhipp_lpme_part_reconstructions,
+        volumes = lhipp_lpme_part_volumes,
         fit_time = lhipp_lpme_part_times
       )
 
       lhipp_pme_part_out <- list(
         pme = lhipp_pme_part,
         reconstructions = lhipp_pme_part_reconstructions,
+        volumes = lhipp_pme_part_volumes,
         fit_time = lhipp_pme_part_times
       )
 
       lhipp_pc_part_out <- list(
         pc = lhipp_pc_part,
         reconstructions = lhipp_pc_part_reconstructions,
+        volumes = lhipp_pc_part_volumes,
         fit_time = lhipp_pc_part_times
       )
 
@@ -506,6 +676,57 @@ for (patno_idx in seq_along(patnos)) {
 lhipp_results <- map(lhipp_results, ~ value(.x))
 
 
+
+
+
+lhipp_df_list <- list()
+
+for (patno_idx in seq_along(patnos)) {
+  patno <- patnos[patno_idx]
+  lhipp <- lhipp_results[[patno_idx]]
+
+
+  lhipp_lpme_aug <- lhipp$lpme_aug
+  lhipp_pme_aug <- lhipp$pme_aug
+  lhipp_lpme_part <- lhipp$lpme_part
+  lhipp_pme_part <- lhipp$pme_part
+  lhipp_pc_part <- lhipp$pc_part
+
+  lhipp_time_values <- unique(lhipp_lpme_aug$reconstructions[, 1])
+  lhipp_lpme_aug_vols <- lhipp_lpme_aug$volumes$volumes
+  lhipp_lpme_aug_time <- lhipp_lpme_aug$fit_time
+
+  lhipp_pme_aug_vols <- lhipp_pme_aug$volumes$volumes
+  lhipp_pme_aug_time <- lhipp_pme_aug$fit_time
+
+  lhipp_lpme_part_vols <- lhipp_lpme_part$volumes$volumes
+  lhipp_lpme_part_time <- lhipp_lpme_part$fit_time
+
+  lhipp_pme_part_vols <- lhipp_pme_part$volumes$volumes
+  lhipp_pme_part_time <- lhipp_pme_part$fit_time
+
+  lhipp_pc_part_vols <- lhipp_pc_part$volumes$volumes
+  lhipp_pc_part_time <- lhipp_pc_part$fit_time
+
+  lhipp_df_list[[patno_idx]] <- tibble(
+    patno = patno,
+    lhipp_time_values = lhipp_time_values,
+    lhipp_lpme_aug_vols = lhipp_lpme_aug_vols,
+    lhipp_pme_aug_vols = lhipp_pme_aug_vols,
+    lhipp_lpme_part_vols = lhipp_lpme_part_vols,
+    lhipp_pme_part_vols = lhipp_pme_part_vols,
+    lhipp_pc_part_vols = lhipp_pc_part_vols,
+    lhipp_lpme_aug_time = lhipp_lpme_aug_time,
+    lhipp_pme_aug_time = lhipp_pme_aug_time,
+    lhipp_lpme_part_time = lhipp_lpme_part_time,
+    lhipp_pme_part_time = lhipp_pme_part_time,
+    lhipp_pc_part_time = lhipp_pc_part_time
+  )
+}
+
+lhipp_df <- bind_rows(lhipp_df_list)
+
+
 plan(multisession, workers = cores)
 
 rhipp_results <- list()
@@ -519,8 +740,17 @@ for (patno_idx in seq_along(patnos)) {
         select(time_from_bl, x, y, z, theta, phi) |>
         mutate(
           partition = z > 0,
-          partition1 = z > -0.025,
-          partition2 = z < 0.025
+          partition1 = z > -0.15,
+          partition2 = z < 0.15
+        )
+
+      patno_rhipp_centers <- rhipp_centers |>
+        filter(subid == patno) |>
+        group_by(date) |>
+        summarize(
+          max_x = max(max_x),
+          max_y = max(max_y),
+          max_z = max(max_z)
         )
 
       rhipp_aug <- patno_rhipp |>
@@ -586,6 +816,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       rhipp_lpme_aug_time <- toc()
+      rhipp_lpme_aug_time <- rhipp_lpme_aug_time$toc - rhipp_lpme_aug_time$tic
 
       rhipp_lpme_aug_reconstructions <- calculate_lpme_reconstructions(
         rhipp_lpme_aug,
@@ -600,6 +831,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       rhipp_lpme_part_times[[1]] <- toc()
+      rhipp_lpme_part_times[[1]] <- rhipp_lpme_part_times[[1]]$toc - rhipp_lpme_part_times[[1]]$tic
       rhipp_lpme_part_reconstructions[[1]] <- calculate_lpme_reconstructions(
         rhipp_lpme_part[[1]],
         rhipp_pt1[rhipp_pt1[, 4] > 0, ]
@@ -612,6 +844,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       rhipp_lpme_part_times[[2]] <- toc()
+      rhipp_lpme_part_times[[2]] <- rhipp_lpme_part_times[[2]]$toc - rhipp_lpme_part_times[[2]]$tic
       rhipp_lpme_part_reconstructions[[2]] <- calculate_lpme_reconstructions(
         rhipp_lpme_part[[2]],
         rhipp_pt2[rhipp_pt2[, 4] <= 0, ]
@@ -625,6 +858,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         rhipp_pme_aug_list[[time_idx]] <- pme(temp_rhipp, d = 2)
         rhipp_pme_aug_time_list[[time_idx]] <- toc()
+        rhipp_pme_aug_time_list[[time_idx]] <- rhipp_pme_aug_time_list[[time_idx]]$toc - rhipp_pme_aug_time_list[[time_idx]]$tic
         rhipp_pme_aug_reconstruction_list[[time_idx]] <- calculate_pme_reconstructions(
           rhipp_pme_aug_list[[time_idx]],
           temp_rhipp
@@ -638,6 +872,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         rhipp_pme_part[[1]][[time_idx]] <- pme(temp_rhipp_pt1, d = 2)
         rhipp_pme_part_times[[1]][[time_idx]] <- toc()
+        rhipp_pme_part_times[[1]][[time_idx]] <- rhipp_pme_part_times[[1]][[time_idx]]$toc - rhipp_pme_part_times[[1]][[time_idx]]$tic
         rhipp_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           rhipp_pme_part[[1]][[time_idx]],
           temp_rhipp_pt1[temp_rhipp_pt1[, 3] > 0, ]
@@ -645,6 +880,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         rhipp_pme_part[[2]][[time_idx]] <- pme(temp_rhipp_pt2, d = 2)
         rhipp_pme_part_times[[2]][[time_idx]] <- toc()
+        rhipp_pme_part_times[[2]][[time_idx]] <- rhipp_pme_part_times[[2]][[time_idx]]$toc - rhipp_pme_part_times[[2]][[time_idx]]$tic
         rhipp_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           rhipp_pme_part[[2]][[time_idx]],
           temp_rhipp_pt2[temp_rhipp_pt2[, 3] <= 0, ]
@@ -662,6 +898,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part1 <- prinSurf(temp_rhipp_pt1)
         rhipp_pc_part_times[[1]][[time_idx]] <- toc()
+        rhipp_pc_part_times[[1]][[time_idx]] <- rhipp_pc_part_times[[1]][[time_idx]]$toc - rhipp_pc_part_times[[1]][[time_idx]]$tic
         surface_mse_part1 <- map(
           seq_along(principal_surface_part1),
           ~ principal_surface_part1[[.x]]$MSE
@@ -679,6 +916,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part2 <- prinSurf(temp_rhipp_pt2)
         rhipp_pc_part_times[[2]][[time_idx]] <- toc()
+        rhipp_pc_part_times[[2]][[time_idx]] <- rhipp_pc_part_times[[2]][[time_idx]]$toc - rhipp_pc_part_times[[2]][[time_idx]]$tic
         surface_mse_part2 <- map(
           seq_along(principal_surface_part2),
           ~ principal_surface_part2[[.x]]$MSE
@@ -699,9 +937,19 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      rhipp_lpme_part_times <- reduce(
+        rhipp_lpme_part_times,
+        sum 
+      )
+
       rhipp_pme_aug_reconstructions  <- reduce(
         rhipp_pme_aug_reconstruction_list,
         rbind
+      )
+
+      rhipp_pme_aug_time_list <- reduce(
+        rhipp_pme_aug_time_list,
+        sum
       )
 
       rhipp_pme_part_reconstructions <- map(
@@ -713,6 +961,15 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      rhipp_pme_part_times <- map(
+        seq_along(rhipp_pme_part_times),
+        ~ reduce(rhipp_pme_part_times[[.x]], sum)
+      )
+      rhipp_pme_part_times <- reduce(
+        rhipp_pme_part_times,
+        sum
+      )
+
       rhipp_pc_part_reconstructions <- map(
         seq_along(rhipp_pc_part_reconstructions),
         ~ reduce(rhipp_pc_part_reconstructions[[.x]], rbind)
@@ -722,32 +979,160 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      rhipp_pc_part_times <- map(
+        seq_along(rhipp_pc_part_times),
+        ~ reduce(rhipp_pc_part_times[[.x]], sum)
+      )
+      rhipp_pc_part_times <- reduce(
+        rhipp_pc_part_times,
+        sum
+      )
+
+      rhipp_lpme_aug_reconstructions_scaled <- list()
+      rhipp_pme_aug_reconstructions_scaled <- list()
+      rhipp_pc_part_reconstructions_scaled <- list()
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- rhipp_lpme_aug_reconstructions[rhipp_lpme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pme_reconstructions <- rhipp_pme_aug_reconstructions[rhipp_pme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pc_reconstructions <- rhipp_pc_part_reconstructions[rhipp_pc_part_reconstructions[, 1] == time_values[time_idx], 1:4]
+        x_scale <- as.numeric(patno_rhipp_centers[time_idx, 2])
+        y_scale <- as.numeric(patno_rhipp_centers[time_idx, 3])
+        z_scale <- as.numeric(patno_rhipp_centers[time_idx, 4])
+
+        temp_lpme_reconstructions[, 2] <- temp_lpme_reconstructions[, 2] * x_scale
+        temp_lpme_reconstructions[, 3] <- temp_lpme_reconstructions[, 3] * y_scale
+        temp_lpme_reconstructions[, 4] <- temp_lpme_reconstructions[, 4] * z_scale
+        temp_pme_reconstructions[, 2] <- temp_pme_reconstructions[, 2] * x_scale
+        temp_pme_reconstructions[, 3] <- temp_pme_reconstructions[, 3] * y_scale
+        temp_pme_reconstructions[, 4] <- temp_pme_reconstructions[, 4] * z_scale
+        temp_pc_reconstructions[, 2] <- temp_pc_reconstructions[, 2] * x_scale
+        temp_pc_reconstructions[, 3] <- temp_pc_reconstructions[, 3] * y_scale
+        temp_pc_reconstructions[, 4] <- temp_pc_reconstructions[, 4] * z_scale
+
+        rhipp_lpme_aug_reconstructions_scaled[[time_idx]] <- temp_lpme_reconstructions
+        rhipp_pme_aug_reconstructions_scaled[[time_idx]] <- temp_pme_reconstructions
+        rhipp_pc_part_reconstructions_scaled[[time_idx]] <- temp_pc_reconstructions
+      }
+      rhipp_lpme_aug_reconstructions_scaled <- reduce(
+        rhipp_lpme_aug_reconstructions_scaled,
+        rbind
+      )
+      rhipp_pme_aug_reconstructions_scaled <- reduce(
+        rhipp_pme_aug_reconstructions_scaled,
+        rbind
+      )
+      rhipp_pc_part_reconstructions_scaled <- reduce(
+        rhipp_pc_part_reconstructions_scaled,
+        rbind
+      )
+
+      rhipp_lpme_part_volumes <- estimate_volume_interior_lpme(
+        rhipp_lpme_part,
+        list(rhipp_pt1, rhipp_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_rhipp_centers,
+        limit_scaler = 0.05
+      )
+
+      rhipp_pme_part_volumes <- estimate_volume_interior_pme(
+        rhipp_pme_part,
+        list(rhipp_pt1, rhipp_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_rhipp_centers,
+        limit_scaler = 0.05
+      )
+
+      rhipp_lpme_aug_volumes <- vector()
+      rhipp_pme_aug_volumes <- vector()
+      rhipp_pc_part_volumes <- vector()
+
+      rhipp_lpme_aug_interior <- list()
+      rhipp_pme_aug_interior <- list()
+      rhipp_pc_part_interior <- list()
+      
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- rhipp_lpme_aug_reconstructions_scaled[rhipp_lpme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pme_reconstructions <- rhipp_pme_aug_reconstructions_scaled[rhipp_pme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pc_reconstructions <- rhipp_pc_part_reconstructions_scaled[rhipp_pc_part_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+
+
+        temp_lpme_volume <- estimate_volume(
+          round(temp_lpme_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        rhipp_lpme_aug_volumes[time_idx] <- temp_lpme_volume$volume
+        rhipp_lpme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_lpme_volume$interior_voxels
+        )
+
+        temp_pme_volume <- estimate_volume(
+          round(temp_pme_reconstructions, 1),
+          voxel_volume = 0.1^3
+        )
+        rhipp_pme_aug_volumes[time_idx] <- temp_pme_volume$volume
+        rhipp_pme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_pme_volume$interior_voxels
+        )
+
+        temp_pc_volume <- estimate_volume(
+          round(temp_pc_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        rhipp_pc_part_volumes[time_idx] <- temp_pc_volume$volume
+        rhipp_pc_part_interior[[time_idx]] <- cbind(
+          time_values[time_idx], 
+          temp_pc_volume$interior_voxels
+        )
+      }
+
+      rhipp_lpme_aug_volumes <- list(
+        volumes = rhipp_lpme_aug_volumes,
+        interior_voxels = reduce(rhipp_lpme_aug_interior, rbind)
+      )
+      rhipp_pme_aug_volumes <- list(
+        volumes = rhipp_pme_aug_volumes,
+        interior_voxels = reduce(rhipp_pme_aug_interior, rbind)
+      )
+      rhipp_pc_part_volumes <- list(
+        volumes = rhipp_pc_part_volumes,
+        interior_voxels = reduce(rhipp_pc_part_interior, rbind)
+      )
+
       rhipp_lpme_aug_out <- list(
         lpme = rhipp_lpme_aug,
         reconstructions = rhipp_lpme_aug_reconstructions,
+        volumes = rhipp_lpme_aug_volumes,
         fit_time = rhipp_lpme_aug_time
       )
       rhipp_pme_aug_out <- list(
         pme = rhipp_pme_aug_list,
         reconstructions = rhipp_pme_aug_reconstructions,
+        volumes = rhipp_pme_aug_volumes,
         fit_time = rhipp_pme_aug_time_list
       )
 
       rhipp_lpme_part_out <- list(
         lpme = rhipp_lpme_part,
         reconstructions = rhipp_lpme_part_reconstructions,
+        volumes = rhipp_lpme_part_volumes,
         fit_time = rhipp_lpme_part_times
       )
 
       rhipp_pme_part_out <- list(
         pme = rhipp_pme_part,
         reconstructions = rhipp_pme_part_reconstructions,
+        volumes = rhipp_pme_part_volumes,
         fit_time = rhipp_pme_part_times
       )
 
       rhipp_pc_part_out <- list(
         pc = rhipp_pc_part,
         reconstructions = rhipp_pc_part_reconstructions,
+        volumes = rhipp_pc_part_volumes,
         fit_time = rhipp_pc_part_times
       )
 
@@ -779,6 +1164,54 @@ for (patno_idx in seq_along(patnos)) {
 
 rhipp_results <- map(rhipp_results, ~ value(.x))
 
+rhipp_df_list <- list()
+
+for (patno_idx in seq_along(patnos)) {
+  patno <- patnos[patno_idx]
+  rhipp <- rhipp_results[[patno_idx]]
+
+
+  rhipp_lpme_aug <- rhipp$lpme_aug
+  rhipp_pme_aug <- rhipp$pme_aug
+  rhipp_lpme_part <- rhipp$lpme_part
+  rhipp_pme_part <- rhipp$pme_part
+  rhipp_pc_part <- rhipp$pc_part
+
+  rhipp_time_values <- unique(rhipp_lpme_aug$reconstructions[, 1])
+  rhipp_lpme_aug_vols <- rhipp_lpme_aug$volumes$volumes
+  rhipp_lpme_aug_time <- rhipp_lpme_aug$fit_time
+
+  rhipp_pme_aug_vols <- rhipp_pme_aug$volumes$volumes
+  rhipp_pme_aug_time <- rhipp_pme_aug$fit_time
+
+  rhipp_lpme_part_vols <- rhipp_lpme_part$volumes$volumes
+  rhipp_lpme_part_time <- rhipp_lpme_part$fit_time
+
+  rhipp_pme_part_vols <- rhipp_pme_part$volumes$volumes
+  rhipp_pme_part_time <- rhipp_pme_part$fit_time
+
+  rhipp_pc_part_vols <- rhipp_pc_part$volumes$volumes
+  rhipp_pc_part_time <- rhipp_pc_part$fit_time
+
+  rhipp_df_list[[patno_idx]] <- tibble(
+    patno = patno,
+    rhipp_time_values = rhipp_time_values,
+    rhipp_lpme_aug_vols = rhipp_lpme_aug_vols,
+    rhipp_pme_aug_vols = rhipp_pme_aug_vols,
+    rhipp_lpme_part_vols = rhipp_lpme_part_vols,
+    rhipp_pme_part_vols = rhipp_pme_part_vols,
+    rhipp_pc_part_vols = rhipp_pc_part_vols,
+    rhipp_lpme_aug_time = rhipp_lpme_aug_time,
+    rhipp_pme_aug_time = rhipp_pme_aug_time,
+    rhipp_lpme_part_time = rhipp_lpme_part_time,
+    rhipp_pme_part_time = rhipp_pme_part_time,
+    rhipp_pc_part_time = rhipp_pc_part_time
+  )
+}
+
+rhipp_df <- bind_rows(rhipp_df_list)
+
+
 
 plan(multisession, workers = cores)
 
@@ -793,8 +1226,17 @@ for (patno_idx in seq_along(patnos)) {
         select(time_from_bl, x, y, z, theta, phi) |>
         mutate(
           partition = z > 0,
-          partition1 = z > -0.025,
-          partition2 = z < 0.025
+          partition1 = z > -0.15,
+          partition2 = z < 0.15
+        )
+
+      patno_lthal_centers <- lthal_centers |>
+        filter(subid == patno) |>
+        group_by(date) |>
+        summarize(
+          max_x = max(max_x),
+          max_y = max(max_y),
+          max_z = max(max_z)
         )
 
       lthal_aug <- patno_lthal |>
@@ -860,6 +1302,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       lthal_lpme_aug_time <- toc()
+      lthal_lpme_aug_time <- lthal_lpme_aug_time$toc - lthal_lpme_aug_time$tic
 
       lthal_lpme_aug_reconstructions <- calculate_lpme_reconstructions(
         lthal_lpme_aug,
@@ -874,6 +1317,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       lthal_lpme_part_times[[1]] <- toc()
+      lthal_lpme_part_times[[1]] <- lthal_lpme_part_times[[1]]$toc - lthal_lpme_part_times[[1]]$tic
       lthal_lpme_part_reconstructions[[1]] <- calculate_lpme_reconstructions(
         lthal_lpme_part[[1]],
         lthal_pt1[lthal_pt1[, 4] > 0, ]
@@ -886,6 +1330,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       lthal_lpme_part_times[[2]] <- toc()
+      lthal_lpme_part_times[[2]] <- lthal_lpme_part_times[[2]]$toc - lthal_lpme_part_times[[2]]$tic
       lthal_lpme_part_reconstructions[[2]] <- calculate_lpme_reconstructions(
         lthal_lpme_part[[2]],
         lthal_pt2[lthal_pt2[, 4] <= 0, ]
@@ -899,6 +1344,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         lthal_pme_aug_list[[time_idx]] <- pme(temp_lthal, d = 2)
         lthal_pme_aug_time_list[[time_idx]] <- toc()
+        lthal_pme_aug_time_list[[time_idx]] <- lthal_pme_aug_time_list[[time_idx]]$toc - lthal_pme_aug_time_list[[time_idx]]$tic
         lthal_pme_aug_reconstruction_list[[time_idx]] <- calculate_pme_reconstructions(
           lthal_pme_aug_list[[time_idx]],
           temp_lthal
@@ -912,6 +1358,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         lthal_pme_part[[1]][[time_idx]] <- pme(temp_lthal_pt1, d = 2)
         lthal_pme_part_times[[1]][[time_idx]] <- toc()
+        lthal_pme_part_times[[1]][[time_idx]] <- lthal_pme_part_times[[1]][[time_idx]]$toc - lthal_pme_part_times[[1]][[time_idx]]$tic
         lthal_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           lthal_pme_part[[1]][[time_idx]],
           temp_lthal_pt1[temp_lthal_pt1[, 3] > 0, ]
@@ -919,6 +1366,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         lthal_pme_part[[2]][[time_idx]] <- pme(temp_lthal_pt2, d = 2)
         lthal_pme_part_times[[2]][[time_idx]] <- toc()
+        lthal_pme_part_times[[2]][[time_idx]] <- lthal_pme_part_times[[2]][[time_idx]]$toc - lthal_pme_part_times[[2]][[time_idx]]$tic
         lthal_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           lthal_pme_part[[2]][[time_idx]],
           temp_lthal_pt2[temp_lthal_pt2[, 3] <= 0, ]
@@ -936,6 +1384,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part1 <- prinSurf(temp_lthal_pt1)
         lthal_pc_part_times[[1]][[time_idx]] <- toc()
+        lthal_pc_part_times[[1]][[time_idx]] <- lthal_pc_part_times[[1]][[time_idx]]$toc - lthal_pc_part_times[[1]][[time_idx]]$tic
         surface_mse_part1 <- map(
           seq_along(principal_surface_part1),
           ~ principal_surface_part1[[.x]]$MSE
@@ -953,6 +1402,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part2 <- prinSurf(temp_lthal_pt2)
         lthal_pc_part_times[[2]][[time_idx]] <- toc()
+        lthal_pc_part_times[[2]][[time_idx]] <- lthal_pc_part_times[[2]][[time_idx]]$toc - lthal_pc_part_times[[2]][[time_idx]]$tic
         surface_mse_part2 <- map(
           seq_along(principal_surface_part2),
           ~ principal_surface_part2[[.x]]$MSE
@@ -973,9 +1423,19 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      lthal_lpme_part_times <- reduce(
+        lthal_lpme_part_times,
+        sum 
+      )
+
       lthal_pme_aug_reconstructions  <- reduce(
         lthal_pme_aug_reconstruction_list,
         rbind
+      )
+
+      lthal_pme_aug_time_list <- reduce(
+        lthal_pme_aug_time_list,
+        sum
       )
 
       lthal_pme_part_reconstructions <- map(
@@ -987,6 +1447,15 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      lthal_pme_part_times <- map(
+        seq_along(lthal_pme_part_times),
+        ~ reduce(lthal_pme_part_times[[.x]], sum)
+      )
+      lthal_pme_part_times <- reduce(
+        lthal_pme_part_times,
+        sum
+      )
+
       lthal_pc_part_reconstructions <- map(
         seq_along(lthal_pc_part_reconstructions),
         ~ reduce(lthal_pc_part_reconstructions[[.x]], rbind)
@@ -996,32 +1465,160 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      lthal_pc_part_times <- map(
+        seq_along(lthal_pc_part_times),
+        ~ reduce(lthal_pc_part_times[[.x]], sum)
+      )
+      lthal_pc_part_times <- reduce(
+        lthal_pc_part_times,
+        sum
+      )
+
+      lthal_lpme_aug_reconstructions_scaled <- list()
+      lthal_pme_aug_reconstructions_scaled <- list()
+      lthal_pc_part_reconstructions_scaled <- list()
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- lthal_lpme_aug_reconstructions[lthal_lpme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pme_reconstructions <- lthal_pme_aug_reconstructions[lthal_pme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pc_reconstructions <- lthal_pc_part_reconstructions[lthal_pc_part_reconstructions[, 1] == time_values[time_idx], 1:4]
+        x_scale <- as.numeric(patno_lthal_centers[time_idx, 2])
+        y_scale <- as.numeric(patno_lthal_centers[time_idx, 3])
+        z_scale <- as.numeric(patno_lthal_centers[time_idx, 4])
+
+        temp_lpme_reconstructions[, 2] <- temp_lpme_reconstructions[, 2] * x_scale
+        temp_lpme_reconstructions[, 3] <- temp_lpme_reconstructions[, 3] * y_scale
+        temp_lpme_reconstructions[, 4] <- temp_lpme_reconstructions[, 4] * z_scale
+        temp_pme_reconstructions[, 2] <- temp_pme_reconstructions[, 2] * x_scale
+        temp_pme_reconstructions[, 3] <- temp_pme_reconstructions[, 3] * y_scale
+        temp_pme_reconstructions[, 4] <- temp_pme_reconstructions[, 4] * z_scale
+        temp_pc_reconstructions[, 2] <- temp_pc_reconstructions[, 2] * x_scale
+        temp_pc_reconstructions[, 3] <- temp_pc_reconstructions[, 3] * y_scale
+        temp_pc_reconstructions[, 4] <- temp_pc_reconstructions[, 4] * z_scale
+
+        lthal_lpme_aug_reconstructions_scaled[[time_idx]] <- temp_lpme_reconstructions
+        lthal_pme_aug_reconstructions_scaled[[time_idx]] <- temp_pme_reconstructions
+        lthal_pc_part_reconstructions_scaled[[time_idx]] <- temp_pc_reconstructions
+      }
+      lthal_lpme_aug_reconstructions_scaled <- reduce(
+        lthal_lpme_aug_reconstructions_scaled,
+        rbind
+      )
+      lthal_pme_aug_reconstructions_scaled <- reduce(
+        lthal_pme_aug_reconstructions_scaled,
+        rbind
+      )
+      lthal_pc_part_reconstructions_scaled <- reduce(
+        lthal_pc_part_reconstructions_scaled,
+        rbind
+      )
+
+      lthal_lpme_part_volumes <- estimate_volume_interior_lpme(
+        lthal_lpme_part,
+        list(lthal_pt1, lthal_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_lthal_centers,
+        limit_scaler = 0.05
+      )
+
+      lthal_pme_part_volumes <- estimate_volume_interior_pme(
+        lthal_pme_part,
+        list(lthal_pt1, lthal_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_lthal_centers,
+        limit_scaler = 0.05
+      )
+
+      lthal_lpme_aug_volumes <- vector()
+      lthal_pme_aug_volumes <- vector()
+      lthal_pc_part_volumes <- vector()
+
+      lthal_lpme_aug_interior <- list()
+      lthal_pme_aug_interior <- list()
+      lthal_pc_part_interior <- list()
+      
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- lthal_lpme_aug_reconstructions_scaled[lthal_lpme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pme_reconstructions <- lthal_pme_aug_reconstructions_scaled[lthal_pme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pc_reconstructions <- lthal_pc_part_reconstructions_scaled[lthal_pc_part_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+
+
+        temp_lpme_volume <- estimate_volume(
+          round(temp_lpme_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        lthal_lpme_aug_volumes[time_idx] <- temp_lpme_volume$volume
+        lthal_lpme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_lpme_volume$interior_voxels
+        )
+
+        temp_pme_volume <- estimate_volume(
+          round(temp_pme_reconstructions, 1),
+          voxel_volume = 0.1^3
+        )
+        lthal_pme_aug_volumes[time_idx] <- temp_pme_volume$volume
+        lthal_pme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_pme_volume$interior_voxels
+        )
+
+        temp_pc_volume <- estimate_volume(
+          round(temp_pc_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        lthal_pc_part_volumes[time_idx] <- temp_pc_volume$volume
+        lthal_pc_part_interior[[time_idx]] <- cbind(
+          time_values[time_idx], 
+          temp_pc_volume$interior_voxels
+        )
+      }
+
+      lthal_lpme_aug_volumes <- list(
+        volumes = lthal_lpme_aug_volumes,
+        interior_voxels = reduce(lthal_lpme_aug_interior, rbind)
+      )
+      lthal_pme_aug_volumes <- list(
+        volumes = lthal_pme_aug_volumes,
+        interior_voxels = reduce(lthal_pme_aug_interior, rbind)
+      )
+      lthal_pc_part_volumes <- list(
+        volumes = lthal_pc_part_volumes,
+        interior_voxels = reduce(lthal_pc_part_interior, rbind)
+      )
+
       lthal_lpme_aug_out <- list(
         lpme = lthal_lpme_aug,
         reconstructions = lthal_lpme_aug_reconstructions,
+        volumes = lthal_lpme_aug_volumes,
         fit_time = lthal_lpme_aug_time
       )
       lthal_pme_aug_out <- list(
         pme = lthal_pme_aug_list,
         reconstructions = lthal_pme_aug_reconstructions,
+        volumes = lthal_pme_aug_volumes,
         fit_time = lthal_pme_aug_time_list
       )
 
       lthal_lpme_part_out <- list(
         lpme = lthal_lpme_part,
         reconstructions = lthal_lpme_part_reconstructions,
+        volumes = lthal_lpme_part_volumes,
         fit_time = lthal_lpme_part_times
       )
 
       lthal_pme_part_out <- list(
         pme = lthal_pme_part,
         reconstructions = lthal_pme_part_reconstructions,
+        volumes = lthal_pme_part_volumes,
         fit_time = lthal_pme_part_times
       )
 
       lthal_pc_part_out <- list(
         pc = lthal_pc_part,
         reconstructions = lthal_pc_part_reconstructions,
+        volumes = lthal_pc_part_volumes,
         fit_time = lthal_pc_part_times
       )
 
@@ -1053,6 +1650,54 @@ for (patno_idx in seq_along(patnos)) {
 
 lthal_results <- map(lthal_results, ~ value(.x))
 
+lthal_df_list <- list()
+
+for (patno_idx in seq_along(patnos)) {
+  patno <- patnos[patno_idx]
+  lthal <- lthal_results[[patno_idx]]
+
+
+  lthal_lpme_aug <- lthal$lpme_aug
+  lthal_pme_aug <- lthal$pme_aug
+  lthal_lpme_part <- lthal$lpme_part
+  lthal_pme_part <- lthal$pme_part
+  lthal_pc_part <- lthal$pc_part
+
+  lthal_time_values <- unique(lthal_lpme_aug$reconstructions[, 1])
+  lthal_lpme_aug_vols <- lthal_lpme_aug$volumes$volumes
+  lthal_lpme_aug_time <- lthal_lpme_aug$fit_time
+
+  lthal_pme_aug_vols <- lthal_pme_aug$volumes$volumes
+  lthal_pme_aug_time <- lthal_pme_aug$fit_time
+
+  lthal_lpme_part_vols <- lthal_lpme_part$volumes$volumes
+  lthal_lpme_part_time <- lthal_lpme_part$fit_time
+
+  lthal_pme_part_vols <- lthal_pme_part$volumes$volumes
+  lthal_pme_part_time <- lthal_pme_part$fit_time
+
+  lthal_pc_part_vols <- lthal_pc_part$volumes$volumes
+  lthal_pc_part_time <- lthal_pc_part$fit_time
+
+  lthal_df_list[[patno_idx]] <- tibble(
+    patno = patno,
+    lthal_time_values = lthal_time_values,
+    lthal_lpme_aug_vols = lthal_lpme_aug_vols,
+    lthal_pme_aug_vols = lthal_pme_aug_vols,
+    lthal_lpme_part_vols = lthal_lpme_part_vols,
+    lthal_pme_part_vols = lthal_pme_part_vols,
+    lthal_pc_part_vols = lthal_pc_part_vols,
+    lthal_lpme_aug_time = lthal_lpme_aug_time,
+    lthal_pme_aug_time = lthal_pme_aug_time,
+    lthal_lpme_part_time = lthal_lpme_part_time,
+    lthal_pme_part_time = lthal_pme_part_time,
+    lthal_pc_part_time = lthal_pc_part_time
+  )
+}
+
+lthal_df <- bind_rows(lthal_df_list)
+
+
 
 plan(multisession, workers = cores)
 
@@ -1067,8 +1712,17 @@ for (patno_idx in seq_along(patnos)) {
         select(time_from_bl, x, y, z, theta, phi) |>
         mutate(
           partition = z > 0,
-          partition1 = z > -0.025,
-          partition2 = z < 0.025
+          partition1 = z > -0.15,
+          partition2 = z < 0.15
+        )
+
+      patno_rthal_centers <- rthal_centers |>
+        filter(subid == patno) |>
+        group_by(date) |>
+        summarize(
+          max_x = max(max_x),
+          max_y = max(max_y),
+          max_z = max(max_z)
         )
 
       rthal_aug <- patno_rthal |>
@@ -1134,6 +1788,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       rthal_lpme_aug_time <- toc()
+      rthal_lpme_aug_time <- rthal_lpme_aug_time$toc - rthal_lpme_aug_time$tic
 
       rthal_lpme_aug_reconstructions <- calculate_lpme_reconstructions(
         rthal_lpme_aug,
@@ -1148,6 +1803,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       rthal_lpme_part_times[[1]] <- toc()
+      rthal_lpme_part_times[[1]] <- rthal_lpme_part_times[[1]]$toc - rthal_lpme_part_times[[1]]$tic
       rthal_lpme_part_reconstructions[[1]] <- calculate_lpme_reconstructions(
         rthal_lpme_part[[1]],
         rthal_pt1[rthal_pt1[, 4] > 0, ]
@@ -1160,6 +1816,7 @@ for (patno_idx in seq_along(patnos)) {
         print_plots = FALSE
       )
       rthal_lpme_part_times[[2]] <- toc()
+      rthal_lpme_part_times[[2]] <- rthal_lpme_part_times[[2]]$toc - rthal_lpme_part_times[[2]]$tic
       rthal_lpme_part_reconstructions[[2]] <- calculate_lpme_reconstructions(
         rthal_lpme_part[[2]],
         rthal_pt2[rthal_pt2[, 4] <= 0, ]
@@ -1173,6 +1830,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         rthal_pme_aug_list[[time_idx]] <- pme(temp_rthal, d = 2)
         rthal_pme_aug_time_list[[time_idx]] <- toc()
+        rthal_pme_aug_time_list[[time_idx]] <- rthal_pme_aug_time_list[[time_idx]]$toc - rthal_pme_aug_time_list[[time_idx]]$tic
         rthal_pme_aug_reconstruction_list[[time_idx]] <- calculate_pme_reconstructions(
           rthal_pme_aug_list[[time_idx]],
           temp_rthal
@@ -1186,6 +1844,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         rthal_pme_part[[1]][[time_idx]] <- pme(temp_rthal_pt1, d = 2)
         rthal_pme_part_times[[1]][[time_idx]] <- toc()
+        rthal_pme_part_times[[1]][[time_idx]] <- rthal_pme_part_times[[1]][[time_idx]]$toc - rthal_pme_part_times[[1]][[time_idx]]$tic
         rthal_pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
           rthal_pme_part[[1]][[time_idx]],
           temp_rthal_pt1[temp_rthal_pt1[, 3] > 0, ]
@@ -1193,6 +1852,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         rthal_pme_part[[2]][[time_idx]] <- pme(temp_rthal_pt2, d = 2)
         rthal_pme_part_times[[2]][[time_idx]] <- toc()
+        rthal_pme_part_times[[2]][[time_idx]] <- rthal_pme_part_times[[2]][[time_idx]]$toc - rthal_pme_part_times[[2]][[time_idx]]$tic
         rthal_pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
           rthal_pme_part[[2]][[time_idx]],
           temp_rthal_pt2[temp_rthal_pt2[, 3] <= 0, ]
@@ -1210,6 +1870,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part1 <- prinSurf(temp_rthal_pt1)
         rthal_pc_part_times[[1]][[time_idx]] <- toc()
+        rthal_pc_part_times[[1]][[time_idx]] <- rthal_pc_part_times[[1]][[time_idx]]$toc - rthal_pc_part_times[[1]][[time_idx]]$tic
         surface_mse_part1 <- map(
           seq_along(principal_surface_part1),
           ~ principal_surface_part1[[.x]]$MSE
@@ -1227,6 +1888,7 @@ for (patno_idx in seq_along(patnos)) {
         tic()
         principal_surface_part2 <- prinSurf(temp_rthal_pt2)
         rthal_pc_part_times[[2]][[time_idx]] <- toc()
+        rthal_pc_part_times[[2]][[time_idx]] <- rthal_pc_part_times[[2]][[time_idx]]$toc - rthal_pc_part_times[[2]][[time_idx]]$tic
         surface_mse_part2 <- map(
           seq_along(principal_surface_part2),
           ~ principal_surface_part2[[.x]]$MSE
@@ -1247,9 +1909,19 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      rthal_lpme_part_times <- reduce(
+        rthal_lpme_part_times,
+        sum 
+      )
+
       rthal_pme_aug_reconstructions  <- reduce(
         rthal_pme_aug_reconstruction_list,
         rbind
+      )
+
+      rthal_pme_aug_time_list <- reduce(
+        rthal_pme_aug_time_list,
+        sum
       )
 
       rthal_pme_part_reconstructions <- map(
@@ -1261,6 +1933,15 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      rthal_pme_part_times <- map(
+        seq_along(rthal_pme_part_times),
+        ~ reduce(rthal_pme_part_times[[.x]], sum)
+      )
+      rthal_pme_part_times <- reduce(
+        rthal_pme_part_times,
+        sum
+      )
+
       rthal_pc_part_reconstructions <- map(
         seq_along(rthal_pc_part_reconstructions),
         ~ reduce(rthal_pc_part_reconstructions[[.x]], rbind)
@@ -1270,32 +1951,160 @@ for (patno_idx in seq_along(patnos)) {
         rbind
       )
 
+      rthal_pc_part_times <- map(
+        seq_along(rthal_pc_part_times),
+        ~ reduce(rthal_pc_part_times[[.x]], sum)
+      )
+      rthal_pc_part_times <- reduce(
+        rthal_pc_part_times,
+        sum
+      )
+
+      rthal_lpme_aug_reconstructions_scaled <- list()
+      rthal_pme_aug_reconstructions_scaled <- list()
+      rthal_pc_part_reconstructions_scaled <- list()
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- rthal_lpme_aug_reconstructions[rthal_lpme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pme_reconstructions <- rthal_pme_aug_reconstructions[rthal_pme_aug_reconstructions[, 1] == time_values[time_idx], 1:4]
+        temp_pc_reconstructions <- rthal_pc_part_reconstructions[rthal_pc_part_reconstructions[, 1] == time_values[time_idx], 1:4]
+        x_scale <- as.numeric(patno_rthal_centers[time_idx, 2])
+        y_scale <- as.numeric(patno_rthal_centers[time_idx, 3])
+        z_scale <- as.numeric(patno_rthal_centers[time_idx, 4])
+
+        temp_lpme_reconstructions[, 2] <- temp_lpme_reconstructions[, 2] * x_scale
+        temp_lpme_reconstructions[, 3] <- temp_lpme_reconstructions[, 3] * y_scale
+        temp_lpme_reconstructions[, 4] <- temp_lpme_reconstructions[, 4] * z_scale
+        temp_pme_reconstructions[, 2] <- temp_pme_reconstructions[, 2] * x_scale
+        temp_pme_reconstructions[, 3] <- temp_pme_reconstructions[, 3] * y_scale
+        temp_pme_reconstructions[, 4] <- temp_pme_reconstructions[, 4] * z_scale
+        temp_pc_reconstructions[, 2] <- temp_pc_reconstructions[, 2] * x_scale
+        temp_pc_reconstructions[, 3] <- temp_pc_reconstructions[, 3] * y_scale
+        temp_pc_reconstructions[, 4] <- temp_pc_reconstructions[, 4] * z_scale
+
+        rthal_lpme_aug_reconstructions_scaled[[time_idx]] <- temp_lpme_reconstructions
+        rthal_pme_aug_reconstructions_scaled[[time_idx]] <- temp_pme_reconstructions
+        rthal_pc_part_reconstructions_scaled[[time_idx]] <- temp_pc_reconstructions
+      }
+      rthal_lpme_aug_reconstructions_scaled <- reduce(
+        rthal_lpme_aug_reconstructions_scaled,
+        rbind
+      )
+      rthal_pme_aug_reconstructions_scaled <- reduce(
+        rthal_pme_aug_reconstructions_scaled,
+        rbind
+      )
+      rthal_pc_part_reconstructions_scaled <- reduce(
+        rthal_pc_part_reconstructions_scaled,
+        rbind
+      )
+
+      rthal_lpme_part_volumes <- estimate_volume_interior_lpme(
+        rthal_lpme_part,
+        list(rthal_pt1, rthal_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_rthal_centers,
+        limit_scaler = 0.05
+      )
+
+      rthal_pme_part_volumes <- estimate_volume_interior_pme(
+        rthal_pme_part,
+        list(rthal_pt1, rthal_pt2),
+        time_values,
+        n_points = 10000,
+        data_max = patno_rthal_centers,
+        limit_scaler = 0.05
+      )
+
+      rthal_lpme_aug_volumes <- vector()
+      rthal_pme_aug_volumes <- vector()
+      rthal_pc_part_volumes <- vector()
+
+      rthal_lpme_aug_interior <- list()
+      rthal_pme_aug_interior <- list()
+      rthal_pc_part_interior <- list()
+      
+      for (time_idx in seq_along(time_values)) {
+        temp_lpme_reconstructions <- rthal_lpme_aug_reconstructions_scaled[rthal_lpme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pme_reconstructions <- rthal_pme_aug_reconstructions_scaled[rthal_pme_aug_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+        temp_pc_reconstructions <- rthal_pc_part_reconstructions_scaled[rthal_pc_part_reconstructions_scaled[, 1] == time_values[time_idx], 2:4]
+
+
+        temp_lpme_volume <- estimate_volume(
+          round(temp_lpme_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        rthal_lpme_aug_volumes[time_idx] <- temp_lpme_volume$volume
+        rthal_lpme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_lpme_volume$interior_voxels
+        )
+
+        temp_pme_volume <- estimate_volume(
+          round(temp_pme_reconstructions, 1),
+          voxel_volume = 0.1^3
+        )
+        rthal_pme_aug_volumes[time_idx] <- temp_pme_volume$volume
+        rthal_pme_aug_interior[[time_idx]] <- cbind(
+          time_values[time_idx],
+          temp_pme_volume$interior_voxels
+        )
+
+        temp_pc_volume <- estimate_volume(
+          round(temp_pc_reconstructions, 1),
+          voxel_volume = 0.1^3 
+        )
+        rthal_pc_part_volumes[time_idx] <- temp_pc_volume$volume
+        rthal_pc_part_interior[[time_idx]] <- cbind(
+          time_values[time_idx], 
+          temp_pc_volume$interior_voxels
+        )
+      }
+
+      rthal_lpme_aug_volumes <- list(
+        volumes = rthal_lpme_aug_volumes,
+        interior_voxels = reduce(rthal_lpme_aug_interior, rbind)
+      )
+      rthal_pme_aug_volumes <- list(
+        volumes = rthal_pme_aug_volumes,
+        interior_voxels = reduce(rthal_pme_aug_interior, rbind)
+      )
+      rthal_pc_part_volumes <- list(
+        volumes = rthal_pc_part_volumes,
+        interior_voxels = reduce(rthal_pc_part_interior, rbind)
+      )
+
       rthal_lpme_aug_out <- list(
         lpme = rthal_lpme_aug,
         reconstructions = rthal_lpme_aug_reconstructions,
+        volumes = rthal_lpme_aug_volumes,
         fit_time = rthal_lpme_aug_time
       )
       rthal_pme_aug_out <- list(
         pme = rthal_pme_aug_list,
         reconstructions = rthal_pme_aug_reconstructions,
+        volumes = rthal_pme_aug_volumes,
         fit_time = rthal_pme_aug_time_list
       )
 
       rthal_lpme_part_out <- list(
         lpme = rthal_lpme_part,
         reconstructions = rthal_lpme_part_reconstructions,
+        volumes = rthal_lpme_part_volumes,
         fit_time = rthal_lpme_part_times
       )
 
       rthal_pme_part_out <- list(
         pme = rthal_pme_part,
         reconstructions = rthal_pme_part_reconstructions,
+        volumes = rthal_pme_part_volumes,
         fit_time = rthal_pme_part_times
       )
 
       rthal_pc_part_out <- list(
         pc = rthal_pc_part,
         reconstructions = rthal_pc_part_reconstructions,
+        volumes = rthal_pc_part_volumes,
         fit_time = rthal_pc_part_times
       )
 
@@ -1327,3 +2136,60 @@ for (patno_idx in seq_along(patnos)) {
 
 rthal_results <- map(rthal_results, ~ value(.x))
 
+rthal_df_list <- list()
+
+for (patno_idx in seq_along(patnos)) {
+  patno <- patnos[patno_idx]
+  rthal <- rthal_results[[patno_idx]]
+
+
+  rthal_lpme_aug <- rthal$lpme_aug
+  rthal_pme_aug <- rthal$pme_aug
+  rthal_lpme_part <- rthal$lpme_part
+  rthal_pme_part <- rthal$pme_part
+  rthal_pc_part <- rthal$pc_part
+
+  rthal_time_values <- unique(rthal_lpme_aug$reconstructions[, 1])
+  rthal_lpme_aug_vols <- rthal_lpme_aug$volumes$volumes
+  rthal_lpme_aug_time <- rthal_lpme_aug$fit_time
+
+  rthal_pme_aug_vols <- rthal_pme_aug$volumes$volumes
+  rthal_pme_aug_time <- rthal_pme_aug$fit_time
+
+  rthal_lpme_part_vols <- rthal_lpme_part$volumes$volumes
+  rthal_lpme_part_time <- rthal_lpme_part$fit_time
+
+  rthal_pme_part_vols <- rthal_pme_part$volumes$volumes
+  rthal_pme_part_time <- rthal_pme_part$fit_time
+
+  rthal_pc_part_vols <- rthal_pc_part$volumes$volumes
+  rthal_pc_part_time <- rthal_pc_part$fit_time
+
+  rthal_df_list[[patno_idx]] <- tibble(
+    patno = patno,
+    rthal_time_values = rthal_time_values,
+    rthal_lpme_aug_vols = rthal_lpme_aug_vols,
+    rthal_pme_aug_vols = rthal_pme_aug_vols,
+    rthal_lpme_part_vols = rthal_lpme_part_vols,
+    rthal_pme_part_vols = rthal_pme_part_vols,
+    rthal_pc_part_vols = rthal_pc_part_vols,
+    rthal_lpme_aug_time = rthal_lpme_aug_time,
+    rthal_pme_aug_time = rthal_pme_aug_time,
+    rthal_lpme_part_time = rthal_lpme_part_time,
+    rthal_pme_part_time = rthal_pme_part_time,
+    rthal_pc_part_time = rthal_pc_part_time
+  )
+}
+
+rthal_df <- bind_rows(rthal_df_list)
+
+
+
+adni_volumes <- bind_cols(
+  lhipp_df,
+  rhipp_df,
+  lthal_df,
+  rthal_df
+)
+
+write_csv(adni_volumes, here("output/adni/adni_volumes.csv"))
