@@ -1,4 +1,12 @@
-estimate_volume_interior_lpme <- function(lpme_list, data, time_points, n_points, data_max, limit_scaler) {
+estimate_volume_interior_lpme <- function(
+  lpme_list,
+  data,
+  time_points,
+  n_points,
+  data_max,
+  limit_scaler,
+  augment = FALSE
+) {
   volumes <- vector(mode = "numeric", length = length(time_points))
 
   voxels <- matrix(data = NA, ncol = 4)
@@ -11,7 +19,8 @@ estimate_volume_interior_lpme <- function(lpme_list, data, time_points, n_points
     y_scale <- as.numeric(data_max[time_idx, 3])
     z_scale <- as.numeric(data_max[time_idx, 4])
 
-    full_volume <- (1 + (2 * limit_scaler))^3 * ((2 * x_scale) * (2 * y_scale) * (2 * z_scale))
+    full_volume <- (1 + (2 * limit_scaler))^3 *
+      ((2 * x_scale) * (2 * y_scale) * (2 * z_scale))
     x_candidates <- runif(
       n = n_points,
       min = -x_scale * (1 + limit_scaler),
@@ -43,19 +52,29 @@ estimate_volume_interior_lpme <- function(lpme_list, data, time_points, n_points
     )
 
     candidates_scaled <- candidates
-    candidates_scaled[, 1] <- (candidates_scaled[, 1] - candidate_means[1]) / candidate_maxs[1]
-    candidates_scaled[, 2] <- (candidates_scaled[, 2] - candidate_means[2]) / candidate_maxs[2]
-    candidates_scaled[, 3] <- (candidates_scaled[, 3] - candidate_means[3]) / candidate_maxs[3]
+    candidates_scaled[, 1] <- (candidates_scaled[, 1] - candidate_means[1]) /
+      candidate_maxs[1]
+    candidates_scaled[, 2] <- (candidates_scaled[, 2] - candidate_means[2]) /
+      candidate_maxs[2]
+    candidates_scaled[, 3] <- (candidates_scaled[, 3] - candidate_means[3]) /
+      candidate_maxs[3]
 
-
-    temp_lpme_coefs_pt1 <- lpme_est_pt1$sol_coef_functions[[which.min(lpme_est_pt1$msd)]](time_points[time_idx])
-    temp_lpme_coefs_pt2 <- lpme_est_pt2$sol_coef_functions[[which.min(lpme_est_pt2$msd)]](time_points[time_idx])
-    temp_lpme_params_pt1 <- lpme_est_pt1$parameterization_list[[which.min(lpme_est_pt1$msd)]]
+    temp_lpme_coefs_pt1 <- lpme_est_pt1$sol_coef_functions[[which.min(
+      lpme_est_pt1$msd
+    )]](time_points[time_idx])
+    temp_lpme_coefs_pt2 <- lpme_est_pt2$sol_coef_functions[[which.min(
+      lpme_est_pt2$msd
+    )]](time_points[time_idx])
+    temp_lpme_params_pt1 <- lpme_est_pt1$parameterization_list[[which.min(
+      lpme_est_pt1$msd
+    )]]
     temp_lpme_params_pt1 <- temp_lpme_params_pt1[
       temp_lpme_params_pt1[, 1] == time_points[time_idx],
       -1
     ]
-    temp_lpme_params_pt2 <- lpme_est_pt2$parameterization_list[[which.min(lpme_est_pt2$msd)]]
+    temp_lpme_params_pt2 <- lpme_est_pt2$parameterization_list[[which.min(
+      lpme_est_pt2$msd
+    )]]
     temp_lpme_params_pt2 <- temp_lpme_params_pt2[
       temp_lpme_params_pt2[, 1] == time_points[time_idx],
       -1
@@ -77,15 +96,17 @@ estimate_volume_interior_lpme <- function(lpme_list, data, time_points, n_points
     )
 
     temp_lpme_embedding_pt1 <- function(r) {
-      t(coef_mat_pt1[1:lpme_n_knots_pt1, ]) %*% pme::etaFunc(r, temp_lpme_params_pt1, 4 - d) +
+      t(coef_mat_pt1[1:lpme_n_knots_pt1, ]) %*%
+        pme::etaFunc(r, temp_lpme_params_pt1, 4 - d) +
         t(coef_mat_pt1[(lpme_n_knots_pt1 + 1):(lpme_n_knots_pt1 + d + 1), ]) %*%
-        matrix(c(1, r), ncol = 1)
+          matrix(c(1, r), ncol = 1)
     }
 
     temp_lpme_embedding_pt2 <- function(r) {
-      t(coef_mat_pt2[1:lpme_n_knots_pt2, ]) %*% pme::etaFunc(r, temp_lpme_params_pt2, 4 - d) +
+      t(coef_mat_pt2[1:lpme_n_knots_pt2, ]) %*%
+        pme::etaFunc(r, temp_lpme_params_pt2, 4 - d) +
         t(coef_mat_pt2[(lpme_n_knots_pt2 + 1):(lpme_n_knots_pt2 + d + 1), ]) %*%
-        matrix(c(1, r), ncol = 1)
+          matrix(c(1, r), ncol = 1)
     }
 
     lpme_interior_pt1 <- interior_identification(
@@ -122,7 +143,15 @@ estimate_volume_interior_lpme <- function(lpme_list, data, time_points, n_points
   )
 }
 
-estimate_volume_interior_pme <- function(pme_list, data, time_points, n_points, data_max, limit_scaler) {
+estimate_volume_interior_pme <- function(
+  pme_list,
+  data,
+  time_points,
+  n_points,
+  data_max,
+  limit_scaler,
+  augment = FALSE
+) {
   volumes <- vector(mode = "numeric", length = length(time_points))
 
   voxels <- matrix(data = NA, ncol = 4)
@@ -135,7 +164,8 @@ estimate_volume_interior_pme <- function(pme_list, data, time_points, n_points, 
     y_scale <- as.numeric(data_max[time_idx, 3])
     z_scale <- as.numeric(data_max[time_idx, 4])
 
-    full_volume <- (1 + (2 * limit_scaler))^3 * ((2 * x_scale) * (2 * y_scale) * (2 * z_scale))
+    full_volume <- (1 + (2 * limit_scaler))^3 *
+      ((2 * x_scale) * (2 * y_scale) * (2 * z_scale))
     x_candidates <- runif(
       n = n_points,
       min = -x_scale * (1 + limit_scaler),
@@ -167,9 +197,12 @@ estimate_volume_interior_pme <- function(pme_list, data, time_points, n_points, 
     )
 
     candidates_scaled <- candidates
-    candidates_scaled[, 1] <- (candidates_scaled[, 1] - candidate_means[1]) / candidate_maxs[1]
-    candidates_scaled[, 2] <- (candidates_scaled[, 2] - candidate_means[2]) / candidate_maxs[2]
-    candidates_scaled[, 3] <- (candidates_scaled[, 3] - candidate_means[3]) / candidate_maxs[3]
+    candidates_scaled[, 1] <- (candidates_scaled[, 1] - candidate_means[1]) /
+      candidate_maxs[1]
+    candidates_scaled[, 2] <- (candidates_scaled[, 2] - candidate_means[2]) /
+      candidate_maxs[2]
+    candidates_scaled[, 3] <- (candidates_scaled[, 3] - candidate_means[3]) /
+      candidate_maxs[3]
 
     temp_pme_pt1 <- pme_est_pt1[[time_idx]]
     temp_pme_pt2 <- pme_est_pt2[[time_idx]]
@@ -177,8 +210,12 @@ estimate_volume_interior_pme <- function(pme_list, data, time_points, n_points, 
     temp_pme_embedding_pt2 <- temp_pme_pt2$embedding_map
     temp_pme_coefs_pt1 <- temp_pme_pt1$coefs[[which.min(temp_pme_pt1$MSD)]]
     temp_pme_coefs_pt2 <- temp_pme_pt2$coefs[[which.min(temp_pme_pt2$MSD)]]
-    temp_pme_params_pt1 <- temp_pme_pt1$parameterization[[which.min(temp_pme_pt1$MSD)]]
-    temp_pme_params_pt2 <- temp_pme_pt2$parameterization[[which.min(temp_pme_pt2$MSD)]]
+    temp_pme_params_pt1 <- temp_pme_pt1$parameterization[[which.min(
+      temp_pme_pt1$MSD
+    )]]
+    temp_pme_params_pt2 <- temp_pme_pt2$parameterization[[which.min(
+      temp_pme_pt2$MSD
+    )]]
 
     pme_interior_pt1 <- interior_identification(
       temp_pme_embedding_pt1,
