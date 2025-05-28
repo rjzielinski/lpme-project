@@ -43,6 +43,7 @@
 \newtheorem{theorem}{Theorem}
 
 \newcommand{\revision}[1]{\textcolor{blue}{#1}}
+\newcommand{\question}[1]{\textcolor{red}{#1}}
 
 
 \setcitestyle{aysep={}}
@@ -86,7 +87,7 @@ Additionally, we have restructured the analysis of simulation case 8 to compare 
 
 We also updated our analysis of the ADNI data to include the partitioning approach, and a comparison of the results of the two processing approaches is given in Section 5.
 
-\item {\it Your methodological development is highly algorithmic with no actual model for the shapes of brain regions or for the measurement process.  In your simulations, it looks like your simulated data includes independent measurement error (but you need to make that clear).  Given the pre-processing steps in your data analysis, I suspect that the actual "errors" in your observation are spatially dependent.  If so, then you need to discuss this issue and do some simulations that try to more realistically mimic the measurement process in your actual data.}
+\item {\it Your methodological development is highly algorithmic with no actual model for the shapes of brain regions or for the measurement process.  In your simulations, it looks like your simulated data includes independent measurement error (but you need to make that clear).  Given the pre-processing steps in your data analysis, I suspect that the actual "errors" in your observation are spatially ependent.  If so, then you need to discuss this issue and do some simulations that try to more realistically mimic the measurement process in your actual data.}
 
 {\bf Response:} Thank you for your thoughts on this topic. We agree that it is likely for the measurement errors induced by the segmentation process to be spatially dependent, and we have taken steps to account for this in our simulations. In the first version of the manuscript we submitted, we included spatially-dependent errors by allowing the underlying manifold function at a given time point to randomly deviate from the true manifold. Because the function defining the manifold has changed, two points sampled from that manifold with close proximity will tend to err from the true manifold in similar ways. To further incorporate considerations of spatially-dependent errors into the simulation models, we have also updated the data generation process to allow the level of observation-level noise to vary according to the observation's position along the manifold. Specifically, observation-level noise is drawn from a mean-zero Gaussian distribution with variance specified by a Gaussian process with mean 1 and a squared exponential kernel. Thus, the extent to which observations deviate from the image-specific manifold function is also dependent on the location of the observation along the kernel. This change is described in the following change to Section 4.1:
 
@@ -97,6 +98,14 @@ We also updated our analysis of the ADNI data to include the partitioning approa
 \item {\it Your criterion function (4) includes terms with derivatives in space and another with a derivative in time, but no terms that include mixed partials in space and time.  I am wondering what are the implications of this choice and how much your result would change if you included some kind of integral of a squared mixed partial derivative in (4).  I'm not sure how far you would want to go down this avenue, but I do think it is at least worth acknowledging that the form of (4) is somewhat arbitrary and that other forms might be worth considering.  I would also note that (4) puts no penalty on large linear trends in time, which may not be biologically realistic.}
 
 {\bf Response:}
+
+The idea of including mixed partial derivatives in space and time in the criterion function is an interesting proposal which would have important implications for the interpretation of the minimization problem being addressed in this paper and the resulting embedding function. 
+
+We made the decision to include derivatives with respect to space and time separately in the criterion function for several reasons. First, each of these derivatives individually represents a property of the expected behavior of manifolds in the neuroimaging setting: manifolds should display a certain level of smoothness (described by the spatial derivative), and because we are using the manifold to represent a structure in the brain, we expect changes in the manifold over time (represented by the temporal derivative). In the neuroimaging setting, we also found it advantageous to include these derivatives separately because the extent of a manifold's spatial smoothness may differ substantially from the extent of its temporal smoothness, and the two may not necessarily be related. For example, a function fitting to the surface of the hippocampus must show a relatively high level of curvature, but in a healthy aging individual this function should show minimal change over time. In this case, incorporating these partial derivatives separately allows us to effectively distinguish between spatial roughness and temporal smoothness, or vice versa.
+
+By including mixed partial derivatives in space and time, the criterion function would effectively be penalizing joint change in space and time. While there are certainly situations in which this would be a valuable consideration, in this setting we expect that these mixed derivatives would work to counteract the separation between space and time that we believe to be useful since the disparities between spatial and temporal smoothness may be large. With this in mind, we expect that including the mixed partial derivatives would potentially result in meaningful changes in the results we yielded by the LPME algorithm. Namely, additional smoothing would be applied, mitigating any relatively quick changes in the estimated manifolds between nearby time points. Whether this additional smoothing is desireable would likely depend on the signal-to-noise ratio of the data: does the error in estimates of subcortical structures caused by the imaging and segmentation processes outweigh any real changes in the structure of interest? It is also unclear how much of the additional smoothing provided by including the additional mixed partial derivatives would not otherwise be included by increasing the tuning parameter values for either spatial or temporal smoothing in the LPME algorithm as proposed in the manuscript. An additional consideration is that the inclusion of mixed partial derivatives would likely make the algorithm more sensitive to the relationship between the units of time and space being used. While we standardized all dimensions in the observed data to fall between 0 and 1, it is not guaranteed that the roughness in time and space will occur over the same scale, even if it is present to some extent. This effect should be possible to avoid through careful preprocessing, but the possibility of dependency between spatial and temporal smoothness makes this preprocessing much more important for the success of the algorithm.
+
+Finally, you note that the criterion function does not penalize large linear trends in time. We agree that these large linear trends in time are likely not biologically realistic. However, in our algorithmic approach, we attempted to place minimal assumptions on the form of the manifold and the temporal changes in that form. While we agree that we are unlikely to observe large linear changes in hippocampal structure over time, we feel we do not have enough prior information to explicitly encode those assumptions in the algorithm. The approach we have taken, which penalizes spatial and temporal roughness at a high level, remains flexible, accommodating a range of manifold forms while loosely encouraging biological plausibility.
 
 
 \item {\it I recommend you add the application to the title of your paper, so something like "Longitudinal Principal Manifold Estimation for Modeling Changes Over Time in Brain Regions".}
@@ -138,13 +147,19 @@ sentence added to the introduction:
 \item \textit{Line 15 on page 9 says "... by a study participant." Is this method used for the longitudinal data of a single subject, not simultaneously applied to a group of subjects?}
 
 {\bf Response:}
-Due to the extent of the differences in subcortical structures between individuals, in this work we applied the LPME
-method to the longitudinal data of each subject individually. We recognize that this is a significant limitation to the
-approach we have taken in this paper, and our future work will address this concern.
+Due to the extent of the differences in subcortical structures between individuals, in this work we applied the LPME algorithm to the longitudinal data of each subject individually. While group-level estimation is an important goal, we believe that in the neuroimaging setting it is effectively distinct from the goal of obtaining individual-level estimates and will thus require alternate approaches. 
+
+Individual-level differences in brain structure have been found to be reliably present and relevant to behavioral outcomes, even among healthy individuals \citep{takao2015Brain, llera2019Interindividual}. This interest in individual-level variation transfers to studies of Alzheimer's disease and other neurodegenerative conditions, which often display differences in disease progression and outcomes \citep{vogel2021Four}. The magnitude and hypothesized biological importance of these individual-level differences provide motivation for obtaining estimates of subcortical structures at the individual level.
+
+Our work was also motivated by noise introduced during the image segmentation process, which is typically incorporated into larger image processing pipelines which are commonly conducted at the level of the image or individual, depending on how the images are registered for comparison. We believe that appplying the LPME algorithm at the individual level will allow it to integrate more flexibly with established pipelines. 
+
+Again, while we focus here on individual-level estimates, we agree that group-level inference could help to answer a number of interesting research questions, and we plan to address this topic more fully in future work.
 
 \item \textit{Also line 9 on page 10 says "for each image i". But the index i is from 1 to $I_t$, so the $x_it$ is an image, not just a 3D voxel? Is the method only for subject-level data analysis, not for group-level data analysis?}
 
-{\bf Response:}
+  {\bf Response:} Thank you for the clarification. The index $i$ should denote each individual observation (voxel) $i$ within the image recorded at time point $t$. Thus, the algorithm is applied to point clouds of voxels available for each of the images recorded from a single individual. While group-level analysis is an important and relevant goal, in the neuroimaging setting, we expect that there is enough variability between individuals that a group-level analysis should more explicitly account for this variability to be effective. We seek to incorporate this consideration into our algorithmic framework in future work. We have corrected our discussion of the notation used in the paper as follows:
+
+\revision{Let $\left\{x_{it}\right\}_{i=1, t=1}^{I_t, T}$ represent the $I = \sum_{t=1}^{T}I_t$ observations in $\mathbb{R}^D$ (i.e., each $x_{it}\in\mathbb{R}^D$) for each participant, where $I_t$ denotes the total number of observations available within the image recorded at time point $t$, with $T$ total time points.}
 
 
 \item \textit{In Eq. (3), (t,r) should be (r, t) since the domain is $R^d x R$ not $R x R^d$.}
@@ -162,13 +177,15 @@ Thank you for the correction. We have incorporated the change in the equation no
 
   {\bf Response:} To download the ADNI data, we rely on the Image \& Data Archive, run by the Laboratory of Neuro Imaging at the USC Mark and Mary Stevens Neuroimaging and Informatics Institute. We ran a search for all T1-weighted MRI images from the ADNI 1 study, and limited our analysis to images with descriptions containing ``MPRAGE" or ``MP-RAGE", as these images were taken according to the same specifications and provide a high resolution view of the structures of interest. However, this search did not include images for all subjects enrolled in the study, resulting in the discrepancy. We have since incorporated data from the ADNI 2 and ADNI 3 cohorts as well, with similar differences between the number of subjects for whom MP-RAGE images are available and the total number subjects enrolled in the study. We have updated Section 5 of the paper to describe this reasoning as follows: 
 
-\revision{.}
+\revision{While the original ADNI 1 cohort included 200 cognitively healthy elderly individuals,
+400 with mild cognitive impairment, and 200 with AD, this analysis focuses on 463 participants for whom T1-weighted MP-RAGE images were available through the study's online repository, located at \href{https://ida.loni.usc.edu/login.jsp?project=ADNI}{\texttt{https://ida.loni.usc.edu/login.jsp?project=ADNI}}. Of these participants, 130 were cognitively normal, 223 displayed symptoms of mild cognitive impairment, and 101 were diagnosed with AD at the baseline study visit.}
 
 
 \item \textit{In line 27 on page 25, it says "The LPME method was applied to the 236 subjects from the three groups, CN, MCI, and AD, for image segmentation." But the LPME is for longitudinal data analysis, not for image segmentation.}
 
 {\bf Response:}
 
+\question{I have checked the manuscript and I have been unable to find the quoted sentence. It appears that the comment takes issue with the implication that LPME is being used for image segmentation, and I would be happy to change the wording if that were the case, but I'm not sure what the best way to proceed is.}
 
 \item \textit{Line 5 on page 25 says "...meaningful between-image errors … are introduced ..." Is "meaningful" a typo?}
 
@@ -178,8 +195,7 @@ As discussed previously, \revision{substantial} between-image errors in estimate
 
 \item \textit{For the ADNI data, you used 236 subjects from the three groups, CN, MCI, and AD,  for image segmentation, but used LPME to fit each subject individually? Where is the comparison between the 3 groups CN, AD, and MCI?}
 
-{\bf Response:}
-
+{\bf Response:} As discussed in greater detail above, our work for this paper focused on the development of the LPME algorithm and its application at the individual level. Because of this, we do not explicitly compare the three study groups included here. Rather, the study groups are included to indicate that the LPME algorithm is applicable across these groups, which display different characteristics both at baseline and longitudinally.
 
 \item \textit{Timing performance of the proposed method is needed for simulation and real-data analysis.}
 
@@ -190,7 +206,6 @@ Thank you for the suggestion. Our updated simulation results include the time re
 \end{enumerate}
 
 \vspace{0.3in}
-
 
 \large{\textbf{Response to Referee 2}}
 
@@ -237,21 +252,24 @@ We agree, it is not necessary to estimate the surface of a structure to approxim
 
 {\bf Response:}
 
+\question{I feel like this comment is pretty broadly stated, and it isn't clear to me whether there is anything specific the reviewer would like more clarity on, or if they feel the entire minimization problem itself is ill-posed.}
+
 
 \item \textit{Section 3.2.2:    The choice of the first time point for the initialization is arbitrary and prone to error. Why the longitudinal information is not used in the initialization?}
 
-{\bf Response:}
+{\bf Response:} Because the parameterization obtained in the initialization step is iteratively improved through the remaining steps of the LPME algorithm, we had used the first time point to balance the quality of the initialization with the computational burden of obtaining that initialization. However, this choice was indeed arbitrary, so we have updated the algorithm to use the available data from all time points to obtain the initialization. Without formally comparing the time required to obtain initializations under both scenarios, we found that while including data from all time points did increase the time needed to reach an initial parameterization, this increase in time was inconsequential relative to the computational cost of the remainder of the LPME algorithm.
 
 
 \item \textit{Table 2, p.23 and Table S1: While in many simulation settings (Cases), the LPME algorithm seems to perform well. Case 7 looks to be troublesome. Any specific reason why in this case PC/PS method performs the best on average?}
 
-{\bf Response:}
+{\bf Response:} In the previously submitted simulation results, we included some simulation runs with very high levels of noise that are likely unrealistic in an applied setting, with the goal of demonstrating where the LPME algorithm is able to obtain an adequete fit to the data, and when it begins to struggle. Simulation case 7 uses the Swiss Roll manifold to generate the data, and sufficient levels of noise can cause the structural integrity of the manifold to degrade. We believe that the principal surface method performed better than the PME-based methods in these settings, but do not expect those results to be highly relevant in an applied setting. More broadly, the relative performance of manifold learning methods changes with the properties of the manifolds to which they are applied. While the PME and LPME algorithms are extensions of the principal surface method, there are differences in the implementation of the methods (e.g. the Isomap initialization used by PME and LPME) that may cause one to outperform the other in a given setting.
+
+In the revised manuscript, we have adjusted the simulation parameters to keep noise levels closer to what may realistically be observed in neuroimaging data. While this does not make the limits of the performance of the LPME algorithm as clear, we believe it presents a more realistic picture of how LPME will perform in comparison to the alternative methods. LPME tends to show the greatest improvement in performance over the alternative methods when high levels of between-image noise are present, so by limiting the extent of the noise between time points, we believe the revised simulations understate the improvements of the LPME method compared to the original simulation approach.
 
 
 \item \textit{Figure 2, p.24:    The figure is difficult to interpret as the colors for LPME and Principal Curves are similar and the symbols are hard to differentiate among the methods.}
 
-{\bf Response:}
-
+  {\bf Response:} We agree that the figure is difficult to interpret. We have made changes to ensure that it is easier to differentiate between the methods being used. \question{I am still working on making these changes, but they should be available for the simulation results shortly.}
 
 \end{enumerate}
 
