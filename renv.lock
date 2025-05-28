@@ -800,6 +800,19 @@
       ],
       "Hash": "7ad64861e028a777d7d67ff83231b548"
     },
+    "ggsci": {
+      "Package": "ggsci",
+      "Version": "3.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "ggplot2",
+        "grDevices",
+        "scales"
+      ],
+      "Hash": "0c3268cddf4d3a3ce4e7e6330f8e92c8"
+    },
     "globals": {
       "Package": "globals",
       "Version": "0.17.0",
