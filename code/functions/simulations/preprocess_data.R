@@ -2,7 +2,6 @@ preprocess_data <- function(df, case, d, D) {
   require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
   require(pracma, quietly = TRUE, warn.conflicts = FALSE)
 
-
   ##### PREPROCESSING *****
 
   # standardize observations to fall between -1 and 1 in each dimension
@@ -12,7 +11,7 @@ preprocess_data <- function(df, case, d, D) {
   for (dim_idx in 1:D) {
     obs_dim_idx <- 1 + d + dim_idx
     true_dim_idx <- 1 + d + D + dim_idx
-    col_max <- max(abs(df[obs_dim_idx]))
+    col_max <- max(abs(df[, obs_dim_idx]))
     df[, obs_dim_idx] <- df[, obs_dim_idx] / col_max
     df[, true_dim_idx] <- df[, true_dim_idx] / col_max
   }
