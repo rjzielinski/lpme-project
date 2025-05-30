@@ -5,6 +5,7 @@ estimate_volume_interior_lpme <- function(
   n_points,
   data_max,
   limit_scaler,
+  partition_index,
   augment = FALSE
 ) {
   volumes <- vector(mode = "numeric", length = length(time_points))
@@ -19,8 +20,10 @@ estimate_volume_interior_lpme <- function(
     y_scale <- as.numeric(data_max[time_idx, 3])
     z_scale <- as.numeric(data_max[time_idx, 4])
 
-    full_volume <- (1 + (2 * limit_scaler))^3 *
-      ((2 * x_scale) * (2 * y_scale) * (2 * z_scale))
+    full_volume <- (2 * (x_scale * (1 + limit_scaler))) *
+      (2 * (y_scale * (1 + limit_scaler))) *
+      (2 * (z_scale * (1 + limit_scaler)))
+
     x_candidates <- runif(
       n = n_points,
       min = -x_scale * (1 + limit_scaler),
@@ -113,21 +116,25 @@ estimate_volume_interior_lpme <- function(
       temp_lpme_embedding_pt1,
       coef_mat_pt1,
       temp_lpme_params_pt1,
-      candidates_scaled[candidates_scaled[, 3] > 0, ],
+      candidates_scaled[candidates_scaled[, partition_index] > 0, ],
       c(0, 0, 0)
     )
     lpme_interior_pt2 <- interior_identification(
       temp_lpme_embedding_pt2,
       coef_mat_pt2,
       temp_lpme_params_pt2,
-      candidates_scaled[candidates_scaled[, 3] <= 0, ],
+      candidates_scaled[candidates_scaled[, partition_index] <= 0, ],
       c(0, 0, 0)
     )
 
     lpme_interior <- c(lpme_interior_pt1, lpme_interior_pt2)
     lpme_interior_candidates <- rbind(
-      candidates_scaled[candidates_scaled[, 3] > 0, ][lpme_interior_pt1, ],
-      candidates_scaled[candidates_scaled[, 3] <= 0, ][lpme_interior_pt2, ]
+      candidates_scaled[candidates_scaled[, partition_index] > 0, ][
+        lpme_interior_pt1,
+      ],
+      candidates_scaled[candidates_scaled[, partition_index] <= 0, ][
+        lpme_interior_pt2,
+      ]
     )
 
     voxels <- rbind(
@@ -150,7 +157,8 @@ estimate_volume_interior_pme <- function(
   n_points,
   data_max,
   limit_scaler,
-  augment = FALSE
+  augment = FALSE,
+  partition_index
 ) {
   volumes <- vector(mode = "numeric", length = length(time_points))
 
@@ -221,21 +229,25 @@ estimate_volume_interior_pme <- function(
       temp_pme_embedding_pt1,
       temp_pme_coefs_pt1,
       temp_pme_params_pt1,
-      candidates_scaled[candidates_scaled[, 3] > 0, ],
+      candidates_scaled[candidates_scaled[, partition_index] > 0, ],
       c(0, 0, 0)
     )
     pme_interior_pt2 <- interior_identification(
       temp_pme_embedding_pt2,
       temp_pme_coefs_pt2,
       temp_pme_params_pt2,
-      candidates_scaled[candidates_scaled[, 3] <= 0, ],
+      candidates_scaled[candidates_scaled[, partition_index] <= 0, ],
       c(0, 0, 0)
     )
 
     pme_interior <- c(pme_interior_pt1, pme_interior_pt2)
     pme_interior_candidates <- rbind(
-      candidates_scaled[candidates_scaled[, 3] > 0, ][pme_interior_pt1, ],
-      candidates_scaled[candidates_scaled[, 3] <= 0, ][pme_interior_pt2, ]
+      candidates_scaled[candidates_scaled[, partition_index] > 0, ][
+        pme_interior_pt1,
+      ],
+      candidates_scaled[candidates_scaled[, partition_index] <= 0, ][
+        pme_interior_pt2,
+      ]
     )
 
     voxels <- rbind(

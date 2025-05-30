@@ -2,9 +2,11 @@ estimate_volume_case8 <- function(
   sim,
   time_trend_val,
   time_change_val,
-  n_points
+  n_points,
+  threshold = 0.005
 ) {
   require(alphashape3d, warn.conflicts = FALSE, quietly = TRUE)
+  require(dplyr, warn.conflicts = FALSE, quietly = TRUE)
   require(geometry, warn.conflicts = FALSE, quietly = TRUE)
   require(Morpho, warn.conflicts = FALSE, quietly = TRUE)
   require(Rfast, warn.conflicts = FALSE, quietly = TRUE)
@@ -198,55 +200,103 @@ estimate_volume_case8 <- function(
     ] *
       as.numeric(sim_data_centers[time_idx, 4])
 
+    # test a wide range of alpha values
     temp_lpme_ashape <- ashape3d(
       temp_lpme_reconstructions_scaled,
-      alpha = seq(0.5, 1.5, by = 0.1)
+      alpha = exp(seq(-3, 2, 0.1))
     )
-    lpme_volumes[time_idx] <- volume_ashape3d(
+    temp_lpme_volumes <- volume_ashape3d(
       temp_lpme_ashape,
       indexAlpha = "all"
-    ) |>
-      median()
+    )
+
+    # volumes tend to increase drastically as alpha first increases
+    # then volumes plateau - find where they stabilize
+    temp_lpme_volume_change <- c(
+      NA,
+      ((lead(temp_lpme_volumes) - temp_lpme_volumes) / temp_lpme_volumes)[
+        -length(temp_lpme_volumes)
+      ]
+    )
+    # once volume has stabilized, take the median volume
+    lpme_volumes[time_idx] <- median(
+      temp_lpme_volumes[temp_lpme_volume_change < threshold],
+      na.rm = TRUE
+    )
 
     temp_lpme_part_ashape <- ashape3d(
       temp_lpme_part_reconstructions_scaled,
-      alpha = seq(0.5, 1.5, by = 0.1)
+      alpha = exp(seq(-3, 2, 0.1))
     )
-    lpme_part_volumes_mesh[time_idx] <- volume_ashape3d(
+    temp_lpme_part_volumes <- volume_ashape3d(
       temp_lpme_part_ashape,
       indexAlpha = "all"
-    ) |>
-      median()
+    )
+    temp_lpme_part_volume_change <- c(
+      NA,
+      ((lead(temp_lpme_part_volumes) - temp_lpme_part_volumes) /
+        temp_lpme_part_volumes)[-length(temp_lpme_part_volumes)]
+    )
+    lpme_part_volumes_mesh[time_idx] <- median(
+      temp_lpme_part_volumes[temp_lpme_part_volume_change < threshold],
+      na.rm = TRUE
+    )
 
     temp_pme_ashape <- ashape3d(
       temp_pme_reconstructions_scaled,
-      alpha = seq(0.5, 1.5, by = 0.1)
+      alpha = exp(seq(-3, 2, 0.1))
     )
-    pme_volumes[time_idx] <- volume_ashape3d(
+    temp_pme_volumes <- volume_ashape3d(
       temp_pme_ashape,
       indexAlpha = "all"
-    ) |>
-      median()
+    )
+    temp_pme_volume_change <- c(
+      NA,
+      ((lead(temp_pme_volumes) - temp_pme_volumes) / temp_pme_volumes)[
+        -length(temp_pme_volumes)
+      ]
+    )
+    pme_volumes[time_idx] <- median(
+      temp_pme_volumes[temp_pme_volume_change < threshold],
+      na.rm = TRUE
+    )
 
     temp_pme_part_ashape <- ashape3d(
       temp_pme_part_reconstructions_scaled,
-      alpha = seq(0.5, 1.5, by = 0.1)
+      alpha = exp(seq(-3, 2, 0.1))
     )
-    pme_part_volumes_mesh[time_idx] <- volume_ashape3d(
+    temp_pme_part_volumes <- volume_ashape3d(
       temp_pme_part_ashape,
       indexAlpha = "all"
-    ) |>
-      median()
+    )
+    temp_pme_part_volume_change <- c(
+      NA,
+      ((lead(temp_pme_part_volumes) - temp_pme_part_volumes) /
+        temp_pme_part_volumes)[-length(temp_pme_part_volumes)]
+    )
+    pme_part_volumes_mesh[time_idx] <- median(
+      temp_pme_part_volumes[temp_pme_part_volume_change < threshold],
+      na.rm = TRUE
+    )
 
     temp_pc_ashape <- ashape3d(
       temp_pc_reconstructions_scaled,
-      alpha = seq(0.5, 1.5, by = 0.1)
+      alpha = exp(seq(-3, 2, 0.1))
     )
-    pc_volumes[time_idx] <- volume_ashape3d(
+    temp_pc_volumes <- volume_ashape3d(
       temp_pc_ashape,
       indexAlpha = "all"
-    ) |>
-      median()
+    )
+    temp_pc_volume_change <- c(
+      NA,
+      ((lead(temp_pc_volumes) - temp_pc_volumes) / temp_pc_volumes)[
+        -length(temp_pc_volumes)
+      ]
+    )
+    pc_volumes[time_idx] <- median(
+      temp_pc_volumes[temp_pc_volume_change < threshold],
+      na.rm = TRUE
+    )
   }
 
   lpme_part_volumes <- estimate_volume_interior_lpme(
@@ -255,7 +305,8 @@ estimate_volume_case8 <- function(
     time_points,
     n_points = 10000,
     data_max = sim_data_centers,
-    limit_scaler = 0.05
+    limit_scaler = 0.05,
+    partition_index = 1
   )
 
   pme_part_volumes <- estimate_volume_interior_pme(
@@ -264,7 +315,8 @@ estimate_volume_case8 <- function(
     time_points,
     n_points = 10000,
     data_max = sim_data_centers,
-    limit_scaler = 0.05
+    limit_scaler = 0.05,
+    partition_index = 1
   )
 
   volume_list <- list(
