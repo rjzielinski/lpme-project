@@ -236,12 +236,13 @@ write_csv(rthal_surface, here("data/rthal_surface_fsl_processed.csv"))
 
 patnos <- unique(lhipp_surface$subid)
 cores <- parallel::detectCores()
-plan(multisession, workers = cores)
+# plan(multisession, workers = cores)
+daemons(cores)
 
 lhipp_results <- list()
 
 for (patno_idx in seq_along(patnos)) {
-  lhipp_results[[patno_idx]] <- future(
+  lhipp_results[[patno_idx]] <- mirai(
     {
       patno <- patnos[patno_idx]
       patno_lhipp <- lhipp_surface |>
@@ -689,11 +690,16 @@ for (patno_idx in seq_along(patnos)) {
 
       models
     },
-    seed = TRUE
+    seed = TRUE,
+    patnos = patnos,
+    patno_idx = patno_idx,
+    lhipp_surface = lhipp_surface,
+    lhipp_centers = lhipp_centers
   )
 }
 
-lhipp_results_out <- purrr::map(lhipp_results, value)
+# lhipp_results_out <- purrr::map(lhipp_results, value)
+lhipp_results_out <- purrr::map(lhipp_results, ~ .x[])
 
 
 lhipp_df_list <- list()
@@ -749,7 +755,7 @@ lhipp_df <- bind_rows(lhipp_df_list)
 rhipp_results <- list()
 
 for (patno_idx in seq_along(patnos)) {
-  rhipp_results[[patno_idx]] <- future(
+  rhipp_results[[patno_idx]] <- mirai(
     {
       patno <- patnos[patno_idx]
       patno_rhipp <- rhipp_surface |>
@@ -1197,11 +1203,17 @@ for (patno_idx in seq_along(patnos)) {
 
       models
     },
-    seed = TRUE
+    seed = TRUE,
+    patnos = patnos,
+    patno_idx = patno_idx,
+    rhipp_surface = rhipp_surface,
+    rhipp_centers = rhipp_centers
   )
 }
 
-rhipp_results_out <- purrr::map(rhipp_results, value)
+# rhipp_results_out <- purrr::map(rhipp_results, value)
+rhipp_results_out <- purrr::map(rhipp_results, ~ .x[])
+
 
 
 rhipp_df_list <- list()
@@ -1257,7 +1269,7 @@ rhipp_df <- bind_rows(rhipp_df_list)
 lthal_results <- list()
 
 for (patno_idx in seq_along(patnos)) {
-  lthal_results[[patno_idx]] <- future(
+  lthal_results[[patno_idx]] <- mirai(
     {
       patno <- patnos[patno_idx]
       patno_lthal <- lthal_surface |>
@@ -1705,11 +1717,17 @@ for (patno_idx in seq_along(patnos)) {
 
       models
     },
-    seed = TRUE
+    seed = TRUE,
+    patnos = patnos,
+    patno_idx = patno_idx,
+    lthal_surface = lthal_surface,
+    lthal_centers = lthal_centers
   )
 }
 
-lthal_results_out <- purrr::map(lthal_results, value)
+# lthal_results_out <- purrr::map(lthal_results, value)
+lthal_results_out <- purrr::map(lthal_results, ~ .x[])
+
 
 
 lthal_df_list <- list()
@@ -1765,7 +1783,7 @@ lthal_df <- bind_rows(lthal_df_list)
 rthal_results <- list()
 
 for (patno_idx in seq_along(patnos)) {
-  rthal_results[[patno_idx]] <- future(
+  rthal_results[[patno_idx]] <- mirai(
     {
       patno <- patnos[patno_idx]
       patno_rthal <- rthal_surface |>
@@ -2213,11 +2231,17 @@ for (patno_idx in seq_along(patnos)) {
 
       models
     },
-    seed = TRUE
+    seed = TRUE,
+    patnos = patnos,
+    patno_idx = patno_idx,
+    rthal_surface = rthal_surface,
+    rthal_centers = rthal_centers
   )
 }
 
-rthal_results_out <- purrr::map(rthal_results, value)
+# rthal_results_out <- purrr::map(rthal_results, value)
+rthal_results_out <- purrr::map(rthal_results, ~ .x[])
+
 
 
 rthal_df_list <- list()
@@ -2270,12 +2294,15 @@ for (patno_idx in seq_along(patnos)) {
 
 rthal_df <- bind_rows(rthal_df_list)
 
-
 adni_volumes <- bind_cols(
   lhipp_df,
   rhipp_df,
   lthal_df,
   rthal_df
 )
+
+if (!dir.exists(here("output/adni/", patno))) {
+        dir.create(here("output/adni/"), recursive = TRUE)
+      }
 
 write_csv(adni_volumes, here("output/adni/adni_volumes.csv"))
