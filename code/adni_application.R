@@ -18,6 +18,7 @@ source(here("code/functions/interior_identification.R"))
 source(here("code/prinSurf_v3.R"))
 source(here("code/functions/estimate_volume_interior.R"))
 
+options(future.globals.maxSize = 4 * 1e9)
 
 lhipp_surface <- read_csv(here("data/lhipp_surface_fsl.csv"))
 rhipp_surface <- read_csv(here("data/rhipp_surface_fsl.csv"))
