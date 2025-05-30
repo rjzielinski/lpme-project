@@ -41,3 +41,9 @@ To demonstrate the use of the LPME algorithm for a real dataset, we considered t
 - Repeat this process for the image descriptions, "MPRAGE", "MP-RAGE REPEAT", and "MPRAGE REPEAT".
 - Navigate to your collection under the "Data Collections" tab and select all the images. Then hit the "Advanced Download" button, configure the number of zip files to meet your needs. Note that these will be large downloads and will likely take a long time to complete.
 - Move your downloaded dataset to the `data/` directory and unzip the file to `data/adni`. Now you are ready to proceed to the image preprocessing steps in `code/03_adni_mri_preprocess.qmd`.
+
+To obtain diagnostic information for the study participants, proceed as follows:
+
+- Under the "Search & Download" tab at the top of the page, select "Study Files".
+- Open the "Assessments" tab, and click the plus sign next to the "DXSUM" table to add the diagnostic summary table to your collections.
+- Click on the "Downloads" tab, check the box next to the desired file, and download.
