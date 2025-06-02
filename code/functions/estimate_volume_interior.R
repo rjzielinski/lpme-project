@@ -129,10 +129,10 @@ estimate_volume_interior_lpme <- function(
 
     lpme_interior <- c(lpme_interior_pt1, lpme_interior_pt2)
     lpme_interior_candidates <- rbind(
-      candidates_scaled[candidates_scaled[, partition_index] > 0, ][
+      candidates[candidates_scaled[, partition_index] > 0, ][
         lpme_interior_pt1,
       ],
-      candidates_scaled[candidates_scaled[, partition_index] <= 0, ][
+      candidates[candidates_scaled[, partition_index] <= 0, ][
         lpme_interior_pt2,
       ]
     )
