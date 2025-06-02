@@ -9,6 +9,7 @@ estimate_volume_case8 <- function(
   require(dplyr, warn.conflicts = FALSE, quietly = TRUE)
   require(geometry, warn.conflicts = FALSE, quietly = TRUE)
   require(Morpho, warn.conflicts = FALSE, quietly = TRUE)
+  require(purrr, warn.conflicts = FALSE, quietly = TRUE)
   require(Rfast, warn.conflicts = FALSE, quietly = TRUE)
   require(Rvcg, warn.conflicts = FALSE, quietly = TRUE)
 
@@ -41,15 +42,6 @@ estimate_volume_case8 <- function(
       max_x2 = max(abs(X2)),
       max_x3 = max(abs(X3))
     )
-
-  sim_data_centers <- cbind(
-    time_points,
-    matrix(
-      data = rep(1, length(time_points) * 3),
-      nrow = length(time_points),
-      ncol = 3
-    )
-  )
 
   radii <- map(
     seq_along(sim$data$amplitude_values),
