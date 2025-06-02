@@ -172,8 +172,10 @@ estimate_volume_interior_pme <- function(
     y_scale <- as.numeric(data_max[time_idx, 3])
     z_scale <- as.numeric(data_max[time_idx, 4])
 
-    full_volume <- (1 + (2 * limit_scaler))^3 *
-      ((2 * x_scale) * (2 * y_scale) * (2 * z_scale))
+    full_volume <- (2 * (x_scale * (1 + limit_scaler))) *
+      (2 * (y_scale * (1 + limit_scaler))) *
+      (2 * (z_scale * (1 + limit_scaler)))
+
     x_candidates <- runif(
       n = n_points,
       min = -x_scale * (1 + limit_scaler),
@@ -242,10 +244,10 @@ estimate_volume_interior_pme <- function(
 
     pme_interior <- c(pme_interior_pt1, pme_interior_pt2)
     pme_interior_candidates <- rbind(
-      candidates_scaled[candidates_scaled[, partition_index] > 0, ][
+      candidates[candidates_scaled[, partition_index] > 0, ][
         pme_interior_pt1,
       ],
-      candidates_scaled[candidates_scaled[, partition_index] <= 0, ][
+      candidates[candidates_scaled[, partition_index] <= 0, ][
         pme_interior_pt2,
       ]
     )
@@ -254,7 +256,7 @@ estimate_volume_interior_pme <- function(
       voxels,
       cbind(time_points[time_idx], pme_interior_candidates)
     )
-    volumes[time_idx] <- (sum(pme_interior) / n_points) * full_volume
+    volumes[time_idx] <- mean(pme_interior) * full_volume
   }
 
   volume_out <- list(
