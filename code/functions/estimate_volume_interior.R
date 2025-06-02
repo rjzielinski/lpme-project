@@ -143,6 +143,7 @@ estimate_volume_interior_lpme <- function(
     )
     volumes[time_idx] <- mean(lpme_interior) * full_volume
   }
+  voxels <- voxels[-1, ]
 
   volume_out <- list(
     volumes = volumes,
@@ -258,6 +259,8 @@ estimate_volume_interior_pme <- function(
     )
     volumes[time_idx] <- mean(pme_interior) * full_volume
   }
+
+  voxels <- voxels[-1, ]
 
   volume_out <- list(
     volumes = volumes,
