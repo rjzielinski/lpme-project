@@ -141,7 +141,7 @@ estimate_volume_interior_lpme <- function(
       voxels,
       cbind(time_points[time_idx], lpme_interior_candidates)
     )
-    volumes[time_idx] <- (sum(lpme_interior) / n_points) * full_volume
+    volumes[time_idx] <- mean(lpme_interior) * full_volume
   }
 
   volume_out <- list(
