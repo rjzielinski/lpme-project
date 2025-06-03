@@ -13,16 +13,17 @@
 #' @param N The number of observations generated at each time point
 #'
 simulate_data <- function(
-    duration,
-    interval,
-    case,
-    obs_noise,
-    amplitude_noise,
-    period_noise,
-    time_trend,
-    time_change,
-    visit_noise = 0.1,
-    N = 1000) {
+  duration,
+  interval,
+  case,
+  obs_noise,
+  amplitude_noise,
+  period_noise,
+  time_trend,
+  time_change,
+  visit_noise = 0.1,
+  N = 1000
+) {
   # instead of using set interval between visits consider using a parameter
   # for the expected number of follow up visits within the study
   # then draw the observed number of visits from a poisson distribution
@@ -74,10 +75,12 @@ simulate_data <- function(
       c(
         (period[1] / 2) * tau[1],
         (period[2] / 2) * tau[2],
-        amplitude[1] * amplitude[2] * norm(
-          matrix(period[1:d] * tau),
-          type = "F"
-        )
+        amplitude[1] *
+          amplitude[2] *
+          norm(
+            matrix(period[1:d] * tau),
+            type = "F"
+          )
       )
     },
     # case 7: swiss roll
@@ -132,7 +135,14 @@ simulate_data <- function(
   # time_points <- c(0, runif(n_follow_up, min = 0, max = duration))
   time_noise <- rnorm(n = length(time_points) - 1, mean = 0, sd = visit_noise)
   time_noise <- c(0, time_noise)
-  time_points <- time_points + time_noise
+  # ensure
+  time_points <- map(
+    seq_along(time_points),
+    ~ max(time_points[.x] + time_noise[.x], rnorm(1, 1e-2, 1e-3))
+  ) |>
+    reduce(c) |>
+    sort()
+  time_points[1] <- 0
 
   # specify systematic changes in amplitude over time
   time_adjustments <- case_when(
@@ -145,9 +155,8 @@ simulate_data <- function(
   if (max(time_adjustments) == 0) {
     time_adjustments_scaled <- time_adjustments * time_change * 0
   } else {
-    time_adjustments_scaled <- (
-      time_adjustments / max(time_adjustments)
-    ) * time_change
+    time_adjustments_scaled <- (time_adjustments / max(time_adjustments)) *
+      time_change
   }
   # subtract from initial amplitude to replicate effects of atrophy
   amplitude_values <- replicate(2, 1 - time_adjustments_scaled)
@@ -156,7 +165,6 @@ simulate_data <- function(
 
   observed_amplitude_values <- list()
   observed_period_values <- list()
-
 
   sim_matrix <- matrix(NA, nrow = 1, ncol = 1 + d + (2 * D))
   manifold <- manifolds[[case]]
@@ -192,11 +200,25 @@ simulate_data <- function(
     amplitude_noise_vals <- rnorm(d, mean = 0, sd = amplitude_noise)
     period_noise_vals <- rnorm(d, mean = 0, sd = period_noise)
 
-    observed_amplitude_values[[time_idx]] <- amplitude_values[time_idx, ] +
-      amplitude_noise_vals
+    observed_amplitude_values[[time_idx]] <- map(
+      seq_along(amplitude_values[time_idx, ]),
+      ~ max(
+        amplitude_values[time_idx, ][.x] +
+          amplitude_noise_vals[.x],
+        rnorm(1, 1e-2, 1e-3)
+      )
+    ) |>
+      reduce(c)
 
-    observed_period_values[[time_idx]] <- period_values[time_idx, ] +
-      period_noise_vals
+    observed_period_values[[time_idx]] <- map(
+      seq_along(period_values[time_idx, ]),
+      ~ max(
+        period_values[time_idx, ][.x] +
+          period_noise_vals[.x],
+        rnorm(1, 1e-2, 1e-3)
+      )
+    ) |>
+      reduce(c)
 
     # for now assume that voxel-level errors are spatially-independent
     # to incorporate spatial dependencies, allow sd to vary by
@@ -207,7 +229,11 @@ simulate_data <- function(
     # test assumption that the level of voxel-level measurement error varies
     # spatially by simulating GP to determine variance of random noise
     gp_sigma <- calculate_sigma(r, d, obs_noise, bandwidth = 1)
-    obs_noise_adjustment <- MASS::mvrnorm(n = 1, mu = rep(0, N), Sigma = gp_sigma)
+    obs_noise_adjustment <- MASS::mvrnorm(
+      n = 1,
+      mu = rep(0, N),
+      Sigma = gp_sigma
+    )
     obs_noise_adjusted <- (obs_noise) * (1 + obs_noise_adjustment)
     obs_noise_adjusted <- rep(obs_noise_adjusted, each = D)
     obs_noise_vals <- rnorm(N * D, mean = 0, sd = obs_noise_adjusted) |>
@@ -232,8 +258,8 @@ simulate_data <- function(
       seq_len(nrow(r)),
       ~ manifold(
         r[.x, ],
-        amplitude_values[time_idx, ] + amplitude_noise_vals,
-        period_values[time_idx, ] + period_noise_vals
+        observed_amplitude_values[[time_idx]],
+        observed_period_values[[time_idx]]
       )
     ) |>
       unlist() |>
@@ -274,7 +300,7 @@ calculate_sigma <- function(r, d, sd, bandwidth) {
     for (i in seq_len(nrow(r))) {
       for (j in seq_len(nrow(r))) {
         dist <- r[i, 1] - r[j, 1]
-        sigma_mat[i, j] <- sd^2 * exp(- (dist^2) / (2 * bandwidth^2))
+        sigma_mat[i, j] <- sd^2 * exp(-(dist^2) / (2 * bandwidth^2))
       }
     }
   } else if (d == 2) {
@@ -284,13 +310,12 @@ calculate_sigma <- function(r, d, sd, bandwidth) {
       for (j in seq_len(nrow(r))) {
         dist1 <- r[i, 1] - r[j, 1]
         dist2 <- r[i, 2] - r[j, 2]
-        sigma_mat1[i, j] <- sd^2 * exp(- (dist1^2) / (2 * bandwidth^2))
-        sigma_mat2[i, j] <- sd^2 * exp(- (dist2^2) / (2 * bandwidth^2))
+        sigma_mat1[i, j] <- sd^2 * exp(-(dist1^2) / (2 * bandwidth^2))
+        sigma_mat2[i, j] <- sd^2 * exp(-(dist2^2) / (2 * bandwidth^2))
       }
     }
     sigma_mat <- sigma_mat1 * sigma_mat2
   }
-  
 
   return(sigma_mat)
 }
