@@ -237,7 +237,8 @@ write_csv(rthal_surface, here("data/rthal_surface_fsl_processed.csv"))
 patnos <- unique(lhipp_surface$subid)
 patnos <- patnos[1:10]
 cores <- parallel::detectCores()
-plan(multisession, workers = 2)
+# plan(multisession, workers = 2)
+plan(sequential)
 
 lhipp_results <- list()
 
@@ -528,7 +529,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_lhipp_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       lhipp_lpme_part_volumes <- lhipp_lpme_part_volumes$volumes
 
@@ -538,7 +540,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_lhipp_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       lhipp_pme_part_volumes <- lhipp_pme_part_volumes$volumes
 
@@ -1036,7 +1039,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_rhipp_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       rhipp_lpme_part_volumes <- rhipp_lpme_part_volumes$volumes
 
@@ -1046,7 +1050,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_rhipp_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       rhipp_pme_part_volumes <- rhipp_pme_part_volumes$volumes
 
@@ -1544,7 +1549,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_lthal_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       lthal_lpme_part_volumes <- lthal_lpme_part_volumes$volumes
 
@@ -1554,7 +1560,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_lthal_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       lthal_pme_part_volumes <- lthal_pme_part_volumes$volumes
 
@@ -2052,7 +2059,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_rthal_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       rthal_lpme_part_volumes <- rthal_lpme_part_volumes$volumes
 
@@ -2062,7 +2070,8 @@ for (patno_idx in seq_along(patnos)) {
         time_values,
         n_points = 10000,
         data_max = patno_rthal_centers,
-        limit_scaler = 0.05
+        limit_scaler = 0.05,
+        partition_index = 3
       )
       rthal_pme_part_volumes <- rthal_pme_part_volumes$volumes
 
