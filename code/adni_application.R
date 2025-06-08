@@ -244,44 +244,43 @@ plan(sequential)
 lhipp_results <- list()
 
 for (patno_idx in seq_along(patnos)) {
-patno <- patnos[patno_idx]
-      patno_lhipp <- lhipp_surface |>
-        filter(subid == patno) |>
-        select(time_from_bl, x, y, z, theta, phi) |>
-        mutate(
-          partition = z > 0,
-          partition1 = z > -0.15,
-          partition2 = z < 0.15
-        )
+  patno <- patnos[patno_idx]
+  patno_lhipp <- lhipp_surface |>
+    filter(subid == patno) |>
+    select(time_from_bl, x, y, z, theta, phi) |>
+    mutate(
+      partition = z > 0,
+      partition1 = z > -0.15,
+      partition2 = z < 0.15
+    )
 
-      patno_lhipp_centers <- lhipp_centers |>
-        filter(subid == patno) |>
-        group_by(date) |>
-        summarize(
-          max_x = max(max_x),
-          max_y = max(max_y),
-          max_z = max(max_z)
-        )
+  patno_lhipp_centers <- lhipp_centers |>
+    filter(subid == patno) |>
+    group_by(date) |>
+    summarize(
+      max_x = max(max_x),
+      max_y = max(max_y),
+      max_z = max(max_z)
+    )
 
-      lhipp_aug <- patno_lhipp |>
-        select(-partition, -partition1, -partition2) |>
-        as.matrix()
+  lhipp_aug <- patno_lhipp |>
+    select(-partition, -partition1, -partition2) |>
+    as.matrix()
 
-      lhipp_pt1 <- patno_lhipp |>
-        filter(partition1 == TRUE) |>
-        select(time_from_bl, x, y, z) |>
-        as.matrix()
-      lhipp_pt2 <- patno_lhipp |>
-        filter(partition2 == TRUE) |>
-        select(time_from_bl, x, y, z) |>
-        as.matrix()
+  lhipp_pt1 <- patno_lhipp |>
+    filter(partition1 == TRUE) |>
+    select(time_from_bl, x, y, z) |>
+    as.matrix()
+  lhipp_pt2 <- patno_lhipp |>
+    filter(partition2 == TRUE) |>
+    select(time_from_bl, x, y, z) |>
+    as.matrix()
 
-      time_values <- unique(patno_lhipp$time_from_bl)
-
+  time_values <- unique(patno_lhipp$time_from_bl)
 
   lhipp_results[[patno_idx]] <- future(
     {
-            lhipp_pme_aug_list <- list()
+      lhipp_pme_aug_list <- list()
       lhipp_pme_aug_time_list <- list()
       lhipp_pme_aug_reconstruction_list <- list()
 
