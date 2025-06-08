@@ -14,6 +14,8 @@ source("functions/simulations/estimate_volume_case8.R")
 dir_case8 <- "../output/simulations/case8"
 files_case8 <- list.files(dir_case8)
 
+files_case9 <- list.files("../output/simulations/case9")
+
 ncores <- parallel::detectCores()
 plan(multisession, workers = ncores)
 
@@ -96,4 +98,7 @@ calc_volumes <- function(files_case8) {
 
 sim_volume_df <- calc_volumes(files_case8)
 
+sim_volume_df9 <- calc_volumes(files_case9)
+
 write_csv(sim_volume_df, "../output/simulation_volume_case8.csv")
+write_csv(sim_volume_df9, "../output/simulation_volume_case9.csv")
