@@ -98,6 +98,14 @@ simulate_data <- function(
         amplitude[1] * sin(period[1] * tau[1]) * sin(period[2] * tau[2]),
         amplitude[1] * cos(period[1] * tau[1])
       )
+    },
+    # case 9: sphere
+    function(tau, amplitude, period) {
+      c(
+        amplitude[1] * sin(period[1] * tau[1]) * cos(period[2] * tau[2]),
+        amplitude[1] * sin(period[1] * tau[1]) * sin(period[2] * tau[2]),
+        amplitude[1] * cos(period[1] * tau[1])
+      )
     }
   )
 
@@ -110,7 +118,8 @@ simulate_data <- function(
     case == 5 ~ 3,
     case == 6 ~ 3,
     case == 7 ~ 3,
-    case == 8 ~ 3
+    case == 8 ~ 3,
+    case == 9 ~ 3
   )
   d <- case_when(
     case == 1 ~ 1,
@@ -120,7 +129,8 @@ simulate_data <- function(
     case == 5 ~ 1,
     case == 6 ~ 2,
     case == 7 ~ 2,
-    case == 8 ~ 2
+    case == 8 ~ 2,
+    case == 9 ~ 2
   )
 
   # this assumes that study visits are evenly spaced.
@@ -179,7 +189,7 @@ simulate_data <- function(
     } else if (case == 2) {
       r[, 1] <- runif(N, min = -3 * pi, max = 3 * pi)
     } else if (case == 3) {
-      r[, 1] <- runif(N, min = -0.8 * pi, max = 0.5 * pi)
+      r[, 1] <- runif(N, min = -0.9 * pi, max = 0 * pi)
     } else if (case == 4) {
       r[, 1] <- runif(N, min = -1, max = 1)
     } else if (case == 5) {
@@ -193,6 +203,9 @@ simulate_data <- function(
     } else if (case == 8) {
       r[, 1] <- runif(N, min = 0, max = pi)
       r[, 2] <- runif(N, min = 0, max = 2 * pi)
+    } else if (case == 9) {
+      r[, 1] <- runif(N, min = 0, max = pi)
+      r[, 2] <- runif(N, min = 0, max = 2 * pi)
     }
 
     # image-specific amplitude and period noise indicates measurement error
@@ -204,7 +217,7 @@ simulate_data <- function(
       seq_along(amplitude_values[time_idx, ]),
       ~ max(
         amplitude_values[time_idx, ][.x] +
-          amplitude_noise_vals[.x],
+          (amplitude_noise_vals * (1 - time_adjustments_scaled[time_idx])),
         rnorm(1, 1e-2, 1e-3)
       )
     ) |>
@@ -214,7 +227,7 @@ simulate_data <- function(
       seq_along(period_values[time_idx, ]),
       ~ max(
         period_values[time_idx, ][.x] +
-          period_noise_vals[.x],
+          period_noise_vals,
         rnorm(1, 1e-2, 1e-3)
       )
     ) |>
@@ -228,7 +241,7 @@ simulate_data <- function(
 
     # test assumption that the level of voxel-level measurement error varies
     # spatially by simulating GP to determine variance of random noise
-    gp_sigma <- calculate_sigma(r, d, obs_noise, bandwidth = 1)
+    gp_sigma <- calculate_sigma(r, d, obs_noise / 4, bandwidth = 1)
     obs_noise_adjustment <- MASS::mvrnorm(
       n = 1,
       mu = rep(0, N),
@@ -238,6 +251,10 @@ simulate_data <- function(
     obs_noise_adjusted <- rep(obs_noise_adjusted, each = D)
     obs_noise_vals <- rnorm(N * D, mean = 0, sd = obs_noise_adjusted) |>
       matrix(nrow = N, ncol = D, byrow = TRUE)
+
+    if (case == 9) {
+      obs_noise_vals <- abs(obs_noise_vals)
+    }
 
     # use true underlying amplitude and period values to generate
     # denoised observations
