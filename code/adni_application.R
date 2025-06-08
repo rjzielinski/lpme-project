@@ -244,9 +244,7 @@ plan(sequential)
 lhipp_results <- list()
 
 for (patno_idx in seq_along(patnos)) {
-  lhipp_results[[patno_idx]] <- future(
-    {
-      patno <- patnos[patno_idx]
+patno <- patnos[patno_idx]
       patno_lhipp <- lhipp_surface |>
         filter(subid == patno) |>
         select(time_from_bl, x, y, z, theta, phi) |>
@@ -280,7 +278,10 @@ for (patno_idx in seq_along(patnos)) {
 
       time_values <- unique(patno_lhipp$time_from_bl)
 
-      lhipp_pme_aug_list <- list()
+
+  lhipp_results[[patno_idx]] <- future(
+    {
+            lhipp_pme_aug_list <- list()
       lhipp_pme_aug_time_list <- list()
       lhipp_pme_aug_reconstruction_list <- list()
 
@@ -714,21 +715,21 @@ for (patno_idx in seq_along(patnos)) {
   lhipp_pc_part <- lhipp$pc_part
 
   lhipp_time_values <- unique(lhipp_lpme_aug$reconstructions[, 1])
-  lhipp_lpme_aug_vols <- lhipp_lpme_aug$volumes$volumes
+  lhipp_lpme_aug_vols <- lhipp_lpme_aug_volumes$volumes
   lhipp_lpme_aug_time <- lhipp_lpme_aug$fit_time
 
-  lhipp_pme_aug_vols <- lhipp_pme_aug$volumes$volumes
+  lhipp_pme_aug_vols <- lhipp_pme_aug_volumes$volumes
   lhipp_pme_aug_time <- lhipp_pme_aug$fit_time
 
-  lhipp_lpme_part_vols <- lhipp_lpme_part$volumes$volumes
+  lhipp_lpme_part_vols <- lhipp_lpme_part_volumes$volumes
   lhipp_lpme_part_vols_mesh <- lhipp_lpme_part$volumes_mesh
   lhipp_lpme_part_time <- lhipp_lpme_part$fit_time
 
-  lhipp_pme_part_vols <- lhipp_pme_part$volumes$volumes
+  lhipp_pme_part_vols <- lhipp_pme_part_volumes$volumes
   lhipp_pme_part_vols_mesh <- lhipp_pme_part$volumes_mesh
   lhipp_pme_part_time <- lhipp_pme_part$fit_time
 
-  lhipp_pc_part_vols <- lhipp_pc_part$volumes$volumes
+  lhipp_pc_part_vols <- lhipp_pc_part_volumes$volumes
   lhipp_pc_part_time <- lhipp_pc_part$fit_time
 
   lhipp_df_list[[patno_idx]] <- tibble(
@@ -1224,21 +1225,21 @@ for (patno_idx in seq_along(patnos)) {
   rhipp_pc_part <- rhipp$pc_part
 
   rhipp_time_values <- unique(rhipp_lpme_aug$reconstructions[, 1])
-  rhipp_lpme_aug_vols <- rhipp_lpme_aug$volumes$volumes
+  rhipp_lpme_aug_vols <- rhipp_lpme_aug_volumes$volumes
   rhipp_lpme_aug_time <- rhipp_lpme_aug$fit_time
 
-  rhipp_pme_aug_vols <- rhipp_pme_aug$volumes$volumes
+  rhipp_pme_aug_vols <- rhipp_pme_aug_volumes$volumes
   rhipp_pme_aug_time <- rhipp_pme_aug$fit_time
 
-  rhipp_lpme_part_vols <- rhipp_lpme_part$volumes$volumes
+  rhipp_lpme_part_vols <- rhipp_lpme_part_volumes$volumes
   rhipp_lpme_part_vols_mesh <- rhipp_lpme_part$volumes_mesh
   rhipp_lpme_part_time <- rhipp_lpme_part$fit_time
 
-  rhipp_pme_part_vols <- rhipp_pme_part$volumes$volumes
+  rhipp_pme_part_vols <- rhipp_pme_part_volumes$volumes
   rhipp_pme_part_vols_mesh <- rhipp_pme_part$volumes_mesh
   rhipp_pme_part_time <- rhipp_pme_part$fit_time
 
-  rhipp_pc_part_vols <- rhipp_pc_part$volumes$volumes
+  rhipp_pc_part_vols <- rhipp_pc_part_volumes$volumes
   rhipp_pc_part_time <- rhipp_pc_part$fit_time
 
   rhipp_df_list[[patno_idx]] <- tibble(
@@ -1734,21 +1735,21 @@ for (patno_idx in seq_along(patnos)) {
   lthal_pc_part <- lthal$pc_part
 
   lthal_time_values <- unique(lthal_lpme_aug$reconstructions[, 1])
-  lthal_lpme_aug_vols <- lthal_lpme_aug$volumes$volumes
+  lthal_lpme_aug_vols <- lthal_lpme_aug_volumes$volumes
   lthal_lpme_aug_time <- lthal_lpme_aug$fit_time
 
-  lthal_pme_aug_vols <- lthal_pme_aug$volumes$volumes
+  lthal_pme_aug_vols <- lthal_pme_aug_volumes$volumes
   lthal_pme_aug_time <- lthal_pme_aug$fit_time
 
-  lthal_lpme_part_vols <- lthal_lpme_part$volumes$volumes
+  lthal_lpme_part_vols <- lthal_lpme_part_volumes$volumes
   lthal_lpme_part_vols_mesh <- lthal_lpme_part$volumes_mesh
   lthal_lpme_part_time <- lthal_lpme_part$fit_time
 
-  lthal_pme_part_vols <- lthal_pme_part$volumes$volumes
+  lthal_pme_part_vols <- lthal_pme_part_volumes$volumes
   lthal_pme_part_vols_mesh <- lthal_pme_part$volumes_mesh
   lthal_pme_part_time <- lthal_pme_part$fit_time
 
-  lthal_pc_part_vols <- lthal_pc_part$volumes$volumes
+  lthal_pc_part_vols <- lthal_pc_part_volumes$volumes
   lthal_pc_part_time <- lthal_pc_part$fit_time
 
   lthal_df_list[[patno_idx]] <- tibble(
@@ -2244,21 +2245,21 @@ for (patno_idx in seq_along(patnos)) {
   rthal_pc_part <- rthal$pc_part
 
   rthal_time_values <- unique(rthal_lpme_aug$reconstructions[, 1])
-  rthal_lpme_aug_vols <- rthal_lpme_aug$volumes$volumes
+  rthal_lpme_aug_vols <- rthal_lpme_aug_volumes$volumes
   rthal_lpme_aug_time <- rthal_lpme_aug$fit_time
 
-  rthal_pme_aug_vols <- rthal_pme_aug$volumes$volumes
+  rthal_pme_aug_vols <- rthal_pme_aug_volumes$volumes
   rthal_pme_aug_time <- rthal_pme_aug$fit_time
 
-  rthal_lpme_part_vols <- rthal_lpme_part$volumes$volumes
+  rthal_lpme_part_vols <- rthal_lpme_part_volumes$volumes
   rthal_lpme_part_vols_mesh <- rthal_lpme_part$volumes_mesh
   rthal_lpme_part_time <- rthal_lpme_part$fit_time
 
-  rthal_pme_part_vols <- rthal_pme_part$volumes$volumes
+  rthal_pme_part_vols <- rthal_pme_part_volumes$volumes
   rthal_pme_part_vols_mesh <- rthal_pme_part$volumes_mesh
   rthal_pme_part_time <- rthal_pme_part$fit_time
 
-  rthal_pc_part_vols <- rthal_pc_part$volumes$volumes
+  rthal_pc_part_vols <- rthal_pc_part_volumes$volumes
   rthal_pc_part_time <- rthal_pc_part$fit_time
 
   rthal_df_list[[patno_idx]] <- tibble(
