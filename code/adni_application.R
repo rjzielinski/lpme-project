@@ -236,10 +236,9 @@ write_csv(lthal_surface, here("data/lthal_surface_fsl_processed.csv"))
 write_csv(rthal_surface, here("data/rthal_surface_fsl_processed.csv"))
 
 patnos <- unique(lhipp_surface$subid)
-patnos <- patnos[1:10]
 cores <- parallel::detectCores()
-# plan(multisession, workers = 2)
-plan(sequential)
+plan(multisession, workers = cores)
+# plan(sequential)
 
 lhipp_results <- list()
 
