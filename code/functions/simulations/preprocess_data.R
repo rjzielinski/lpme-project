@@ -20,7 +20,7 @@ preprocess_data <- function(df, case, d, D) {
 
   # where, if anywhere, should case 7 (swiss roll) be included?
   polar_cases <- c(3)
-  spherical_cases <- c(8)
+  spherical_cases <- c(8, 9)
 
   if (case %in% polar_cases) {
     observed_polar <- df |>
