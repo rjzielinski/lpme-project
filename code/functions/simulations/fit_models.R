@@ -8,7 +8,7 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
 
   mat <- as.matrix(data$df_observed)
 
-  if (case == 8) {
+  if (case %in% c(3, 8, 9)) {
     partition <- TRUE
   }
 
@@ -148,7 +148,7 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
     lpme_part_results <- replicate(2, NULL, simplify = FALSE)
     pme_part_results <- replicate(
       2,
-      replicate(length(time_values), NULL, simplify = FALSE), 
+      replicate(length(time_values), NULL, simplify = FALSE),
       simplify = FALSE
     )
     pc_part_results <- replicate(
@@ -160,7 +160,7 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
     lpme_part_reconstructions <- replicate(2, NULL, simplify = FALSE)
     pme_part_reconstructions <- replicate(
       2,
-      replicate(length(time_values), NULL, simplify = FALSE), 
+      replicate(length(time_values), NULL, simplify = FALSE),
       simplify = FALSE
     )
     pc_part_reconstructions <- replicate(
@@ -172,7 +172,7 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
     lpme_part_times <- replicate(2, NULL, simplify = FALSE)
     pme_part_times <- replicate(
       2,
-      replicate(length(time_values), NULL, simplify = FALSE), 
+      replicate(length(time_values), NULL, simplify = FALSE),
       simplify = FALSE
     )
     pc_part_times <- replicate(
@@ -183,9 +183,9 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
 
     tic()
     lpme_part_results[[1]] <- lpme(
-      mat_part1, 
-      d, 
-      verbose = FALSE, 
+      mat_part1,
+      d,
+      verbose = FALSE,
       print_plots = FALSE
     )
     lpme_part_times[[1]] <- toc()
@@ -213,14 +213,18 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
       tic()
       pme_part_results[[1]][[time_idx]] <- pme(temp_data_part1, d = d)
       pme_part_times[[1]][[time_idx]] <- toc()
-      pme_part_reconstructions[[1]][[time_idx]] <- calculate_pme_reconstructions(
+      pme_part_reconstructions[[1]][[
+        time_idx
+      ]] <- calculate_pme_reconstructions(
         pme_part_results[[1]][[time_idx]],
         temp_data_part1
       )
       tic()
       pme_part_results[[2]][[time_idx]] <- pme(temp_data_part2, d = d)
       pme_part_times[[2]][[time_idx]] <- toc()
-      pme_part_reconstructions[[2]][[time_idx]] <- calculate_pme_reconstructions(
+      pme_part_reconstructions[[2]][[
+        time_idx
+      ]] <- calculate_pme_reconstructions(
         pme_part_results[[2]][[time_idx]],
         temp_data_part2
       )
@@ -234,37 +238,95 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
         pme_part_reconstructions[[2]][[time_idx]]
       )
 
-      tic()
-      principal_surface_part1 <- prinSurf(temp_data_part1)
-      pc_part_times[[1]][[time_idx]] <- toc()
-      surface_mse_part1 <- map(
-        seq_along(principal_surface_part1),
-        ~ principal_surface_part1[[.x]]$MSE
-      ) |>
-        unlist()
-      opt_surface_part1 <- which.min(surface_mse_part1)
+      if (d == 1) {
+        principal_curves_pt1 <- list()
+        pc_times_pt1 <- list()
+        pc_error_pt1 <- vector()
+        for (smoother_idx in seq_along(smoothing_options)) {
+          tic()
+          principal_curves_pt1[[smoother_idx]] <- principal_curve(
+            temp_data_part1,
+            smoother = smoothing_options[[smoother_idx]]
+          )
+          pc_times_pt1[[smoother_idx]] <- toc()
+          pc_error_pt1[smoother_idx] <- principal_curves_pt1[[
+            smoother_idx
+          ]]$dist
+        }
+        opt_principal_curve_pt1 <- which.min(pc_error_pt1)
+        pc_part_results[[1]][[time_idx]] <- principal_curves_pt1[[
+          opt_principal_curve_pt1
+        ]]
+        pc_part_reconstructions[[1]][[time_idx]] <- cbind(
+          time_values[time_idx],
+          pc_part_results[[1]][[time_idx]]$s
+        )
+        pc_part_times[[1]][[time_idx]] <- pc_times_pt1[[
+          opt_principal_curve_pt1
+        ]]
 
-      pc_part_results[[1]][[time_idx]] <- principal_surface_part1[[opt_surface_part1 + 2]]
-      pc_part_reconstructions[[1]][[time_idx]] <- cbind(
-        time_values[time_idx],
-        principal_surface_part1[[opt_surface_part1 + 2]]$PS
-      )
+        principal_curves_pt2 <- list()
+        pc_times_pt2 <- list()
+        pc_error_pt2 <- vector()
+        for (smoother_idx in seq_along(smoothing_options)) {
+          tic()
+          principal_curves_pt2[[smoother_idx]] <- principal_curve(
+            temp_data_part2,
+            smoother = smoothing_options[[smoother_idx]]
+          )
+          pc_times_pt2[[smoother_idx]] <- toc()
+          pc_error_pt2[smoother_idx] <- principal_curves_pt2[[
+            smoother_idx
+          ]]$dist
+        }
+        opt_principal_curve_pt2 <- which.min(pc_error_pt2)
+        pc_part_results[[2]][[time_idx]] <- principal_curves_pt2[[
+          opt_principal_curve_pt2
+        ]]
+        pc_part_reconstructions[[2]][[time_idx]] <- cbind(
+          time_values[time_idx],
+          pc_part_results[[2]][[time_idx]]$s
+        )
+        pc_part_times[[2]][[time_idx]] <- pc_times_pt2[[
+          opt_principal_curve_pt2
+        ]]
+      } else if (d == 2) {
+        tic()
+        principal_surface_part1 <- prinSurf(temp_data_part1)
+        pc_part_times[[1]][[time_idx]] <- toc()
+        surface_mse_part1 <- map(
+          seq_along(principal_surface_part1),
+          ~ principal_surface_part1[[.x]]$MSE
+        ) |>
+          unlist()
+        opt_surface_part1 <- which.min(surface_mse_part1)
 
-      tic()
-      principal_surface_part2 <- prinSurf(temp_data_part2)
-      pc_part_times[[2]][[time_idx]] <- toc()
-      surface_mse_part2 <- map(
-        seq_along(principal_surface_part2),
-        ~ principal_surface_part2[[.x]]$MSE
-      ) |>
-        unlist()
-      opt_surface_part2 <- which.min(surface_mse_part2)
+        pc_part_results[[1]][[time_idx]] <- principal_surface_part1[[
+          opt_surface_part1 + 2
+        ]]
+        pc_part_reconstructions[[1]][[time_idx]] <- cbind(
+          time_values[time_idx],
+          principal_surface_part1[[opt_surface_part1 + 2]]$PS
+        )
 
-      pc_part_results[[2]][[time_idx]] <- principal_surface_part2[[opt_surface_part2 + 2]]
-      pc_part_reconstructions[[2]][[time_idx]] <- cbind(
-        time_values[time_idx],
-        principal_surface_part2[[opt_surface_part2 + 2]]$PS
-      )
+        tic()
+        principal_surface_part2 <- prinSurf(temp_data_part2)
+        pc_part_times[[2]][[time_idx]] <- toc()
+        surface_mse_part2 <- map(
+          seq_along(principal_surface_part2),
+          ~ principal_surface_part2[[.x]]$MSE
+        ) |>
+          unlist()
+        opt_surface_part2 <- which.min(surface_mse_part2)
+
+        pc_part_results[[2]][[time_idx]] <- principal_surface_part2[[
+          opt_surface_part2 + 2
+        ]]
+        pc_part_reconstructions[[2]][[time_idx]] <- cbind(
+          time_values[time_idx],
+          principal_surface_part2[[opt_surface_part2 + 2]]$PS
+        )
+      }
     }
 
     lpme_part_reconstructions[[1]] <- cbind(
@@ -276,13 +338,15 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
       lpme_part_reconstructions[[2]]
     )
     lpme_part_reconstructions <- reduce(lpme_part_reconstructions, rbind)
-    lpme_part_reconstructions <- lpme_part_reconstructions[order(lpme_part_reconstructions[, 1]), ]
+    lpme_part_reconstructions <- lpme_part_reconstructions[
+      order(lpme_part_reconstructions[, 1]),
+    ]
     lpme_part_reconstructions <- lpme_part_reconstructions[, -1]
-    
+
     pme_part_reconstructions <- map(
       seq_along(pme_part_reconstructions),
       ~ reduce(pme_part_reconstructions[[.x]], rbind)
-    ) 
+    )
     pme_part_reconstructions[[1]] <- cbind(
       part1_order,
       pme_part_reconstructions[[1]]
@@ -292,13 +356,15 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
       pme_part_reconstructions[[2]]
     )
     pme_part_reconstructions <- reduce(pme_part_reconstructions, rbind)
-    pme_part_reconstructions <- pme_part_reconstructions[order(pme_part_reconstructions[, 1]), ]
+    pme_part_reconstructions <- pme_part_reconstructions[
+      order(pme_part_reconstructions[, 1]),
+    ]
     pme_part_reconstructions <- pme_part_reconstructions[, -1]
 
     pc_part_reconstructions <- map(
       seq_along(pc_part_reconstructions),
       ~ reduce(pc_part_reconstructions[[.x]], rbind)
-    ) 
+    )
     pc_part_reconstructions[[1]] <- cbind(
       part1_order,
       pc_part_reconstructions[[1]]
@@ -308,9 +374,10 @@ fit_models <- function(data, case, d, D, partition = FALSE) {
       pc_part_reconstructions[[2]]
     )
     pc_part_reconstructions <- reduce(pc_part_reconstructions, rbind)
-    pc_part_reconstructions <- pc_part_reconstructions[order(pc_part_reconstructions[, 1]), ]
+    pc_part_reconstructions <- pc_part_reconstructions[
+      order(pc_part_reconstructions[, 1]),
+    ]
     pc_part_reconstructions <- pc_part_reconstructions[, -1]
-    
 
     lpme_part_out <- list(
       lpme = lpme_part_results,
