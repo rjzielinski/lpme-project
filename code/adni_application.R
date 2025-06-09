@@ -19,7 +19,7 @@ source(here("code/functions/interior_identification.R"))
 source(here("code/prinSurf_v3.R"))
 source(here("code/functions/estimate_volume_interior.R"))
 
-options(future.globals.maxSize = 4 * 1e9)
+# options(future.globals.maxSize = 4 * 1e9)
 
 lhipp_surface <- read_csv(here("data/lhipp_surface_fsl.csv"))
 rhipp_surface <- read_csv(here("data/rhipp_surface_fsl.csv"))
@@ -691,6 +691,14 @@ for (patno_idx in seq_along(patnos)) {
         here(paste0("output/adni/", patno, "/lhipp_results.RDS"))
       )
 
+      lhipp_lpme_aug_out <- NULL
+      lhipp_pme_aug_out <- NULL
+      lhipp_lpme_part_out <- NULL
+      lhipp_pme_part_out <- NULL
+      lhipp_pc_part_out <- NULL
+
+      gc()
+
       lhipp_out <- tibble(
         patno = patno,
         lhipp_time_values = time_values,
@@ -1170,6 +1178,14 @@ for (patno_idx in seq_along(patnos)) {
         rhipp,
         here(paste0("output/adni/", patno, "/rhipp_results.RDS"))
       )
+
+      rhipp_lpme_aug_out <- NULL
+      rhipp_pme_aug_out <- NULL
+      rhipp_lpme_part_out <- NULL
+      rhipp_pme_part_out <- NULL
+      rhipp_pc_part_out <- NULL
+
+      gc()
 
       rhipp_out <- tibble(
         patno = patno,
@@ -1651,6 +1667,14 @@ for (patno_idx in seq_along(patnos)) {
         here(paste0("output/adni/", patno, "/lthal_results.RDS"))
       )
 
+      lthal_lpme_aug_out <- NULL
+      lthal_pme_aug_out <- NULL
+      lthal_lpme_part_out <- NULL
+      lthal_pme_part_out <- NULL
+      lthal_pc_part_out <- NULL
+
+      gc()
+
       lthal_out <- tibble(
         patno = patno,
         lthal_time_values = time_values,
@@ -2129,6 +2153,14 @@ for (patno_idx in seq_along(patnos)) {
         rthal,
         here(paste0("output/adni/", patno, "/rthal_results.RDS"))
       )
+
+      rthal_lpme_aug_out <- NULL
+      rthal_pme_aug_out <- NULL
+      rthal_lpme_part_out <- NULL
+      rthal_pme_part_out <- NULL
+      rthal_pc_part_out <- NULL
+
+      gc()
 
       rthal_out <- tibble(
         patno = patno,
