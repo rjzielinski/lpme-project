@@ -172,8 +172,7 @@ Again, while we focus here on individual-level estimates, we agree that group-le
 
   {\bf Response:} The reason for this is two-fold, first we decided to constrain the analysis to ADNI 1, the first stage of the study, in order to obtain a sample where the participants have the highest number of follow-up scans. Secondly, our aim is to use MRI scans that are of the same format across the participants. To download the ADNI data, we rely on the Image \& Data Archive, run by the Laboratory of Neuro Imaging at the USC Mark and Mary Stevens Neuroimaging and Informatics Institute. We ran a search for all T1-weighted MRI images from the ADNI 1 study, and limited our analysis to images with descriptions containing ``MPRAGE" or ``MP-RAGE", as these images were taken according to the same specifications and provide a high resolution view of the structures of interest. However, this search did not include images for all subjects enrolled in the study, resulting in the discrepancy noted by the Referee. We describe the procedures of participant selection in the GitHub repository that we created for this project to ensure that users can replicate the analysis using these specific keywords when downloading the ADNI data. To show the performance of LPME on a larger set of participants,  we  have since incorporated data from the ADNI 2 and ADNI 3 cohorts as well, with similar differences between the number of subjects for whom MP-RAGE images are available and the total number subjects enrolled in the study. We also restricted our search to participants with more than 2 years of follow-up to ensure that we have enough data points for the longitudinal analysis. We have updated Section 5 of the paper to describe this reasoning and address the Referees concern as follows: 
 
-\revision{While the original ADNI 1 cohort included 200 cognitively healthy elderly individuals,
-400 with mild cognitive impairment, and 200 with AD, this analysis focuses on 463 participants for whom T1-weighted MP-RAGE images were available through the study's online repository, located at \href{https://ida.loni.usc.edu/login.jsp?project=ADNI}{\texttt{https://ida.loni.usc.edu/login.jsp?project=ADNI}}. Of these participants, 130 were cognitively normal, 223 displayed symptoms of mild cognitive impairment, and 101 were diagnosed with AD at the baseline study visit.}
+\revision{This analysis focuses on 1467 participants from the ADNI-1, ADNI-2, and ADNI-3 cohorts for whom T1-weighted MP-RAGE images were available through the study's online repository, located at located at \href{https://ida.loni.usc.edu/login.jsp?project=ADNI}{\texttt{https://ida.loni.usc.edu/login.jsp?project=ADNI}}}. Of these participants, \revision{435} were cognitively normal, \revision{741} displayed symptoms of mild cognitive impairment, and \revision{271} were diagnosed with AD at the baseline study visit. Diagnostic information was unavailable for \revision{20} of the \revision{1467} participants for whom imaging data was available. Of the \revision{435} cognitively normal participants, \revision{108} were subsequently diagnosed with mild cognitive impairment or dementia during the course of the study. Follow-up duration for these participants ranged from 0 months to approximately \revision{124} months, with imaging scheduled to be conducted at six- or 12-month intervals depending on the stage of the study. To encourage greater stability of longitudinal estimates, only participants with at least 24 months of follow-up were considered. Our final analysis set included \revision{909} participants. Of these remaining participants, \revision{328} were cognitively normal, \revision{477} had mild cognitive impairment, and \revision{104} were diagnosed with AD at their baseline visits.
 
 
 \item \textit{In line 27 on page 25, it says "The LPME method was applied to the 236 subjects from the three groups, CN, MCI, and AD, for image segmentation." But the LPME is for longitudinal data analysis, not for image segmentation.}
@@ -213,21 +212,19 @@ As discussed previously, \revision{substantial} between-image errors in estimate
 
 {\bf Response:} 
 
-\begin{itemize}
-    \item The method doesn't necessarily assume that the underlying manifold is minimally changing over time; we only depend heavily on the assumption that any changes in the underlying manifold can be well described by a smooth time function. If there are changes in the underlying manifold, then we assume that there are enough observations along the time function yield an accurate approximation.
-    \item However, in the case of the application we are considering (brain morphology), both of these assumptions are reasonable. While the healthy adult brain does exhibit changes throughout aging, these changes are minor in terms of the overall structure of the brain, and tend to be gradual (look to Fjell paper as potential citation). Given that the effects of AD are typically felt over the span of years, we expect this to reasonably extend to those with AD as well.
-    \item We have simulation results that indicate the LPME method can handle smooth changes in the underlying manifold - updates will be made to the simulation section to highlight this.
-\end{itemize}
+Consideration of the assumptions made by our modeling approach is crucial to understanding the situations in which it may be appropriately applied. We distinguish between the assumptions that the underlying manifold is minimally changing over time and that these changes can be well described using a smooth function with respect to time. While the smoothing spline functions that we use impose the assumption of smoothness, they do not require the changes in the underlying manifold over time to be minimal. As we seek to demonstrate in our simulations in Section 4 through the incorporation of a function to describe temporal change in the underlying manifold, denoted by $g(t)$, the proposed approach can accommodate longitudinal change of varying magnitudes, as long as the functions dictating this change are indeed smooth.
+
+While the proposed methodology does not require that changes in the underlying manifold are minimal, we believe that this characteristic is common in the subcortical surfaces we model. The healthy adult brain does exhibit changes as it ages, but these changes tend to be minor in terms of the overall structure of the brain,  and are felt over the span of years. In the case of the hippocampus, a review conducted by \citet{fjell2014What} finds support for annual atrophy rates of 0.79-2.0\% in the hippocampus for healthy aging study participants, well below the magnitude of change included in the simulations in Section 4. While this atrophy will be accelerated for those with AD, we expect the magnitude of change to remain within the bounds set by the simulations.
 
 We address these points in the revised manuscript by including the following in Section 3.1:
 
-\revision{Discussion of modeling assumptions and their applicability...}
+\revision{By penalizing the spatial roughness and roughness in the longitudinal changes in the underlying manifold, we effectively assume that the manifold itself, as well as any changes in the manifold, must be able to be described using a smooth function.}
 
 \item {\it Second, it is not clear if the method proposed applies only to discrete time points or if it can be used in the continuous time setting, i.e. with irregular time intervals.}
 
-{\bf Response:} The proposed method can theoretically be used in any situation in which a smoothing spline is appropriate; thus, it is applicable in a continuous time setting. To demonstrate this, we have added random variability to the time points in the simulations, creating irregular time intervals. We have also added the following comment in Section 3.1:
+{\bf Response:} The proposed method can theoretically be used in any situation in which a smoothing spline is appropriate; thus, it is applicable in a continuous time setting. To demonstrate this, we have added random variability to the time points in the simulations, creating irregular time intervals. We have also added the following comment in Section 6:
 
-\revision{The method works effectively with irregular and sparsely observed time points...}
+\revision{Because this method uses a smoothing spline function to estimate longitudinal change in the underlying manifold, it can be applied to cases where time points are observed at discrete intervals or are randomly sampled from a continuous time interval.}
 
 \item  {\it Third, the simulation studies summarized indicate that the new method is advantageous is specific simulation settings. Are such settings relevant to the brain structure changes?}
 
@@ -237,7 +234,11 @@ The important exception to this is case 8, in which observations are sampled fro
 
 We include the following discussion of these factors in Section 4 of the revised manuscript.
 
-\revision{As discussed in Section 3, one of the key assumptions of the proposed approach is that manifolds can be described...}
+\revision{As discussed in Section 3, two important assumptions of the proposed approach are that the target manifold may be described using a smooth function, and that longitudinal changes in the manifold are also smooth. To assess the effects of these assumptions, we selected simulation cases that would exhibit these properties to varying extents.}
+
+Additionally, we include the following exploration of simulation case 8 to assess the accuracy with which we can recover the true volume of the simulated spheres, as follows:
+
+\revision{Of particular interest is simulation case 8, in which observations are sampled from a sphere. For each simulation run, apply the LPME, PME, and PS algorithms to estimate the surface of the underlying sphere, then approximate the volume of the sphere at each time point. Through this process, we assess the ability to recover the true volumes of the simulated spheres using the proposed method...}
 
 \item  {\it Forth, is it feasible to estimate smooth changes over time with a very limited number of longitudinal time points. }
 
@@ -246,6 +247,10 @@ We include the following discussion of these factors in Section 4 of the revised
 We have attempted to investigate this topic in our simulations, as simulation runs with a follow-up duration of 1 year and interval between visits of 6 months will yield a simulated dataset with 3 observations, the minimum needed to fit a nonlinear function describing temporal change. We have included an expanded description of the results in this setting in Section 4, as follows:
 
 \revision{Simulation runs with duration set to 1 year and between visit intervals set to 6 months yield simulated datasets with only 3 visits, making it possible to assess the performance of the proposed method with limited time points...}
+
+We also include an additional comment in Section 6:
+
+\revision{Additionally, the method is applicable when a limited number of time points are observed, as long as those time points sufficiently characterize the properties of the longitudinal change function.}
 
 {\it Specific comments}
 
