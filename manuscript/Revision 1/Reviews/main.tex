@@ -93,7 +93,7 @@ We also updated our analysis of the ADNI data to include the partitioning approa
 
 Finally, inclusion of spatially-dependent noise in the data generation model is an important methodological problem. Given restrictions of page limits, we believe this is out of the scope of our current work. However, we include a comment on this in Section 6 noting that this is an important future research direction as follows. 
 
-\revision{In higher resolution imaging studies, a higher degree of dependence may be assumed between the intensities of voxels in the same neighborhood. Thus, investigation of including spatially-dependent noise in the proposed LPME framework is an important future research direction.}
+\revision{Additional work may also consider alternative observation-level dependencies. In higher resolution imaging studies, a higher degree of dependence may be assumed between the intensities of voxels in the same neighborhood. Thus, investigation of including spatially-dependent noise in the proposed LPME framework is an important future research direction}.
 
 \item {\it Your criterion function (4) includes terms with derivatives in space and another with a derivative in time, but no terms that include mixed partials in space and time.  I am wondering what are the implications of this choice and how much your result would change if you included some kind of integral of a squared mixed partial derivative in (4).  I'm not sure how far you would want to go down this avenue, but I do think it is at least worth acknowledging that the form of (4) is somewhat arbitrary and that other forms might be worth considering.  I would also note that (4) puts no penalty on large linear trends in time, which may not be biologically realistic.}
 
@@ -103,9 +103,13 @@ With this in mind, we expect that including the mixed partial derivatives would 
 
 We add a note on the model presentation in Section 3.1 (AE: maybe add a sentence saying a mixture of partial derivatives could be added in future work.)
 
+\revision{While this is a useful distinction in the neuroimaging context, in other settings, it may be valuable to consider mixed partial derivatives in space and time, an addition that may be pursued in future work.}
+
 Finally, you note that the criterion function does not penalize large linear trends in time. We agree that these large linear trends in time are likely not biologically realistic. However, in our algorithmic approach, we attempted to place minimal assumptions on the form of the manifold and the temporal changes in that form. While we agree that we are unlikely to observe large linear changes in hippocampal structure over time, we feel we do not have enough prior information to explicitly encode those assumptions in the algorithm. The approach we have taken, which penalizes spatial and temporal roughness at a high level, remains flexible, accommodating a range of manifold forms while encouraging biological plausibility. 
 
 We now add the following in Section 6 to encourage further investigation. (AE: Should be added)
+
+\revision{It may be useful to explore alterations to the criterion function given in Equation 4 that enforce a different set of assumptions if, for example, stronger prior beliefs exist regarding the nature of changes in the target manifold.}
 
 
 \item {\it I recommend you add the application to the title of your paper, so something like "Longitudinal Principal Manifold Estimation for Modeling Changes Over Time in Brain Regions".}
@@ -150,7 +154,7 @@ Our work was also motivated by noise introduced during the image segmentation pr
 
 Again, while we focus here on individual-level estimates, we agree that group-level inference is needed to answer a number of interesting research questions, and we plan to address this topic more fully in future work. We add a sentence to this effect in Section 6 as follows. 
 
-\revision{While in this manuscript we focused on individual-level brain region segmentation, future work may consider modeling the data at the population-level to draw statistical inferences on group comparisons or other hypotheses of interest.}
+\revision{While in this manuscript we focused on individual-level brain region segmentation, future work may consider modeling the data at the population level to draw statistical inferences on group comparisons or other hypotheses of interest.}
 
 \item \textit{Also line 9 on page 10 says "for each image i". But the index i is from 1 to $I_t$, so the $x_it$ is an image, not just a 3D voxel? Is the method only for subject-level data analysis, not for group-level data analysis?}
 
@@ -218,7 +222,7 @@ While the proposed methodology does not require that changes in the underlying m
 
 We address these points in the revised manuscript by including the following in Section 3.1:
 
-\revision{By penalizing the spatial roughness and roughness in the longitudinal changes in the underlying manifold, we effectively assume that the manifold itself, as well as any changes in the manifold, must be able to be described using a smooth function.}
+\revision{By penalizing the spatial and longitudinal roughness in the underlying manifold, we effectively assume that the target manifold itself, as well as any changes in the manifold, must be describable using smooth functions.}
 
 \item {\it Second, it is not clear if the method proposed applies only to discrete time points or if it can be used in the continuous time setting, i.e. with irregular time intervals.}
 
@@ -238,7 +242,7 @@ We include the following discussion of these factors in Section 4 of the revised
 
 Additionally, we include the following exploration of simulation case 8 to assess the accuracy with which we can recover the true volume of the simulated spheres, as follows:
 
-\revision{Of particular interest is simulation case 8, in which observations are sampled from a sphere. For each simulation run, apply the LPME, PME, and PS algorithms to estimate the surface of the underlying sphere, then approximate the volume of the sphere at each time point. Through this process, we assess the ability to recover the true volumes of the simulated spheres using the proposed method...}
+\revision{Of particular interest is simulation case 8, in which the simulated data takes the form of a sphere with $D = 3$. Because $t \geq 0$ for all simulated visits, the linear and quadratic forms of $g(\cdot)$ result in a sphere with a decreasing radius, approximating atrophy in a subcortical structure. To examine differences in the two approaches to avoiding self-intersections, the manifold estimation process was conducted twice for each simulated dataset in this case -- once with the data being augmented by spherical coordinates as described in Section \ref{ss:selfInt}, and once with the data split into two partitions. Each set of manifold estimates was then used to obtain an approximation of the spherical volume. For both augmented and partitioned datasets, volume can be estimated by using the \texttt{alphashape3d} package in \texttt{R} to approximate the $\alpha$-shape containing the projections of the observed data onto the estimated manifold, and computing the volume \citep{lafarge2023alphashape3d}. Additionally, if the manifolds were estimated using partitioned data, a Monte Carlo simulation generated points within a three-dimensional space of known volume, and the interior identification approach described in Section 8 of \cite{meng2021Principal} determined the proportion of points belonging to the sphere's interior.}
 
 \item  {\it Forth, is it feasible to estimate smooth changes over time with a very limited number of longitudinal time points. }
 
@@ -246,7 +250,7 @@ Additionally, we include the following exploration of simulation case 8 to asses
 
 We have attempted to investigate this topic in our simulations, as simulation runs with a follow-up duration of 1 year and interval between visits of 6 months will yield a simulated dataset with 3 observations, the minimum needed to fit a nonlinear function describing temporal change. We have included an expanded description of the results in this setting in Section 4, as follows:
 
-\revision{Simulation runs with duration set to 1 year and between visit intervals set to 6 months yield simulated datasets with only 3 visits, making it possible to assess the performance of the proposed method with limited time points...}
+\revision{Note that simulation results with duration set to 1 year and between-visit intervals set to 0.5 years yield simulated datasets with only 3 visits, allowing assessment of performance of the proposed method with limited time points.}
 
 We also include an additional comment in Section 6:
 
@@ -278,7 +282,7 @@ indicates that similar issues persist. For example, \cite{akudjedu2018comparativ
 
 Even for someone with Alzheimer's disease, including a strict monotonicity restriction could overemphasize the images collected at the study's baseline visit or at other early visits, which themselves may underestimate the volume of the structure of interest. By taking the unconstrained smoothing approach we propose, we hope to mitigate most of these unwanted effects in practice while retaining flexibility to overcome this sort of situation. However, in cases where the assumption of monotonicity can be made, it would be interesting to implement this approach and evaluate the potential added benefit. Hence, we include a sentence on this in Section 6 to note inclusion of monotonicity as an interesting future research direction. 
 
-\revision{While not considered in this manuscript, one can add the stronger assumption of monotonicity ...}
+\revision{While not considered in this manuscript, one interesting addition to the approach proposed here is the inclusion of the stronger assumption of monotonicity in the longitudinal changes experienced by the target manifold.} 
 
 \item \textit{Section 3, p.9:    Justification for the use of manifolds to learn about the volume changes is not fully satisfactory as volumes are scalar quantities. One does not need to estimate the surface changes in order to obtain a volume of a 3D object.}
 
@@ -287,8 +291,13 @@ Even for someone with Alzheimer's disease, including a strict monotonicity restr
 
 \item \textit{Section 3.1, p.11: Description of the minimization problem is unclear.}
 
-{\bf Response:} Thank you for raising this question. Balancing presentation of some of the points in the manuscript with the detail we would like to include with the strict page limits has been a difficult task. To address this concern, we now add more details to our explanation in the last paragraph of Section 3.1 as follows.   
+{\bf Response:} Thank you for raising this question. Balancing presentation of some of the points in the manuscript with the detail we would like to include with the strict page limits has been a difficult task. To address this concern, we include the following notational comment in Section 2:
 
+\revision{We use $L^2(\mathbb{R}^d)$ to denote the vector space of square-integrable functions from $\mathbb{R}^d$ to $\mathbb{R}$}.
+
+Additionally, we add more details to our explanation in the last paragraph of Section 3.1 as follows\dots
+
+\revision{Note that this minimization problem builds on the penalized regression problem defined in Equation 1, where we now additionally penalize roughness in longitudinal changes in the estimated principal manifold.}
 
 
 \item \textit{Section 3.2.2:    The choice of the first time point for the initialization is arbitrary and prone to error. Why the longitudinal information is not used in the initialization?}
