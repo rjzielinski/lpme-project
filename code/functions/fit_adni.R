@@ -3,7 +3,8 @@ fit_adni <- function(
   adni_centers,
   structure,
   partition_overlap = 0.15,
-  cores = parallel::detectCores()
+  cores = parallel::detectCores(),
+  verbose = FALSE
 ) {
   require(dplyr)
   require(future)
@@ -13,12 +14,21 @@ fit_adni <- function(
 
   patnos <- unique(adni_surface$subid)
 
-  plan(multisession, workers = cores)
+  if (verbose == FALSE) {
+    plan(multisession, workers = cores)
+  } else {
+    plan(sequential)
+  }
 
   adni_fit <- list()
 
   for (patno_idx in seq_along(patnos)) {
     patno <- patnos[patno_idx]
+
+    if (verbose) {
+      print(paste0("Processing patient: ", patno))
+    }
+
     patno_adni <- adni_surface |>
       filter(subid == patno) |>
       select(time_from_bl, x, y, z, theta, phi) |>
@@ -94,6 +104,10 @@ fit_adni <- function(
           simplify = FALSE
         )
 
+        if (verbose) {
+          print(paste0("Fitting augmented LPME"))
+        }
+
         tic()
         adni_lpme_aug <- lpme(
           adni_aug,
@@ -108,6 +122,10 @@ fit_adni <- function(
           adni_lpme_aug,
           adni_aug
         )
+
+        if (verbose) {
+          print(paste0("Fitting partitioned LPME"))
+        }
 
         tic()
         adni_lpme_part[[1]] <- lpme(
@@ -138,6 +156,9 @@ fit_adni <- function(
           adni_pt2[adni_pt2[, 4] <= 0, ]
         )
 
+        if (verbose) {
+          print(paste0("Fitting time point-specific estimates"))
+        }
         for (time_idx in seq_along(time_values)) {
           temp_adni <- adni_aug[adni_aug[, 1] == time_values[time_idx], -1]
           temp_adni_pt1 <- adni_pt1[
@@ -248,6 +269,10 @@ fit_adni <- function(
           ]
         }
 
+        if (verbose) {
+          print(paste0("Fitting completed"))
+        }
+
         adni_lpme_part_reconstructions <- reduce(
           adni_lpme_part_reconstructions,
           rbind
@@ -303,6 +328,10 @@ fit_adni <- function(
           adni_pc_part_times,
           sum
         )
+
+        if (verbose) {
+          print(paste0("Estimating volumes"))
+        }
 
         adni_lpme_part_volumes <- estimate_volume_interior_lpme(
           adni_lpme_part,
