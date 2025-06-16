@@ -86,15 +86,11 @@ adni |>
   tally()
 
 # lhipp_fit <- fit_adni(lhipp_surface, lhipp_centers, "lhipp", verbose = TRUE)
-lhipp_fit <- fit_adni(
-  filter(lhipp_surface, subid %in% patnos),
-  filter(lhipp_centers, subid %in% patnos),
-  "lhipp"
-)
+lhipp_fit <- fit_adni(lhipp_surface, lhipp_centers, "lhipp", cores = 6)
 daemons(0)
-rhipp_fit <- fit_adni(rhipp_surface, rhipp_centers, "rhipp", verbose = TRUE)
+rhipp_fit <- fit_adni(rhipp_surface, rhipp_centers, "rhipp", cores = 6)
 daemons(0)
-lthal_fit <- fit_adni(lthal_surface, lthal_centers, "lthal", verbose = TRUE)
+lthal_fit <- fit_adni(lthal_surface, lthal_centers, "lthal", cores = 6)
 daemons(0)
-rthal_fit <- fit_adni(rthal_surface, rthal_centers, "rthal", verbose = TRUE)
+rthal_fit <- fit_adni(rthal_surface, rthal_centers, "rthal", cores = 6)
 daemons(0)
