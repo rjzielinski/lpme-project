@@ -85,7 +85,7 @@ adni |>
   group_by(study_group) |>
   tally()
 
-lhipp_fit <- fit_adni(lhipp_surface, lhipp_centers, "lhipp")
-rhipp_fit <- fit_adni(rhipp_surface, rhipp_centers, "rhipp")
-lthal_fit <- fit_adni(lthal_surface, lthal_centers, "lthal")
-rthal_fit <- fit_adni(rthal_surface, rthal_centers, "rthal")
+lhipp_fit <- fit_adni(lhipp_surface, lhipp_centers, "lhipp", verbose = TRUE)
+rhipp_fit <- fit_adni(rhipp_surface, rhipp_centers, "rhipp", verbose = TRUE)
+lthal_fit <- fit_adni(lthal_surface, lthal_centers, "lthal", verbose = TRUE)
+rthal_fit <- fit_adni(rthal_surface, rthal_centers, "rthal", verbose = TRUE)
