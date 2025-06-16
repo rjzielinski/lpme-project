@@ -8,17 +8,26 @@ fit_adni <- function(
 ) {
   require(dplyr)
   require(future)
+  require(mirai)
   require(pme)
-  require(tictoc)
   require(tidyr)
 
   patnos <- unique(adni_surface$subid)
 
   if (verbose == FALSE) {
-    plan(multisession, workers = cores)
+    # plan(multisession, workers = cores)
+    daemons(cores)
+    everywhere(require(tictoc))
+    everywhere(require(pme))
+    everywhere(require(dplyr))
+    everywhere(require(tidyr))
   } else {
-    plan(sequential)
+    # plan(sequential)
+    daemons(1)
+    everywhere(require(tictoc))
   }
+
+  set.seed(500)
 
   adni_fit <- list()
 
@@ -62,7 +71,8 @@ fit_adni <- function(
 
     time_values <- unique(patno_adni$time_from_bl)
 
-    adni_fit[[patno_idx]] <- future(
+    # adni_fit[[patno_idx]] <- future(
+    adni_fit[[patno_idx]] <- mirai(
       {
         adni_pme_aug_list <- list()
         adni_pme_aug_time_list <- list()
@@ -503,10 +513,16 @@ fit_adni <- function(
 
         TRUE
       },
-      seed = TRUE
+      patno_adni = patno_adni,
+      patno_adni_centers = patno_adni_centers,
+      adni_aug = adni_aug,
+      adni_pt1 = adni_pt1,
+      adni_pt2 = adni_pt2,
+      time_values = time_values,
+      verbose = verbose
     )
   }
 
-  map(adni_fit, value) |>
+  map(adni_fit, ~ .x[]) |>
     reduce(c)
 }
