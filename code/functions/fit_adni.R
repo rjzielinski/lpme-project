@@ -15,16 +15,21 @@ fit_adni <- function(
   patnos <- unique(adni_surface$subid)
 
   if (verbose == FALSE) {
-    # plan(multisession, workers = cores)
-    daemons(cores)
-    everywhere(require(tictoc))
-    everywhere(require(pme))
-    everywhere(require(dplyr))
-    everywhere(require(tidyr))
+    plan(multisession, workers = cores)
+    require(tictoc)
+    require(pme)
+    require(dplyr)
+    require(tidyr)
+    # daemons(cores)
+    # everywhere(require(tictoc))
+    # everywhere(require(pme))
+    # everywhere(require(dplyr))
+    # everywhere(require(tidyr))
   } else {
-    # plan(sequential)
-    daemons(1)
-    everywhere(require(tictoc))
+    plan(sequential, split = TRUE)
+    require(tictoc)
+    # daemons(1, output = TRUE)
+    # everywhere(require(tictoc))
   }
 
   set.seed(500)
@@ -33,10 +38,6 @@ fit_adni <- function(
 
   for (patno_idx in seq_along(patnos)) {
     patno <- patnos[patno_idx]
-
-    if (verbose) {
-      print(paste0("Processing patient: ", patno))
-    }
 
     patno_adni <- adni_surface |>
       filter(subid == patno) |>
@@ -71,9 +72,12 @@ fit_adni <- function(
 
     time_values <- unique(patno_adni$time_from_bl)
 
-    # adni_fit[[patno_idx]] <- future(
-    adni_fit[[patno_idx]] <- mirai(
+    adni_fit[[patno_idx]] <- future(
+      # adni_fit[[patno_idx]] <- mirai(
       {
+        if (verbose) {
+          print(paste0("Processing patient: ", patno))
+        }
         adni_pme_aug_list <- list()
         adni_pme_aug_time_list <- list()
         adni_pme_aug_reconstruction_list <- list()
@@ -506,6 +510,15 @@ fit_adni <- function(
           dir.create(here(paste0("output/adni/", patno)), recursive = TRUE)
         }
 
+        print(
+          paste0(
+            "Saving results for participant ",
+            patno,
+            ", structure ",
+            structure
+          )
+        )
+
         saveRDS(
           adni,
           here(paste0("output/adni/", patno, "/", structure, "_results.RDS"))
@@ -513,16 +526,17 @@ fit_adni <- function(
 
         TRUE
       },
-      patno_adni = patno_adni,
-      patno_adni_centers = patno_adni_centers,
-      adni_aug = adni_aug,
-      adni_pt1 = adni_pt1,
-      adni_pt2 = adni_pt2,
-      time_values = time_values,
-      verbose = verbose
+      seed = TRUE
+      # patno_adni = patno_adni,
+      # patno_adni_centers = patno_adni_centers,
+      # adni_aug = adni_aug,
+      # adni_pt1 = adni_pt1,
+      # adni_pt2 = adni_pt2,
+      # time_values = time_values,
+      # verbose = verbose
     )
   }
 
-  map(adni_fit, ~ .x[]) |>
-    reduce(c)
+  # collect_mirai(adni_fit)
+  results <- map(adni_fit, value)
 }
