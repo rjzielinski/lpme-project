@@ -62,58 +62,35 @@ write_csv(rthal_surface, here("data/rthal_surface_fsl_processed.csv"))
 
 patnos <- unique(lhipp_surface$subid)[1:2]
 
-dx <- read_csv("data/DXSUM.csv")
-max_dx <- dx |>
-  filter(PTID %in% patnos) |>
-  group_by(PTID) |>
-  arrange(EXAMDATE) |>
-  summarize(
-    bl_dx = dplyr::first(DIAGNOSIS),
-    final_dx = dplyr::last(DIAGNOSIS, na_rm = TRUE),
-    max_dx = max(DIAGNOSIS, na.rm = TRUE)
-  )
-max_dx |>
-  group_by(bl_dx) |>
-  tally()
-
-
-adni |>
-  filter(subid %in% patnos) |>
-  group_by(subid) |>
-  summarize(study_group = first(Group)) |>
-  ungroup() |>
-  group_by(study_group) |>
-  tally()
-
 lhipp_fit <- fit_adni(
   lhipp_surface,
   lhipp_centers,
   "lhipp",
-  cores = 6,
-  verbose = FALSE
+  verbose = FALSE,
+  cores = parallel::detectCores() / 2
 )
 daemons(0)
 rhipp_fit <- fit_adni(
   rhipp_surface,
   rhipp_centers,
   "rhipp",
-  cores = 6,
-  verbose = FALSE
+  verbose = FALSE,
+  cores = parallel::detectCores() / 2
 )
 daemons(0)
 lthal_fit <- fit_adni(
   lthal_surface,
   lthal_centers,
   "lthal",
-  cores = 6,
-  verbose = FALSE
+  verbose = FALSE,
+  cores = parallel::detectCores() / 2
 )
 daemons(0)
 rthal_fit <- fit_adni(
   rthal_surface,
   rthal_centers,
   "rthal",
-  cores = 6,
-  verbose = FALSE
+  verbose = FALSE,
+  cores = parallel::detectCores() / 2
 )
 daemons(0)
