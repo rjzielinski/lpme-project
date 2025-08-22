@@ -34,11 +34,14 @@ calc_volumes <- function(files_case8) {
       interval_val <- as.numeric(file_parsed[[1]][4]) / 100
       obs_noise_val <- as.numeric(file_parsed[[1]][7]) / 100
       amplitude_noise_val <- as.numeric(file_parsed[[1]][10]) / 100
-      period_noise_val <- as.numeric(file_parsed[[1]][[13]])
+      period_noise_val <- ifelse(
+        as.numeric(file_parsed[[1]][[13]]) > 1,
+        as.numeric(file_parsed[[1]][[13]]) / 100,
+        as.numeric(file_parsed[[1]][[13]])
+      )
       time_trend_val <- file_parsed[[1]][16]
       time_change_val <- as.numeric(file_parsed[[1]][19]) / 100
 
-      print(file_name)
       sim <- readRDS(file.path(dir_case8, file_name))
       sim_volume <- estimate_volume_case8(
         sim,
@@ -47,7 +50,6 @@ calc_volumes <- function(files_case8) {
         n_points = 10000
       )
 
-      print("Volume estimated")
       n_obs <- length(sim_volume$times)
       sim_run <- rep(file_idx, n_obs)
       duration <- rep(duration_val, n_obs)
@@ -96,9 +98,10 @@ calc_volumes <- function(files_case8) {
   df_full <- reduce(volume_dfs, bind_rows)
 }
 
+print("Calculating case 8 volumes")
 sim_volume_df <- calc_volumes(files_case8)
-
-sim_volume_df9 <- calc_volumes(files_case9)
-
 write_csv(sim_volume_df, "../output/simulation_volume_case8.csv")
+
+print("Calculating case 9 volumes")
+sim_volume_df9 <- calc_volumes(files_case9)
 write_csv(sim_volume_df9, "../output/simulation_volume_case9.csv")
