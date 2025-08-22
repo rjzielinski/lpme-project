@@ -12,7 +12,8 @@ fit_adni <- function(
   require(pme)
   require(tidyr)
 
-  patnos <- unique(adni_surface$subid)
+  patnos <- unique(adni_surface$subid)[-c(1:10)]
+  patnos <- patnos[4:6]
 
   if (verbose == FALSE) {
     plan(multisession, workers = cores)
@@ -152,7 +153,7 @@ fit_adni <- function(
             adni_lpme_part[[1]] <- lpme(
               adni_pt1,
               d = 2,
-              verbose = FALSE,
+              verbose = TRUE,
               print_plots = FALSE
             )
             adni_lpme_time_pt1 <- toc()
@@ -168,7 +169,7 @@ fit_adni <- function(
             adni_lpme_part[[2]] <- lpme(
               adni_pt2,
               d = 2,
-              verbose = FALSE,
+              verbose = TRUE,
               print_plots = FALSE
             )
             adni_lpme_time_pt2 <- toc()
