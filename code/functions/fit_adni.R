@@ -186,6 +186,7 @@ fit_adni <- function(
               print(paste0("Fitting time point-specific estimates"))
             }
             for (time_idx in seq_along(time_values)) {
+              print(time_idx)
               temp_adni <- adni_aug[adni_aug[, 1] == time_values[time_idx], -1]
               temp_adni_pt1 <- adni_pt1[
                 adni_pt1[, 1] == time_values[time_idx],
