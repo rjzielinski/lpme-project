@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.5.0",
+    "Version": "4.4.3",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -1580,7 +1580,6 @@
       "Requirements": [
         "BH",
         "MASS",
-        "R",
         "Rcpp",
         "RcppArmadillo",
         "RcppZiggurat",
@@ -1595,7 +1594,7 @@
         "vctrs",
         "vegan"
       ],
-      "Hash": "d3a0f8a2f5560690f9cdaa544e48188f"
+      "Hash": "d66937d69fe2331ec5e86ddd08995bbb"
     },
     "pracma": {
       "Package": "pracma",
