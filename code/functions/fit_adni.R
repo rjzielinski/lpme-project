@@ -12,6 +12,10 @@ fit_adni <- function(
   require(pme)
   require(tidyr)
 
+  require(progressr)
+
+  handlers(global = TRUE)
+
   patnos <- unique(adni_surface$subid)
   # patnos <- patnos[4:6]
 
@@ -36,6 +40,8 @@ fit_adni <- function(
   set.seed(500)
 
   adni_fit <- list()
+
+  p <- progressor(along = xs)
 
   for (patno_idx in seq_along(patnos)) {
     patno <- patnos[patno_idx]
@@ -137,7 +143,7 @@ fit_adni <- function(
               verbose = FALSE,
               print_plots = FALSE
             )
-            adni_lpme_aug_time <- toc()
+            adni_lpme_aug_time <- toc(quiet = TRUE)
             adni_lpme_aug_time <- adni_lpme_aug_time$toc -
               adni_lpme_aug_time$tic
 
@@ -157,7 +163,7 @@ fit_adni <- function(
               verbose = FALSE,
               print_plots = FALSE
             )
-            adni_lpme_time_pt1 <- toc()
+            adni_lpme_time_pt1 <- toc(quiet = TRUE)
             adni_lpme_part_times[[1]] <- adni_lpme_time_pt1$toc -
               adni_lpme_time_pt1$tic
             adni_lpme_part_reconstructions[[
@@ -173,7 +179,7 @@ fit_adni <- function(
               verbose = FALSE,
               print_plots = FALSE
             )
-            adni_lpme_time_pt2 <- toc()
+            adni_lpme_time_pt2 <- toc(quiet = TRUE)
             adni_lpme_part_times[[2]] <- adni_lpme_time_pt2$toc -
               adni_lpme_time_pt2$tic
             adni_lpme_part_reconstructions[[
@@ -200,7 +206,7 @@ fit_adni <- function(
 
               tic()
               adni_pme_aug_list[[time_idx]] <- pme(temp_adni, d = 2)
-              temp_pme_aug_time <- toc()
+              temp_pme_aug_time <- toc(quiet = TRUE)
               adni_pme_aug_time_list[[time_idx]] <- temp_pme_aug_time$toc -
                 temp_pme_aug_time$tic
               adni_pme_aug_reconstruction_list[[
@@ -216,7 +222,7 @@ fit_adni <- function(
 
               tic()
               adni_pme_part[[1]][[time_idx]] <- pme(temp_adni_pt1, d = 2)
-              temp_pme_time_pt1 <- toc()
+              temp_pme_time_pt1 <- toc(quiet = TRUE)
               adni_pme_part_times[[1]][[time_idx]] <- temp_pme_time_pt1$toc -
                 temp_pme_time_pt1$tic
               adni_pme_part_reconstructions[[1]][[
@@ -227,7 +233,7 @@ fit_adni <- function(
               )
               tic()
               adni_pme_part[[2]][[time_idx]] <- pme(temp_adni_pt2, d = 2)
-              temp_pme_time_pt2 <- toc()
+              temp_pme_time_pt2 <- toc(quiet = TRUE)
               adni_pme_part_times[[2]][[time_idx]] <- temp_pme_time_pt2$toc -
                 temp_pme_time_pt2$tic
               adni_pme_part_reconstructions[[2]][[
@@ -247,8 +253,8 @@ fit_adni <- function(
               )
 
               tic()
-              principal_surface_part1 <- prinSurf(temp_adni_pt1)
-              temp_pc_time_pt1 <- toc()
+              principal_surface_part1 <- prinSurf(temp_adni_pt1, flag = FALSE)
+              temp_pc_time_pt1 <- toc(quiet = TRUE)
               adni_pc_part_times[[1]][[time_idx]] <- temp_pc_time_pt1$toc -
                 temp_pc_time_pt1$tic
               surface_mse_part1 <- map(
@@ -272,8 +278,8 @@ fit_adni <- function(
               ]
 
               tic()
-              principal_surface_part2 <- prinSurf(temp_adni_pt2)
-              temp_pc_time_pt2 <- toc()
+              principal_surface_part2 <- prinSurf(temp_adni_pt2, flag = FALSE)
+              temp_pc_time_pt2 <- toc(quiet = TRUE)
               adni_pc_part_times[[2]][[time_idx]] <- temp_pc_time_pt2$toc -
                 temp_pc_time_pt2$tic
               surface_mse_part2 <- map(
@@ -561,6 +567,7 @@ fit_adni <- function(
       # time_values = time_values,
       # verbose = verbose
     )
+    p(sprintf("subject number: %g", patno_idx))
   }
 
   # collect_mirai(adni_fit)
