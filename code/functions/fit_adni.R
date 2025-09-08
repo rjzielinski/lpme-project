@@ -41,7 +41,7 @@ fit_adni <- function(
 
   adni_fit <- list()
 
-  p <- progressor(along = xs)
+  p <- progressor(along = seq_along(patnos))
 
   for (patno_idx in seq_along(patnos)) {
     patno <- patnos[patno_idx]
@@ -557,6 +557,7 @@ fit_adni <- function(
             return(FALSE)
           }
         )
+        p(sprintf("subject number: %g", patno_idx))
       },
       seed = TRUE
       # patno_adni = patno_adni,
@@ -567,7 +568,6 @@ fit_adni <- function(
       # time_values = time_values,
       # verbose = verbose
     )
-    p(sprintf("subject number: %g", patno_idx))
   }
 
   # collect_mirai(adni_fit)
