@@ -68,6 +68,7 @@ lhipp_fit <- fit_adni(
   "lhipp",
   verbose = FALSE,
   cores = parallel::detectCores() / 2
+  # verbose = TRUE
 )
 daemons(0)
 rhipp_fit <- fit_adni(
@@ -76,6 +77,7 @@ rhipp_fit <- fit_adni(
   "rhipp",
   verbose = FALSE,
   cores = parallel::detectCores() / 2
+  # verbose = TRUE
 )
 daemons(0)
 lthal_fit <- fit_adni(
@@ -84,6 +86,7 @@ lthal_fit <- fit_adni(
   "lthal",
   verbose = FALSE,
   cores = parallel::detectCores() / 2
+  # verbose = TRUE
 )
 daemons(0)
 rthal_fit <- fit_adni(
@@ -92,5 +95,6 @@ rthal_fit <- fit_adni(
   "rthal",
   verbose = FALSE,
   cores = parallel::detectCores() / 2
+  # verbose = TRUE
 )
 daemons(0)
