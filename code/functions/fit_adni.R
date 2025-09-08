@@ -12,8 +12,8 @@ fit_adni <- function(
   require(pme)
   require(tidyr)
 
-  patnos <- unique(adni_surface$subid)[-c(1:10)]
-  patnos <- patnos[4:6]
+  patnos <- unique(adni_surface$subid)
+  # patnos <- patnos[4:6]
 
   if (verbose == FALSE) {
     plan(multisession, workers = cores)
@@ -73,14 +73,15 @@ fit_adni <- function(
 
     time_values <- unique(patno_adni$time_from_bl)
 
+    if (verbose) {
+      sprintf("Processing patient %f of $f", patno_idx, length(patnos))
+    }
+
     adni_fit[[patno_idx]] <- future(
       # adni_fit[[patno_idx]] <- mirai(
       {
         tryCatch(
           {
-            if (verbose) {
-              print(paste0("Processing patient: ", patno))
-            }
             adni_pme_aug_list <- list()
             adni_pme_aug_time_list <- list()
             adni_pme_aug_reconstruction_list <- list()
@@ -126,14 +127,14 @@ fit_adni <- function(
             )
 
             if (verbose) {
-              print(paste0("Fitting augmented LPME"))
+              # print(paste0("Fitting augmented LPME"))
             }
 
             tic()
             adni_lpme_aug <- lpme(
               adni_aug,
               d = 2,
-              verbose = TRUE,
+              verbose = FALSE,
               print_plots = FALSE
             )
             adni_lpme_aug_time <- toc()
@@ -146,14 +147,14 @@ fit_adni <- function(
             )
 
             if (verbose) {
-              print(paste0("Fitting partitioned LPME"))
+              # print(paste0("Fitting partitioned LPME"))
             }
 
             tic()
             adni_lpme_part[[1]] <- lpme(
               adni_pt1,
               d = 2,
-              verbose = TRUE,
+              verbose = FALSE,
               print_plots = FALSE
             )
             adni_lpme_time_pt1 <- toc()
@@ -169,7 +170,7 @@ fit_adni <- function(
             adni_lpme_part[[2]] <- lpme(
               adni_pt2,
               d = 2,
-              verbose = TRUE,
+              verbose = FALSE,
               print_plots = FALSE
             )
             adni_lpme_time_pt2 <- toc()
@@ -183,10 +184,10 @@ fit_adni <- function(
             )
 
             if (verbose) {
-              print(paste0("Fitting time point-specific estimates"))
+              # print(paste0("Fitting time point-specific estimates"))
             }
             for (time_idx in seq_along(time_values)) {
-              print(time_idx)
+              # print(time_idx)
               temp_adni <- adni_aug[adni_aug[, 1] == time_values[time_idx], -1]
               temp_adni_pt1 <- adni_pt1[
                 adni_pt1[, 1] == time_values[time_idx],
@@ -297,7 +298,7 @@ fit_adni <- function(
             }
 
             if (verbose) {
-              print(paste0("Fitting completed"))
+              # print(paste0("Fitting completed"))
             }
 
             adni_lpme_part_reconstructions <- reduce(
@@ -357,7 +358,7 @@ fit_adni <- function(
             )
 
             if (verbose) {
-              print(paste0("Estimating volumes"))
+              # print(paste0("Estimating volumes"))
             }
 
             adni_lpme_part_volumes <- estimate_volume_interior_lpme(
@@ -523,14 +524,14 @@ fit_adni <- function(
               dir.create(here(paste0("output/adni/", patno)), recursive = TRUE)
             }
 
-            print(
-              paste0(
-                "Saving results for participant ",
-                patno,
-                ", structure ",
-                structure
-              )
-            )
+            # print(
+            #   paste0(
+            #     "Saving results for participant ",
+            #     patno,
+            #     ", structure ",
+            #     structure
+            #   )
+            # )
 
             saveRDS(
               adni,
