@@ -20,7 +20,19 @@ fit_adni <- function(
   # patnos <- patnos[4:6]
 
   if (verbose == FALSE) {
-    plan(multisession, workers = cores)
+    plan(
+      future.batchtools::batchtools_slurm,
+      workers = 64,
+      resources = list(
+        time = "04:00:00",
+        nodes = 1,
+        ntasks = 1
+      )
+    )
+    # plan(
+    #   cluster,
+    #   workers = parallelly::availableWorkers(methods = "Slurm")
+    # )
     require(tictoc)
     require(pme)
     require(dplyr)
