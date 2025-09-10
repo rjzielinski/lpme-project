@@ -56,41 +56,6 @@ fit_adni <- function(
   p <- progressor(along = seq_along(patnos))
 
   for (patno_idx in seq_along(patnos)) {
-    patno <- patnos[patno_idx]
-
-    patno_adni <- adni_surface |>
-      filter(subid == patno) |>
-      select(time_from_bl, x, y, z, theta, phi) |>
-      mutate(
-        partition = z > 0,
-        partition1 = z > -partition_overlap,
-        partition2 = z < partition_overlap
-      )
-
-    patno_adni_centers <- adni_centers |>
-      filter(subid == patno) |>
-      group_by(date) |>
-      summarize(
-        max_x = max(max_x),
-        max_y = max(max_y),
-        max_z = max(max_z)
-      )
-
-    adni_aug <- patno_adni |>
-      select(-partition, -partition1, -partition2) |>
-      as.matrix()
-
-    adni_pt1 <- patno_adni |>
-      filter(partition1 == TRUE) |>
-      select(time_from_bl, x, y, z) |>
-      as.matrix()
-    adni_pt2 <- patno_adni |>
-      filter(partition2 == TRUE) |>
-      select(time_from_bl, x, y, z) |>
-      as.matrix()
-
-    time_values <- unique(patno_adni$time_from_bl)
-
     if (verbose) {
       sprintf("Processing patient %f of $f", patno_idx, length(patnos))
     }
@@ -98,6 +63,41 @@ fit_adni <- function(
     adni_fit[[patno_idx]] <- future(
       # adni_fit[[patno_idx]] <- mirai(
       {
+        patno <- patnos[patno_idx]
+
+        patno_adni <- adni_surface |>
+          filter(subid == patno) |>
+          select(time_from_bl, x, y, z, theta, phi) |>
+          mutate(
+            partition = z > 0,
+            partition1 = z > -partition_overlap,
+            partition2 = z < partition_overlap
+          )
+
+        patno_adni_centers <- adni_centers |>
+          filter(subid == patno) |>
+          group_by(date) |>
+          summarize(
+            max_x = max(max_x),
+            max_y = max(max_y),
+            max_z = max(max_z)
+          )
+
+        adni_aug <- patno_adni |>
+          select(-partition, -partition1, -partition2) |>
+          as.matrix()
+
+        adni_pt1 <- patno_adni |>
+          filter(partition1 == TRUE) |>
+          select(time_from_bl, x, y, z) |>
+          as.matrix()
+        adni_pt2 <- patno_adni |>
+          filter(partition2 == TRUE) |>
+          select(time_from_bl, x, y, z) |>
+          as.matrix()
+
+        time_values <- unique(patno_adni$time_from_bl)
+
         tryCatch(
           {
             adni_pme_aug_list <- list()
