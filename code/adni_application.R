@@ -1,7 +1,7 @@
 library(alphashape3d)
 library(here)
 library(lubridate)
-library(mirai)
+# library(mirai)
 library(future)
 library(plotly)
 library(plot3D)
@@ -70,7 +70,7 @@ lhipp_fit <- fit_adni(
   cores = parallel::detectCores()
   # verbose = TRUE
 )
-daemons(0)
+if (FALSE) {
 rhipp_fit <- fit_adni(
   rhipp_surface,
   rhipp_centers,
@@ -79,7 +79,6 @@ rhipp_fit <- fit_adni(
   cores = parallel::detectCores()
   # verbose = TRUE
 )
-daemons(0)
 lthal_fit <- fit_adni(
   lthal_surface,
   lthal_centers,
@@ -88,7 +87,6 @@ lthal_fit <- fit_adni(
   cores = parallel::detectCores()
   # verbose = TRUE
 )
-daemons(0)
 rthal_fit <- fit_adni(
   rthal_surface,
   rthal_centers,
@@ -97,4 +95,4 @@ rthal_fit <- fit_adni(
   cores = parallel::detectCores()
   # verbose = TRUE
 )
-daemons(0)
+}
