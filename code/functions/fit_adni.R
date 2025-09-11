@@ -29,7 +29,6 @@ fit_adni <- function(
   handlers(global = TRUE)
 
   patnos <- unique(adni_surface$subid)
-  patnos <- patnos[1:4]
 
   if (verbose == FALSE) {
     # plan(
@@ -101,7 +100,6 @@ fit_adni <- function(
       "estimate_volume_interior_lpme",
       "estimate_volume_interior_pme"
     ),
-
     .packages = c(
       "alphashape3d",
       "dplyr",
