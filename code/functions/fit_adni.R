@@ -3,36 +3,51 @@ fit_adni <- function(
   adni_centers,
   structure,
   partition_overlap = 0.15,
-  cores = parallel::detectCores(),
+  cores = parallelly::availableCores(),
   verbose = FALSE
 ) {
   require(dplyr)
   require(future)
+  require(future.batchtools)
+  require(future.mirai)
   require(mirai)
   require(pme)
   require(tidyr)
-
   require(progressr)
+
+  library(doRNG)
+  library(doSNOW)
+  library(foreach)
 
   handlers(global = TRUE)
 
   patnos <- unique(adni_surface$subid)
-  # patnos <- patnos[4:6]
 
   if (verbose == FALSE) {
-    plan(
-      future.batchtools::batchtools_slurm,
-      workers = 64,
-      resources = list(
-        time = "04:00:00",
-        nodes = 1,
-        ntasks = 1
-      )
-    )
     # plan(
-    #   cluster,
-    #   workers = parallelly::availableWorkers(methods = "Slurm")
+    #   future.batchtools::batchtools_slurm,
+    #   workers = 64,
+    #   resources = list(
+    #     time = "12:00:00",
+    #     nodes = 1,
+    #     ntasks = 1
+    #   )
     # )
+    # plan(cluster)
+
+    # config <- cluster_config(
+    #   command = "sbatch",
+    #   options = "
+    #   #SBATCH --job-name=adni_lpme_aug
+    #   "
+    # )
+    #
+    # daemons(n = cores, url = mirai::host_url(), remote = config)
+    # while(mirai::info()[["connections"]] < cores) Sys.sleep(1.0)
+    # daemons(cores)
+    # plan(future.mirai::mirai_cluster)
+    
+    
     require(tictoc)
     require(pme)
     require(dplyr)
@@ -42,6 +57,9 @@ fit_adni <- function(
     # everywhere(require(pme))
     # everywhere(require(dplyr))
     # everywhere(require(tidyr))
+    
+    cl <- makeCluster(parallel::detectCores())
+    registerDoSNOW(cl)
   } else {
     plan(sequential, split = TRUE)
     require(tictoc)
@@ -53,18 +71,34 @@ fit_adni <- function(
 
   adni_fit <- list()
 
-  p <- progressor(along = seq_along(patnos))
+  # p <- progressor(along = seq_along(patnos))
+  pb <- txtProgressBar(max = length(patnos), style = 3)
+  progress <- function(n) setTxtProgressBar(pb, n)
+  opts  <- list(progress = progress)
 
-  for (patno_idx in seq_along(patnos)) {
-    if (verbose) {
-      sprintf("Processing patient %f of $f", patno_idx, length(patnos))
-    }
+  registerDoRNG(716241)
 
-    adni_fit[[patno_idx]] <- future(
-      # adni_fit[[patno_idx]] <- mirai(
-      {
+  # for (patno_idx in seq_along(patnos)) {
+  adni_fit <- foreach(
+    patno_idx = seq_along(patnos),
+    .export = c(
+      "patnos",
+      "adni_surface",
+      "adni_centers",
+      "structure",
+      "partition_overlap",
+      "verbose"
+    ),
+    .packages = c(
+      "dplyr",
+      "pme",
+      "tidyr"
+    ),
+    .inorder = TRUE,
+    .options.snow = opts,
+    .errorhandling = "pass"
+  ) %dopar% {
         patno <- patnos[patno_idx]
-
         patno_adni <- adni_surface |>
           filter(subid == patno) |>
           select(time_from_bl, x, y, z, theta, phi) |>
@@ -98,7 +132,7 @@ fit_adni <- function(
 
         time_values <- unique(patno_adni$time_from_bl)
 
-        tryCatch(
+        patno_run <- tryCatch(
           {
             adni_pme_aug_list <- list()
             adni_pme_aug_time_list <- list()
@@ -561,17 +595,16 @@ fit_adni <- function(
                 "_results.RDS"
               ))
             )
-
             TRUE
           },
           error = function(e) {
             print(paste0("Error occurred for patient: ", patno))
-            return(FALSE)
+            FALSE
           }
         )
-        p(sprintf("subject number: %g", patno_idx))
-      },
-      seed = TRUE
+        # p(sprintf("subject number: %g", patno_idx))
+      }
+      # seed = TRUE
       # patno_adni = patno_adni,
       # patno_adni_centers = patno_adni_centers,
       # adni_aug = adni_aug,
@@ -579,9 +612,14 @@ fit_adni <- function(
       # adni_pt2 = adni_pt2,
       # time_values = time_values,
       # verbose = verbose
-    )
-  }
+  #   )
+  # }
+  #
+  # # collect_mirai(adni_fit)
+  # results <- map(adni_fit, value)
 
-  # collect_mirai(adni_fit)
-  results <- map(adni_fit, value)
+  results <- adni_fit
+
+  # plan(sequential)
+  # invisible(daemons(0))
 }
