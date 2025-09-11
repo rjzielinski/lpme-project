@@ -4,7 +4,7 @@ library(lubridate)
 # library(mirai)
 library(future)
 library(plotly)
-library(plot3D)
+# library(plot3D)
 library(pme)
 library(pracma)
 library(RColorBrewer)
@@ -12,12 +12,6 @@ library(Rfast)
 library(tictoc)
 library(tidyverse)
 
-source(here("code/functions/calculate_lpme_reconstructions.R"))
-source(here("code/functions/calculate_pme_reconstructions.R"))
-source(here("code/functions/estimate_volume.R"))
-source(here("code/functions/interior_identification.R"))
-source(here("code/prinSurf_v3.R"))
-source(here("code/functions/estimate_volume_interior.R"))
 source(here("code/functions/preprocess_adni.R"))
 source(here("code/functions/fit_adni.R"))
 
@@ -67,32 +61,33 @@ lhipp_fit <- fit_adni(
   lhipp_centers,
   "lhipp",
   verbose = FALSE,
-  cores = parallel::detectCores()
+  cores = parallel::detectCores() / 2
   # verbose = TRUE
 )
+
 if (FALSE) {
-rhipp_fit <- fit_adni(
-  rhipp_surface,
-  rhipp_centers,
-  "rhipp",
-  verbose = FALSE,
-  cores = parallel::detectCores()
-  # verbose = TRUE
-)
-lthal_fit <- fit_adni(
-  lthal_surface,
-  lthal_centers,
-  "lthal",
-  verbose = FALSE,
-  cores = parallel::detectCores()
-  # verbose = TRUE
-)
-rthal_fit <- fit_adni(
-  rthal_surface,
-  rthal_centers,
-  "rthal",
-  verbose = FALSE,
-  cores = parallel::detectCores()
-  # verbose = TRUE
-)
+  rhipp_fit <- fit_adni(
+    rhipp_surface,
+    rhipp_centers,
+    "rhipp",
+    verbose = FALSE,
+    cores = parallel::detectCores()
+    # verbose = TRUE
+  )
+  lthal_fit <- fit_adni(
+    lthal_surface,
+    lthal_centers,
+    "lthal",
+    verbose = FALSE,
+    cores = parallel::detectCores()
+    # verbose = TRUE
+  )
+  rthal_fit <- fit_adni(
+    rthal_surface,
+    rthal_centers,
+    "rthal",
+    verbose = FALSE,
+    cores = parallel::detectCores()
+    # verbose = TRUE
+  )
 }
