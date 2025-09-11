@@ -100,7 +100,8 @@ fit_adni <- function(
       "calculate_pme_reconstructions",
       "estimate_volume_interior_lpme",
       "estimate_volume_interior_pme",
-      "interior_identification"
+      "interior_identification",
+      "get_orientation"
     ),
 
     .packages = c(
