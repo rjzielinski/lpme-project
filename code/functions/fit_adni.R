@@ -29,6 +29,9 @@ fit_adni <- function(
   handlers(global = TRUE)
 
   patnos <- unique(adni_surface$subid)
+  
+  # patno 78 appears to be problematic
+  patnos <- patnos[-78]
 
   if (verbose == FALSE) {
     # plan(
@@ -64,13 +67,15 @@ fit_adni <- function(
     # everywhere(require(dplyr))
     # everywhere(require(tidyr))
 
-    cl <- makeCluster(cores)
+    cl <- makeCluster(cores, outfile = "")
     registerDoSNOW(cl)
   } else {
     plan(sequential, split = TRUE)
     require(tictoc)
     # daemons(1, output = TRUE)
     # everywhere(require(tictoc))
+    cl <- makeCluster(1, outfile = "")
+    registerDoSNOW(cl)
   }
 
   set.seed(500)
@@ -119,7 +124,7 @@ fit_adni <- function(
     ),
     .inorder = TRUE,
     .options.snow = opts,
-    .errorhandling = "stop"
+    .errorhandling = "pass"
   ) %dopar%
     {
       patno <- patnos[patno_idx]
@@ -633,7 +638,10 @@ fit_adni <- function(
   #
   # # collect_mirai(adni_fit)
   # results <- map(adni_fit, value)
-
+  
+  if (verbose == FALSE) {
+    stopCluster(cl)
+  }
   results <- adni_fit
 
   # plan(sequential)
