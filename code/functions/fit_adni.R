@@ -474,32 +474,27 @@ fit_adni <- function(
       }
 
       if (verbose) {
-        print(paste0("Fitting completed"))
+        print(paste0("Fitting complete"))
       }
 
-      adni_lpme_part_reconstructions <- ifelse(
-        !(0 %in% lengths(adni_lpme_part_reconstructions)),
-        reduce(adni_lpme_part_reconstructions, rbind),
-        NULL
-      )
+      if (!(0 %in% lengths(adni_lpme_part_reconstructions))) {
+        adni_lpme_part_reconstructions <- reduce(
+          adni_lpme_part_reconstructions,
+          rbind
+        )
+        adni_lpme_part_times <- reduce(adni_lpme_part_times, sum)
+      } else {
+        adni_lpme_part_reconstructions <- NULL
+        adni_lpme_part_times <- NULL
+      }
 
-      adni_lpme_part_times <- ifelse(
-        !(0 %in% lengths(adni_lpme_part_times)),
-        reduce(
-          adni_lpme_part_times,
-          sum
-        ),
-        NULL
-      )
-
-      adni_pme_aug_reconstructions <- ifelse(
-        !(0 %in% lengths(adni_pme_aug_reconstruction_list)),
-        reduce(
+      adni_pme_aug_reconstructions <- NULL
+      if (!(0 %in% lengths(adni_pme_aug_reconstruction_list))) {
+        adni_pme_aug_reconstructions <- reduce(
           adni_pme_aug_reconstruction_list,
           rbind
-        ),
-        NULL
-      )
+        )
+      }
 
       adni_pme_aug_time_list <- ifelse(
         !(0 %in% lengths(adni_pme_aug_time_list)),
@@ -510,107 +505,54 @@ fit_adni <- function(
         NULL
       )
 
-      adni_pme_part_reconstructions <- ifelse(
-        # check if either of the partition lists have any elements with length 0
-        sum(
-          reduce(
-            map(
-              seq_along(adni_pme_part_reconstructions),
-              ~ !(0 %in%
-                lengths(
-                  adni_pme_part_reconstructions[[.x]]
-                ))
-            ),
-            c
-          )
-        ) ==
-          length(adni_pme_part_reconstructions),
-        # if not, then reduce all reconstructions into one matrix
-        reduce(
-          map(
-            seq_along(adni_pme_part_reconstructions),
-            ~ reduce(adni_pme_part_reconstructions[[.x]], rbind)
-          ),
-          rbind
-        ),
-        NULL
-      )
+      adni_pme_part_complete <- map(
+        seq_along(adni_pme_part_reconstructions),
+        ~ !(0 %in% lengths(adni_pme_part_reconstructions[[.x]]))
+      ) |>
+        reduce(c) |>
+        sum()
 
-      adni_pme_part_times <- ifelse(
-        sum(
-          reduce(
-            map(
-              seq_along(adni_pme_part_times),
-              ~ !(0 %in% lengths(adni_pme_part_times[[.x]]))
-            ),
-            c
-          )
-        ) ==
-          length(adni_pme_part_times),
-        reduce(
-          map(
-            seq_along(adni_pme_part_times),
-            ~ reduce(adni_pme_part_times[[.x]], sum)
-          ),
-          sum
-        ),
-        NULL
-      )
+      if (adni_pme_part_complete == length(adni_pme_part_reconstructions)) {
+        adni_pme_part_reconstructions <- map(
+          seq_along(adni_pme_part_reconstructions),
+          ~ reduce(adni_pme_part_reconstructions[[.x]], rbind)
+        ) |>
+          reduce(rbind)
 
-      adni_pc_part_reconstructions <- ifelse(
-        # check if either of the partition lists have any elements with length 0
-        sum(
-          reduce(
-            map(
-              seq_along(adni_pc_part_reconstructions),
-              ~ !(0 %in%
-                lengths(
-                  adni_pc_part_reconstructions[[.x]]
-                ))
-            ),
-            c
-          )
-        ) ==
-          length(adni_pc_part_reconstructions),
-        # if not, then reduce all reconstructions into one matrix
-        reduce(
-          map(
-            seq_along(adni_pc_part_reconstructions),
-            ~ reduce(adni_pc_part_reconstructions[[.x]], rbind)
-          ),
-          rbind
-        ),
-        NULL
-      )
+        adni_pme_part_times <- map(
+          seq_along(adni_pme_part_times),
+          ~ reduce(adni_pme_part_times[[.x]], sum)
+        ) |>
+          reduce(sum)
+      }
 
-      adni_pc_part_times <- ifelse(
-        sum(
-          reduce(
-            map(
-              seq_along(adni_pc_part_times),
-              ~ !(0 %in% lengths(adni_pc_part_times[[.x]]))
-            ),
-            c
-          )
-        ) ==
-          length(adni_pc_part_times),
-        reduce(
-          map(
-            seq_along(adni_pc_part_times),
-            ~ reduce(adni_pc_part_times[[.x]], sum)
-          ),
-          sum
-        ),
-        NULL
-      )
+      adni_pc_part_complete <- map(
+        seq_along(adni_pc_part_reconstructions),
+        ~ !(0 %in% lengths(adni_pc_part_reconstructions[[.x]]))
+      ) |>
+        reduce(c) |>
+        sum()
+
+      if (adni_pc_part_complete == length(adni_pc_part_reconstructions)) {
+        adni_pc_part_reconstructions <- map(
+          seq_along(adni_pc_part_reconstructions),
+          ~ reduce(adni_pc_part_reconstructions[[.x]], rbind)
+        ) |>
+          reduce(rbind)
+
+        adni_pc_part_times <- map(
+          seq_along(adni_pc_part_times),
+          ~ reduce(adni_pc_part_times[[.x]], sum)
+        ) |>
+          reduce(sum)
+      }
 
       if (verbose) {
         print(paste0("Estimating volumes"))
       }
 
-      adni_lpme_part_volumes <- ifelse(
-        !(0 %in% lengths(adni_lpme_part)),
-        tryCatch(
+      if (!(0 %in% lengths(adni_lpme_part))) {
+        adni_lpme_part_volumes <- tryCatch(
           {
             adni_lpme_part_interior_volume <- estimate_volume_interior_lpme(
               adni_lpme_part,
@@ -634,22 +576,20 @@ fit_adni <- function(
             )
             NULL
           }
-        ),
-        NULL
-      )
+        )
+      } else {
+        adni_lpme_part_volumes <- NULL
+      }
 
-      adni_pme_part_volumes <- ifelse(
-        sum(
-          reduce(
-            map(
-              seq_along(adni_pme_part),
-              ~ !(0 %in% lengths(adni_pme_part[[.x]]))
-            ),
-            c
-          )
-        ) ==
-          length(adni_pme_part),
-        tryCatch(
+      pme_part_complete <- map(
+        seq_along(adni_pme_part),
+        ~ !(0 %in% lengths(adni_pme_part[[.x]]))
+      ) |>
+        reduce(c) |>
+        sum()
+
+      if (pme_part_complete == length(adni_pme_part)) {
+        adni_pme_part_volumes <- tryCatch(
           {
             adni_pme_part_interior_volumes <- estimate_volume_interior_pme(
               adni_pme_part,
@@ -673,9 +613,10 @@ fit_adni <- function(
             )
             NULL
           }
-        ),
-        NULL
-      )
+        )
+      } else {
+        adni_pme_part_volumes <- NULL
+      }
 
       adni_lpme_aug_volumes <- vector(
         mode = "numeric",
@@ -709,6 +650,7 @@ fit_adni <- function(
             adni_lpme_aug_reconstructions[, 1] == time_values[time_idx],
             2:4
           ]
+
           tryCatch(
             {
               temp_lpme_ashape <- ashape3d(
@@ -847,6 +789,7 @@ fit_adni <- function(
                 temp_pme_part_reconstructions,
                 alpha = seq(0.5, 1.5, by = 0.1)
               )
+
               adni_pme_part_volumes_mesh[time_idx] <- volume_ashape3d(
                 temp_pme_part_ashape,
                 indexAlpha = "all"
