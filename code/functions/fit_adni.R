@@ -215,18 +215,17 @@ fit_adni <- function(
       tryCatch(
         {
           tic()
-          # use <<- to assign variable values outside of tryCatch() scope
-          adni_lpme_aug <<- lpme(
+          adni_lpme_aug <- lpme(
             adni_aug,
             d = 2,
             verbose = FALSE,
             print_plots = FALSE
           )
           adni_lpme_aug_time_end <- toc(quiet = TRUE)
-          adni_lpme_aug_time <<- adni_lpme_aug_time_end$toc -
+          adni_lpme_aug_time <- adni_lpme_aug_time_end$toc -
             adni_lpme_aug_time_end$tic
 
-          adni_lpme_aug_reconstructions <<- calculate_lpme_reconstructions(
+          adni_lpme_aug_reconstructions <- calculate_lpme_reconstructions(
             adni_lpme_aug,
             adni_aug
           )
