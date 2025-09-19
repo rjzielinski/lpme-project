@@ -153,6 +153,7 @@ fit_adni <- function(
         filter(partition1 == TRUE) |>
         select(time_from_bl, x, y, z) |>
         as.matrix()
+
       adni_pt2 <- patno_adni |>
         filter(partition2 == TRUE) |>
         select(time_from_bl, x, y, z) |>
@@ -245,18 +246,18 @@ fit_adni <- function(
       tryCatch(
         {
           tic()
-          adni_lpme_part[[1]] <<- lpme(
+          adni_lpme_part[[1]] <- lpme(
             adni_pt1,
             d = 2,
             verbose = FALSE,
             print_plots = FALSE
           )
           adni_lpme_time_pt1 <- toc(quiet = TRUE)
-          adni_lpme_part_times[[1]] <<- adni_lpme_time_pt1$toc -
+          adni_lpme_part_times[[1]] <- adni_lpme_time_pt1$toc -
             adni_lpme_time_pt1$tic
           adni_lpme_part_reconstructions[[
             1
-          ]] <<- calculate_lpme_reconstructions(
+          ]] <- calculate_lpme_reconstructions(
             adni_lpme_part[[1]],
             adni_pt1[adni_pt1[, 4] > 0, ]
           )
@@ -269,18 +270,18 @@ fit_adni <- function(
       tryCatch(
         {
           tic()
-          adni_lpme_part[[2]] <<- lpme(
+          adni_lpme_part[[2]] <- lpme(
             adni_pt2,
             d = 2,
             verbose = FALSE,
             print_plots = FALSE
           )
           adni_lpme_time_pt2 <- toc(quiet = TRUE)
-          adni_lpme_part_times[[2]] <<- adni_lpme_time_pt2$toc -
+          adni_lpme_part_times[[2]] <- adni_lpme_time_pt2$toc -
             adni_lpme_time_pt2$tic
           adni_lpme_part_reconstructions[[
             2
-          ]] <<- calculate_lpme_reconstructions(
+          ]] <- calculate_lpme_reconstructions(
             adni_lpme_part[[2]],
             adni_pt2[adni_pt2[, 4] <= 0, ]
           )
@@ -307,15 +308,15 @@ fit_adni <- function(
         tryCatch(
           {
             tic()
-            adni_pme_aug_list[[time_idx]] <<- pme(temp_adni, d = 2)
+            adni_pme_aug_list[[time_idx]] <- pme(temp_adni, d = 2)
             temp_pme_aug_time <- toc(quiet = TRUE)
-            adni_pme_aug_time_list[[time_idx]] <<- temp_pme_aug_time$toc -
+            adni_pme_aug_time_list[[time_idx]] <- temp_pme_aug_time$toc -
               temp_pme_aug_time$tic
             temp_adni_pme_aug_reconstructions <- calculate_pme_reconstructions(
               adni_pme_aug_list[[time_idx]],
               temp_adni
             )
-            adni_pme_aug_reconstruction_list[[time_idx]] <<- cbind(
+            adni_pme_aug_reconstruction_list[[time_idx]] <- cbind(
               time_values[time_idx],
               temp_adni_pme_aug_reconstructions
             )
@@ -337,15 +338,15 @@ fit_adni <- function(
         tryCatch(
           {
             tic()
-            adni_pme_part[[1]][[time_idx]] <<- pme(temp_adni_pt1, d = 2)
+            adni_pme_part[[1]][[time_idx]] <- pme(temp_adni_pt1, d = 2)
             temp_pme_time_pt1 <- toc(quiet = TRUE)
-            adni_pme_part_times[[1]][[time_idx]] <<- temp_pme_time_pt1$toc -
+            adni_pme_part_times[[1]][[time_idx]] <- temp_pme_time_pt1$toc -
               temp_pme_time_pt1$tic
             temp_adni_pme_reconstructions_pt1 <- calculate_pme_reconstructions(
               adni_pme_part[[1]][[time_idx]],
               temp_adni_pt1[temp_adni_pt1[, 3] > 0, ]
             )
-            adni_pme_part_reconstructions[[1]][[time_idx]] <<- cbind(
+            adni_pme_part_reconstructions[[1]][[time_idx]] <- cbind(
               time_values[time_idx],
               temp_adni_pme_reconstructions_pt1
             )
@@ -367,15 +368,15 @@ fit_adni <- function(
         tryCatch(
           {
             tic()
-            adni_pme_part[[2]][[time_idx]] <<- pme(temp_adni_pt2, d = 2)
+            adni_pme_part[[2]][[time_idx]] <- pme(temp_adni_pt2, d = 2)
             temp_pme_time_pt2 <- toc(quiet = TRUE)
-            adni_pme_part_times[[2]][[time_idx]] <<- temp_pme_time_pt2$toc -
+            adni_pme_part_times[[2]][[time_idx]] <- temp_pme_time_pt2$toc -
               temp_pme_time_pt2$tic
             temp_adni_pme_reconstructions_pt2 <- calculate_pme_reconstructions(
               adni_pme_part[[2]][[time_idx]],
               temp_adni_pt2[temp_adni_pt2[, 3] <= 0, ]
             )
-            adni_pme_part_reconstructions[[2]][[time_idx]] <<- cbind(
+            adni_pme_part_reconstructions[[2]][[time_idx]] <- cbind(
               time_values[time_idx],
               temp_adni_pme_reconstructions_pt2
             )
@@ -399,7 +400,7 @@ fit_adni <- function(
             tic()
             principal_surface_part1 <- prinSurf(temp_adni_pt1, flag = FALSE)
             temp_pc_time_pt1 <- toc(quiet = TRUE)
-            adni_pc_part_times[[1]][[time_idx]] <<- temp_pc_time_pt1$toc -
+            adni_pc_part_times[[1]][[time_idx]] <- temp_pc_time_pt1$toc -
               temp_pc_time_pt1$tic
             surface_mse_part1 <- map(
               seq_along(principal_surface_part1),
@@ -408,7 +409,7 @@ fit_adni <- function(
               unlist()
             opt_surface_part1 <- which.min(surface_mse_part1)
 
-            adni_pc_part[[1]][[time_idx]] <<- principal_surface_part1[[
+            adni_pc_part[[1]][[time_idx]] <- principal_surface_part1[[
               opt_surface_part1 + 2
             ]]
             temp_adni_pc_reconstructions_pt1 <- cbind(
@@ -417,7 +418,7 @@ fit_adni <- function(
             )
             adni_pc_part_reconstructions[[1]][[
               time_idx
-            ]] <<- temp_adni_pc_reconstructions_pt1[temp_adni_pt1[, 3] > 0, ]
+            ]] <- temp_adni_pc_reconstructions_pt1[temp_adni_pt1[, 3] > 0, ]
           },
           error = function(e) {
             print(
@@ -438,7 +439,7 @@ fit_adni <- function(
             tic()
             principal_surface_part2 <- prinSurf(temp_adni_pt2, flag = FALSE)
             temp_pc_time_pt2 <- toc(quiet = TRUE)
-            adni_pc_part_times[[2]][[time_idx]] <<- temp_pc_time_pt2$toc -
+            adni_pc_part_times[[2]][[time_idx]] <- temp_pc_time_pt2$toc -
               temp_pc_time_pt2$tic
             surface_mse_part2 <- map(
               seq_along(principal_surface_part2),
@@ -447,7 +448,7 @@ fit_adni <- function(
               unlist()
             opt_surface_part2 <- which.min(surface_mse_part2)
 
-            adni_pc_part[[2]][[time_idx]] <<- principal_surface_part2[[
+            adni_pc_part[[2]][[time_idx]] <- principal_surface_part2[[
               opt_surface_part2 + 2
             ]]
             temp_adni_pc_reconstructions_pt2 <- cbind(
@@ -456,7 +457,7 @@ fit_adni <- function(
             )
             adni_pc_part_reconstructions[[2]][[
               time_idx
-            ]] <<- temp_adni_pc_reconstructions_pt2[temp_adni_pt2[, 3] <= 0, ]
+            ]] <- temp_adni_pc_reconstructions_pt2[temp_adni_pt2[, 3] <= 0, ]
           },
           error = function(e) {
             print(
@@ -715,7 +716,7 @@ fit_adni <- function(
                 temp_lpme_reconstructions,
                 alpha = seq(0.5, 1.5, by = 0.1)
               )
-              adni_lpme_aug_volumes[time_idx] <<- volume_ashape3d(
+              adni_lpme_aug_volumes[time_idx] <- volume_ashape3d(
                 temp_lpme_ashape,
                 indexAlpha = "all"
               ) |>
@@ -748,7 +749,7 @@ fit_adni <- function(
                 temp_pme_reconstructions,
                 alpha = seq(0.5, 1.5, by = 0.1)
               )
-              adni_pme_aug_volumes[time_idx] <<- volume_ashape3d(
+              adni_pme_aug_volumes[time_idx] <- volume_ashape3d(
                 temp_pme_ashape,
                 indexAlpha = "all"
               ) |>
@@ -781,7 +782,7 @@ fit_adni <- function(
                 temp_pc_reconstructions,
                 alpha = seq(0.5, 1.5, by = 0.1)
               )
-              adni_pc_part_volumes[time_idx] <<- volume_ashape3d(
+              adni_pc_part_volumes[time_idx] <- volume_ashape3d(
                 temp_pc_ashape,
                 indexAlpha = "all"
               ) |>
@@ -814,7 +815,7 @@ fit_adni <- function(
                 temp_lpme_part_reconstructions,
                 alpha = seq(0.5, 1.5, by = 0.1)
               )
-              adni_lpme_part_volumes_mesh[time_idx] <<- volume_ashape3d(
+              adni_lpme_part_volumes_mesh[time_idx] <- volume_ashape3d(
                 temp_lpme_part_ashape,
                 indexAlpha = "all"
               ) |>
@@ -953,7 +954,7 @@ fit_adni <- function(
   #
   # # collect_mirai(adni_fit)
   # results <- map(adni_fit, value)
-  
+
   if (verbose == FALSE) {
     stopCluster(cl)
   }
