@@ -41,7 +41,7 @@ fit_adni <- function(
         here(
           paste0(
             "output/adni/",
-            patno,
+            patnos[patno_idx],
             "/",
             structure,
             "_results.RDS"
