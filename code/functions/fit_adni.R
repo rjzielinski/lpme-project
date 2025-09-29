@@ -21,7 +21,7 @@ fit_adni <- function(
   require(progressr)
 
   require(reticulate)
-  # use_condaenv("lpme")
+  use_condaenv("lpme")
 
   require(doRNG)
   require(doSNOW)
@@ -153,6 +153,7 @@ fit_adni <- function(
     .errorhandling = "pass"
   ) %dopar%
     {
+      use_condaenv("lpme")
       patno <- patnos[patno_idx]
       patno_adni <- adni_surface |>
         filter(subid == patno) |>
