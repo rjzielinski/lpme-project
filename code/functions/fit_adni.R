@@ -19,7 +19,9 @@ fit_adni <- function(
   require(purrr)
   require(tidyr)
   require(progressr)
+
   require(reticulate)
+  # use_condaenv("lpme")
 
   require(doRNG)
   require(doSNOW)
@@ -35,8 +37,6 @@ fit_adni <- function(
   handlers(global = TRUE)
 
   patnos <- unique(adni_surface$subid)
-
-  use_condaenv("lpme")
 
   remove_patnos <- rep(TRUE, length(patnos))
   for (patno_idx in length(patnos)) {
@@ -245,7 +245,7 @@ fit_adni <- function(
           adni_lpme_aug <- lpme(
             adni_aug,
             d = 2,
-            verbose = FALSE,
+            verbose = verbose,
             print_plots = FALSE
           )
           adni_lpme_aug_time_end <- toc(quiet = TRUE)
@@ -275,7 +275,7 @@ fit_adni <- function(
           adni_lpme_part[[1]] <- lpme(
             adni_pt1,
             d = 2,
-            verbose = FALSE,
+            verbose = verbose,
             print_plots = FALSE
           )
           adni_lpme_time_pt1 <- toc(quiet = TRUE)
@@ -299,7 +299,7 @@ fit_adni <- function(
           adni_lpme_part[[2]] <- lpme(
             adni_pt2,
             d = 2,
-            verbose = FALSE,
+            verbose = verbose,
             print_plots = FALSE
           )
           adni_lpme_time_pt2 <- toc(quiet = TRUE)

@@ -1,4 +1,7 @@
-library(alphashape3d)
+library(reticulate)
+use_condaenv("lpme")
+
+# library(alphashape3d)
 library(here)
 library(lubridate)
 # library(mirai)
@@ -69,7 +72,7 @@ lhipp_fit <- fit_adni(
   lhipp_centers,
   "lhipp",
   verbose = FALSE,
-  cores = parallel::detectCores() / 2
+  cores = parallel::detectCores()
   # verbose = TRUE
 )
 
