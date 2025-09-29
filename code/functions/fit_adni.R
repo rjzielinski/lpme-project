@@ -6,7 +6,8 @@ fit_adni <- function(
   cores = parallelly::availableCores(),
   verbose = FALSE
 ) {
-  require(alphashape3d)
+  # require(alphashape3d)
+
   require(dplyr)
   require(future)
   require(future.batchtools)
@@ -18,6 +19,7 @@ fit_adni <- function(
   require(purrr)
   require(tidyr)
   require(progressr)
+  require(reticulate)
 
   require(doRNG)
   require(doSNOW)
@@ -33,6 +35,8 @@ fit_adni <- function(
   handlers(global = TRUE)
 
   patnos <- unique(adni_surface$subid)
+
+  use_condaenv("lpme")
 
   remove_patnos <- rep(TRUE, length(patnos))
   for (patno_idx in length(patnos)) {
@@ -141,7 +145,8 @@ fit_adni <- function(
       "RColorBrewer",
       "Rfast",
       "tictoc",
-      "tidyr"
+      "tidyr",
+      "reticulate"
     ),
     .inorder = TRUE,
     .options.snow = opts,
@@ -329,10 +334,15 @@ fit_adni <- function(
         tryCatch(
           {
             tic()
-            adni_pme_aug_list[[time_idx]] <- pme(temp_adni, d = 2)
+            adni_pme_aug_list[[time_idx]] <- pme(
+              temp_adni,
+              d = 2,
+              verbose = FALSE
+            )
             temp_pme_aug_time <- toc(quiet = TRUE)
             adni_pme_aug_time_list[[time_idx]] <- temp_pme_aug_time$toc -
               temp_pme_aug_time$tic
+
             temp_adni_pme_aug_reconstructions <- calculate_pme_reconstructions(
               adni_pme_aug_list[[time_idx]],
               temp_adni
@@ -662,6 +672,8 @@ fit_adni <- function(
         length = length(time_values)
       )
 
+      pv <- import("pyvista")
+
       for (time_idx in seq_along(time_values)) {
         x_scale <- patno_adni_centers$max_x[time_idx]
         y_scale <- patno_adni_centers$max_y[time_idx]
@@ -673,32 +685,10 @@ fit_adni <- function(
             2:4
           ]
 
-          tryCatch(
-            {
-              temp_lpme_ashape <- ashape3d(
-                temp_lpme_reconstructions,
-                alpha = seq(0.5, 1.5, by = 0.1)
-              )
-              adni_lpme_aug_volumes[time_idx] <- volume_ashape3d(
-                temp_lpme_ashape,
-                indexAlpha = "all"
-              ) |>
-                median() *
-                (x_scale * y_scale * z_scale)
-            },
-            error = function(e) {
-              print(
-                paste0(
-                  "Augmented LPME volume calculation error at time point ",
-                  time_idx,
-                  " for patno ",
-                  patno,
-                  ": "
-                ),
-                e$message
-              )
-            }
-          )
+          temp_lpme_cloud <- pv$PolyData(temp_lpme_reconstructions)
+          temp_lpme_mesh <- temp_lpme_cloud$reconstruct_surface()
+          adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
+            (x_scale * y_scale * z_scale)
         }
 
         if (!is.null(adni_pme_aug_reconstructions)) {
@@ -706,32 +696,11 @@ fit_adni <- function(
             adni_pme_aug_reconstructions[, 1] == time_values[time_idx],
             2:4
           ]
-          tryCatch(
-            {
-              temp_pme_ashape <- ashape3d(
-                temp_pme_reconstructions,
-                alpha = seq(0.5, 1.5, by = 0.1)
-              )
-              adni_pme_aug_volumes[time_idx] <- volume_ashape3d(
-                temp_pme_ashape,
-                indexAlpha = "all"
-              ) |>
-                median() *
-                (x_scale * y_scale * z_scale)
-            },
-            error = function(e) {
-              print(
-                paste0(
-                  "Augmented PME volume calculation error at time point ",
-                  time_idx,
-                  " for patno ",
-                  patno,
-                  ": "
-                ),
-                e$message
-              )
-            }
-          )
+
+          temp_pme_cloud <- pv$PolyData(temp_pme_reconstructions)
+          temp_pme_mesh <- temp_pme_cloud$reconstruct_surface()
+          adni_pme_aug_volumes[time_idx] <- temp_pme_mesh$volume *
+            (x_scale * y_scale * z_scale)
         }
 
         if (!is.null(adni_pc_part_reconstructions)) {
@@ -739,32 +708,11 @@ fit_adni <- function(
             adni_pc_part_reconstructions[, 1] == time_values[time_idx],
             2:4
           ]
-          tryCatch(
-            {
-              temp_pc_ashape <- ashape3d(
-                temp_pc_reconstructions,
-                alpha = seq(0.5, 1.5, by = 0.1)
-              )
-              adni_pc_part_volumes[time_idx] <- volume_ashape3d(
-                temp_pc_ashape,
-                indexAlpha = "all"
-              ) |>
-                median() *
-                (x_scale * y_scale * z_scale)
-            },
-            error = function(e) {
-              print(
-                paste0(
-                  "Partitioned PS volume calculation error at time point ",
-                  time_idx,
-                  " for patno ",
-                  patno,
-                  ": "
-                ),
-                e$message
-              )
-            }
-          )
+
+          temp_pc_cloud <- pv$PolyData(temp_pc_reconstructions)
+          temp_pc_mesh <- temp_pc_cloud$reconstruct_surface()
+          adni_pc_part_volumes[time_idx] <- temp_pc_mesh$volume *
+            (x_scale * y_scale * z_scale)
         }
 
         if (!is.null(adni_lpme_part_reconstructions)) {
@@ -772,32 +720,11 @@ fit_adni <- function(
             adni_lpme_part_reconstructions[, 1] == time_values[time_idx],
             2:4
           ]
-          tryCatch(
-            {
-              temp_lpme_part_ashape <- ashape3d(
-                temp_lpme_part_reconstructions,
-                alpha = seq(0.5, 1.5, by = 0.1)
-              )
-              adni_lpme_part_volumes_mesh[time_idx] <- volume_ashape3d(
-                temp_lpme_part_ashape,
-                indexAlpha = "all"
-              ) |>
-                median() *
-                (x_scale * y_scale * z_scale)
-            },
-            error = function(e) {
-              print(
-                paste0(
-                  "Partitioned LPME volume calculation error at time point ",
-                  time_idx,
-                  " for patno ",
-                  patno,
-                  ": "
-                ),
-                e$message
-              )
-            }
-          )
+
+          temp_lpme_part_cloud <- pv$PolyData(temp_lpme_part_reconstructions)
+          temp_lpme_part_mesh <- temp_lpme_part_cloud$reconstruct_surface()
+          adni_lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume *
+            (x_scale * y_scale * z_scale)
         }
 
         if (!is.null(adni_pme_part_reconstructions)) {
@@ -805,33 +732,11 @@ fit_adni <- function(
             adni_pme_part_reconstructions[, 1] == time_values[time_idx],
             2:4
           ]
-          tryCatch(
-            {
-              temp_pme_part_ashape <- ashape3d(
-                temp_pme_part_reconstructions,
-                alpha = seq(0.5, 1.5, by = 0.1)
-              )
 
-              adni_pme_part_volumes_mesh[time_idx] <- volume_ashape3d(
-                temp_pme_part_ashape,
-                indexAlpha = "all"
-              ) |>
-                median() *
-                (x_scale * y_scale * z_scale)
-            },
-            error = function(e) {
-              print(
-                paste0(
-                  "Partitioned PME volume calculation error at time point ",
-                  time_idx,
-                  " for patno ",
-                  patno,
-                  ": "
-                ),
-                e$message
-              )
-            }
-          )
+          temp_pme_part_cloud <- pv$PolyData(temp_pme_part_reconstructions)
+          temp_pme_part_mesh <- temp_pme_part_cloud$reconstruct_surface()
+          adni_pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume *
+            (x_scale * y_scale * z_scale)
         }
       }
 
