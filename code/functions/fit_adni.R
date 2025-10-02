@@ -687,7 +687,7 @@ fit_adni <- function(
           ]
 
           temp_lpme_cloud <- pv$PolyData(temp_lpme_reconstructions)
-          temp_lpme_mesh <- temp_lpme_cloud$reconstruct_surface()
+          temp_lpme_mesh <- temp_lpme_cloud$delaunay_3d(alpha = 0.25)
           adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -699,7 +699,7 @@ fit_adni <- function(
           ]
 
           temp_pme_cloud <- pv$PolyData(temp_pme_reconstructions)
-          temp_pme_mesh <- temp_pme_cloud$reconstruct_surface()
+          temp_pme_mesh <- temp_pme_cloud$delaunay_3d(alpha = 0.25)
           adni_pme_aug_volumes[time_idx] <- temp_pme_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -711,7 +711,7 @@ fit_adni <- function(
           ]
 
           temp_pc_cloud <- pv$PolyData(temp_pc_reconstructions)
-          temp_pc_mesh <- temp_pc_cloud$reconstruct_surface()
+          temp_pc_mesh <- temp_pc_cloud$delaunay_3d(alpha = 0.25)
           adni_pc_part_volumes[time_idx] <- temp_pc_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -723,7 +723,7 @@ fit_adni <- function(
           ]
 
           temp_lpme_part_cloud <- pv$PolyData(temp_lpme_part_reconstructions)
-          temp_lpme_part_mesh <- temp_lpme_part_cloud$reconstruct_surface()
+          temp_lpme_part_mesh <- temp_lpme_part_cloud$delaunay_3d(alpha = 0.25)
           adni_lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -735,7 +735,7 @@ fit_adni <- function(
           ]
 
           temp_pme_part_cloud <- pv$PolyData(temp_pme_part_reconstructions)
-          temp_pme_part_mesh <- temp_pme_part_cloud$reconstruct_surface()
+          temp_pme_part_mesh <- temp_pme_part_cloud$delaunay_3d(alpha = 0.25)
           adni_pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
