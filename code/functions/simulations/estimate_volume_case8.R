@@ -5,7 +5,11 @@ estimate_volume_case8 <- function(
   n_points,
   threshold = 0.005
 ) {
-  require(alphashape3d, warn.conflicts = FALSE, quietly = TRUE)
+  require(reticulate, warn.conflicts = FALSE, quietly = TRUE)
+  use_condaenv("lpme")
+
+  pv <- import("pyvista")
+
   require(dplyr, warn.conflicts = FALSE, quietly = TRUE)
   require(geometry, warn.conflicts = FALSE, quietly = TRUE)
   require(Morpho, warn.conflicts = FALSE, quietly = TRUE)
@@ -15,6 +19,10 @@ estimate_volume_case8 <- function(
 
   source("functions/interior_identification.R")
   source("functions/estimate_volume_interior.R")
+  source("functions/estimate_mesh_volume.R")
+
+  alpha_vals <- seq(0.3, 1.5, by = 0.1)
+
   sim_data <- sim$processed_data$df
   time_points <- sim_data |>
     select(time) |>
@@ -192,103 +200,34 @@ estimate_volume_case8 <- function(
     ] *
       as.numeric(sim_data_centers[time_idx, 4])
 
-    # test a wide range of alpha values
-    temp_lpme_ashape <- ashape3d(
-      temp_lpme_reconstructions_scaled,
-      alpha = exp(seq(-3, 2, 0.1))
-    )
-    temp_lpme_volumes <- volume_ashape3d(
-      temp_lpme_ashape,
-      indexAlpha = "all"
-    )
+    temp_lpme_cloud <- pv$PolyData(temp_lpme_reconstructions_scaled)
+    temp_lpme_mesh <- estimate_mesh_volume(temp_lpme_cloud, alpha_vals)
+    lpme_volumes[time_idx] <- temp_lpme_mesh$volume
 
-    # volumes tend to increase drastically as alpha first increases
-    # then volumes plateau - find where they stabilize
-    temp_lpme_volume_change <- c(
-      NA,
-      ((lead(temp_lpme_volumes) - temp_lpme_volumes) / temp_lpme_volumes)[
-        -length(temp_lpme_volumes)
-      ]
+    temp_lpme_part_cloud <- pv$PolyData(temp_lpme_part_reconstructions_scaled)
+    temp_lpme_part_mesh <- estimate_mesh_volume(
+      temp_lpme_part_cloud,
+      alpha_vals
     )
-    # once volume has stabilized, take the median volume
-    lpme_volumes[time_idx] <- median(
-      temp_lpme_volumes[temp_lpme_volume_change < threshold],
-      na.rm = TRUE
-    )
+    lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume
 
-    temp_lpme_part_ashape <- ashape3d(
-      temp_lpme_part_reconstructions_scaled,
-      alpha = exp(seq(-3, 2, 0.1))
-    )
-    temp_lpme_part_volumes <- volume_ashape3d(
-      temp_lpme_part_ashape,
-      indexAlpha = "all"
-    )
-    temp_lpme_part_volume_change <- c(
-      NA,
-      ((lead(temp_lpme_part_volumes) - temp_lpme_part_volumes) /
-        temp_lpme_part_volumes)[-length(temp_lpme_part_volumes)]
-    )
-    lpme_part_volumes_mesh[time_idx] <- median(
-      temp_lpme_part_volumes[temp_lpme_part_volume_change < threshold],
-      na.rm = TRUE
-    )
+    temp_pme_cloud <- pv$PolyData(temp_pme_reconstructions_scaled)
+    temp_pme_mesh <- estimate_mesh_volume(temp_pme_cloud, alpha_vals)
+    pme_volumes[time_idx] <- temp_pme_mesh$volume
 
-    temp_pme_ashape <- ashape3d(
-      temp_pme_reconstructions_scaled,
-      alpha = exp(seq(-3, 2, 0.1))
+    temp_pme_part_cloud <- pv$PolyData(temp_pme_part_reconstructions_scaled)
+    temp_pme_part_mesh <- estimate_mesh_volume(
+      temp_pme_part_cloud,
+      alpha_vals
     )
-    temp_pme_volumes <- volume_ashape3d(
-      temp_pme_ashape,
-      indexAlpha = "all"
-    )
-    temp_pme_volume_change <- c(
-      NA,
-      ((lead(temp_pme_volumes) - temp_pme_volumes) / temp_pme_volumes)[
-        -length(temp_pme_volumes)
-      ]
-    )
-    pme_volumes[time_idx] <- median(
-      temp_pme_volumes[temp_pme_volume_change < threshold],
-      na.rm = TRUE
-    )
+    pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume
 
-    temp_pme_part_ashape <- ashape3d(
-      temp_pme_part_reconstructions_scaled,
-      alpha = exp(seq(-3, 2, 0.1))
+    temp_pc_cloud <- pv$PolyData(temp_pc_reconstructions_scaled)
+    temp_pc_mesh <- estimate_mesh_volume(
+      temp_pc_cloud,
+      alpha_vals
     )
-    temp_pme_part_volumes <- volume_ashape3d(
-      temp_pme_part_ashape,
-      indexAlpha = "all"
-    )
-    temp_pme_part_volume_change <- c(
-      NA,
-      ((lead(temp_pme_part_volumes) - temp_pme_part_volumes) /
-        temp_pme_part_volumes)[-length(temp_pme_part_volumes)]
-    )
-    pme_part_volumes_mesh[time_idx] <- median(
-      temp_pme_part_volumes[temp_pme_part_volume_change < threshold],
-      na.rm = TRUE
-    )
-
-    temp_pc_ashape <- ashape3d(
-      temp_pc_reconstructions_scaled,
-      alpha = exp(seq(-3, 2, 0.1))
-    )
-    temp_pc_volumes <- volume_ashape3d(
-      temp_pc_ashape,
-      indexAlpha = "all"
-    )
-    temp_pc_volume_change <- c(
-      NA,
-      ((lead(temp_pc_volumes) - temp_pc_volumes) / temp_pc_volumes)[
-        -length(temp_pc_volumes)
-      ]
-    )
-    pc_volumes[time_idx] <- median(
-      temp_pc_volumes[temp_pc_volume_change < threshold],
-      na.rm = TRUE
-    )
+    pc_volumes[time_idx] <- temp_pc_mesh$volume
   }
 
   lpme_part_volumes <- estimate_volume_interior_lpme(

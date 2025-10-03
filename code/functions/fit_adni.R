@@ -33,6 +33,7 @@ fit_adni <- function(
   source(here("code/functions/interior_identification.R"))
   source(here("code/prinSurf_v3.R"))
   source(here("code/functions/estimate_volume_interior.R"))
+  source(here("code/functions/estimate_mesh_volume.R"))
 
   handlers(global = TRUE)
 
@@ -130,7 +131,8 @@ fit_adni <- function(
       "estimate_volume_interior_lpme",
       "estimate_volume_interior_pme",
       "interior_identification",
-      "get_orientation"
+      "get_orientation",
+      "estimate_mesh_volume"
     ),
     .packages = c(
       "alphashape3d",
@@ -155,6 +157,7 @@ fit_adni <- function(
     {
       use_condaenv("lpme")
       patno <- patnos[patno_idx]
+
       patno_adni <- adni_surface |>
         filter(subid == patno) |>
         select(time_from_bl, x, y, z, theta, phi) |>
@@ -674,6 +677,8 @@ fit_adni <- function(
       )
 
       pv <- import("pyvista")
+      # alpha_vals <- ifelse(grepl("hipp", structure), 0.5, 0.9)
+      alpha_vals <- seq(0.3, 1.5, by = 0.1)
 
       for (time_idx in seq_along(time_values)) {
         x_scale <- patno_adni_centers$max_x[time_idx]
@@ -687,7 +692,10 @@ fit_adni <- function(
           ]
 
           temp_lpme_cloud <- pv$PolyData(temp_lpme_reconstructions)
-          temp_lpme_mesh <- temp_lpme_cloud$delaunay_3d(alpha = 0.25)
+          temp_lpme_mesh <- estimate_mesh_volume(
+            temp_lpme_cloud,
+            alpha_vals
+          )
           adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -699,7 +707,10 @@ fit_adni <- function(
           ]
 
           temp_pme_cloud <- pv$PolyData(temp_pme_reconstructions)
-          temp_pme_mesh <- temp_pme_cloud$delaunay_3d(alpha = 0.25)
+          temp_pme_mesh <- estimate_mesh_volume(
+            temp_pme_cloud,
+            alpha_vals
+          )
           adni_pme_aug_volumes[time_idx] <- temp_pme_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -711,7 +722,10 @@ fit_adni <- function(
           ]
 
           temp_pc_cloud <- pv$PolyData(temp_pc_reconstructions)
-          temp_pc_mesh <- temp_pc_cloud$delaunay_3d(alpha = 0.25)
+          temp_pc_mesh <- estimate_mesh_volume(
+            temp_pc_cloud,
+            alpha_vals
+          )
           adni_pc_part_volumes[time_idx] <- temp_pc_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -723,7 +737,10 @@ fit_adni <- function(
           ]
 
           temp_lpme_part_cloud <- pv$PolyData(temp_lpme_part_reconstructions)
-          temp_lpme_part_mesh <- temp_lpme_part_cloud$delaunay_3d(alpha = 0.25)
+          temp_lpme_part_mesh <- estimate_mesh_volume(
+            temp_lpme_part_cloud,
+            alpha_vals
+          )
           adni_lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -735,7 +752,10 @@ fit_adni <- function(
           ]
 
           temp_pme_part_cloud <- pv$PolyData(temp_pme_part_reconstructions)
-          temp_pme_part_mesh <- temp_pme_part_cloud$delaunay_3d(alpha = 0.25)
+          temp_pme_part_mesh <- estimate_mesh_volume(
+            temp_pme_part_cloud,
+            alpha_vals
+          )
           adni_pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
