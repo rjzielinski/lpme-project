@@ -152,7 +152,7 @@ fit_adni <- function(
     ),
     .inorder = TRUE,
     .options.snow = opts,
-    .errorhandling = "pass"
+    .errorhandling = "stop"
   ) %dopar%
     {
       use_condaenv("lpme")
@@ -798,6 +798,7 @@ fit_adni <- function(
       )
 
       adni <- list(
+        data = patno_adni,
         lpme_aug = adni_lpme_aug_out,
         pme_aug = adni_pme_aug_out,
         lpme_part = adni_lpme_part_out,
