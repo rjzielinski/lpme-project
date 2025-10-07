@@ -8,7 +8,9 @@ estimate_volume_case8 <- function(
   require(reticulate, warn.conflicts = FALSE, quietly = TRUE)
   use_condaenv("lpme")
 
+  np <- import("numpy")
   pv <- import("pyvista")
+  o3d <- import("open3d")
 
   require(dplyr, warn.conflicts = FALSE, quietly = TRUE)
   require(geometry, warn.conflicts = FALSE, quietly = TRUE)
@@ -19,7 +21,7 @@ estimate_volume_case8 <- function(
 
   source("functions/interior_identification.R")
   source("functions/estimate_volume_interior.R")
-  source("functions/estimate_mesh_volume.R")
+  source("functions/estimate_mesh_volume_poisson.R")
 
   alpha_vals <- seq(0.3, 1.5, by = 0.1)
 
@@ -98,6 +100,7 @@ estimate_volume_case8 <- function(
       temp_lpme_reconstructions[, 1] == time_val,
       2:4
     ]
+
     temp_lpme_reconstructions_scaled <- temp_lpme_reconstructions
     temp_lpme_reconstructions_scaled[, 1] <- temp_lpme_reconstructions_scaled[,
       1
@@ -200,33 +203,27 @@ estimate_volume_case8 <- function(
     ] *
       as.numeric(sim_data_centers[time_idx, 4])
 
-    temp_lpme_cloud <- pv$PolyData(temp_lpme_reconstructions_scaled)
-    temp_lpme_mesh <- estimate_mesh_volume(temp_lpme_cloud, alpha_vals)
+    temp_lpme_mesh <- estimate_mesh_volume_poisson(
+      temp_lpme_reconstructions_scaled
+    )
     lpme_volumes[time_idx] <- temp_lpme_mesh$volume
 
-    temp_lpme_part_cloud <- pv$PolyData(temp_lpme_part_reconstructions_scaled)
-    temp_lpme_part_mesh <- estimate_mesh_volume(
-      temp_lpme_part_cloud,
-      alpha_vals
+    temp_lpme_part_mesh <- estimate_mesh_volume_poisson(
+      temp_lpme_part_reconstructions_scaled
     )
     lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume
 
-    temp_pme_cloud <- pv$PolyData(temp_pme_reconstructions_scaled)
-    temp_pme_mesh <- estimate_mesh_volume(temp_pme_cloud, alpha_vals)
+    temp_pme_mesh <- estimate_mesh_volume_poisson(
+      temp_pme_reconstructions_scaled
+    )
     pme_volumes[time_idx] <- temp_pme_mesh$volume
 
-    temp_pme_part_cloud <- pv$PolyData(temp_pme_part_reconstructions_scaled)
-    temp_pme_part_mesh <- estimate_mesh_volume(
-      temp_pme_part_cloud,
-      alpha_vals
+    temp_pme_part_mesh <- estimate_mesh_volume_poisson(
+      temp_pme_part_reconstructions_scaled
     )
     pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume
 
-    temp_pc_cloud <- pv$PolyData(temp_pc_reconstructions_scaled)
-    temp_pc_mesh <- estimate_mesh_volume(
-      temp_pc_cloud,
-      alpha_vals
-    )
+    temp_pc_mesh <- estimate_mesh_volume_poisson(temp_pc_reconstructions_scaled)
     pc_volumes[time_idx] <- temp_pc_mesh$volume
   }
 
