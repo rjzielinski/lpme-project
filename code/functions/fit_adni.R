@@ -33,7 +33,7 @@ fit_adni <- function(
   source(here("code/functions/interior_identification.R"))
   source(here("code/prinSurf_v3.R"))
   source(here("code/functions/estimate_volume_interior.R"))
-  source(here("code/functions/estimate_mesh_volume.R"))
+  source(here("code/functions/estimate_mesh_volume_poisson.R"))
 
   handlers(global = TRUE)
 
@@ -132,7 +132,7 @@ fit_adni <- function(
       "estimate_volume_interior_pme",
       "interior_identification",
       "get_orientation",
-      "estimate_mesh_volume"
+      "estimate_mesh_volume_poisson"
     ),
     .packages = c(
       "alphashape3d",
@@ -692,10 +692,7 @@ fit_adni <- function(
           ]
 
           temp_lpme_cloud <- pv$PolyData(temp_lpme_reconstructions)
-          temp_lpme_mesh <- estimate_mesh_volume(
-            temp_lpme_cloud,
-            alpha_vals
-          )
+          temp_lpme_mesh <- estimate_mesh_volume_poisson(temp_lpme_cloud)
           adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -707,10 +704,7 @@ fit_adni <- function(
           ]
 
           temp_pme_cloud <- pv$PolyData(temp_pme_reconstructions)
-          temp_pme_mesh <- estimate_mesh_volume(
-            temp_pme_cloud,
-            alpha_vals
-          )
+          temp_pme_mesh <- estimate_mesh_volume_poisson(temp_pme_cloud)
           adni_pme_aug_volumes[time_idx] <- temp_pme_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -722,10 +716,7 @@ fit_adni <- function(
           ]
 
           temp_pc_cloud <- pv$PolyData(temp_pc_reconstructions)
-          temp_pc_mesh <- estimate_mesh_volume(
-            temp_pc_cloud,
-            alpha_vals
-          )
+          temp_pc_mesh <- estimate_mesh_volume_poisson(temp_pc_cloud)
           adni_pc_part_volumes[time_idx] <- temp_pc_mesh$volume *
             (x_scale * y_scale * z_scale)
         }
@@ -737,9 +728,8 @@ fit_adni <- function(
           ]
 
           temp_lpme_part_cloud <- pv$PolyData(temp_lpme_part_reconstructions)
-          temp_lpme_part_mesh <- estimate_mesh_volume(
-            temp_lpme_part_cloud,
-            alpha_vals
+          temp_lpme_part_mesh <- estimate_mesh_volume_poisson(
+            temp_lpme_part_cloud
           )
           adni_lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
@@ -752,9 +742,8 @@ fit_adni <- function(
           ]
 
           temp_pme_part_cloud <- pv$PolyData(temp_pme_part_reconstructions)
-          temp_pme_part_mesh <- estimate_mesh_volume(
-            temp_pme_part_cloud,
-            alpha_vals
+          temp_pme_part_mesh <- estimate_mesh_volume_poisson(
+            temp_pme_part_cloud
           )
           adni_pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
