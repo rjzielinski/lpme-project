@@ -39,24 +39,17 @@ fit_adni <- function(
 
   patnos <- unique(adni_surface$subid)
 
-  remove_patnos <- rep(TRUE, length(patnos))
-  for (patno_idx in length(patnos)) {
-    if (
-      file.exists(
-        here(
-          paste0(
-            "output/adni/",
-            patnos[patno_idx],
-            "/",
-            structure,
-            "_results.RDS"
-          )
-        )
-      )
-    ) {
-      remove_patnos[patno_idx] <- FALSE
-    }
-  }
+  remove_patnos <- map(
+    patnos,
+    ~ !file.exists(here(paste0(
+      "output/adni/",
+      .x,
+      "/",
+      structure,
+      "_results.RDS"
+    )))
+  ) |>
+    reduce(c)
 
   patnos <- patnos[remove_patnos]
 
