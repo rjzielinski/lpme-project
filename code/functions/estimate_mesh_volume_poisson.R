@@ -19,7 +19,8 @@ estimate_mesh_volume_poisson <- function(
     depth = as.integer(depth_val),
     width = 0,
     scale = 1.1,
-    linear_fit = FALSE
+    linear_fit = FALSE,
+    n_threads = 1L
   )
 
   mesh <- results[[1]]
