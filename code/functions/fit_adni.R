@@ -669,6 +669,12 @@ fit_adni <- function(
         length = length(time_values)
       )
 
+      adni_lpme_aug_mesh_list <- list()
+      adni_pme_aug_mesh_list <- list()
+      adni_pc_part_mesh_list <- list()
+      adni_lpme_part_mesh_list <- list()
+      adni_pme_part_mesh_list <- list()
+
       np <- import("numpy")
       o3d <- import("open3d")
       pv <- import("pyvista")
@@ -692,6 +698,7 @@ fit_adni <- function(
           )
           adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
             (x_scale * y_scale * z_scale)
+          adni_lpme_aug_mesh_list[[time_idx]] <- temp_lpme_mesh
         }
 
         if (!is.null(adni_pme_aug_reconstructions)) {
@@ -705,6 +712,7 @@ fit_adni <- function(
           )
           adni_pme_aug_volumes[time_idx] <- temp_pme_mesh$volume *
             (x_scale * y_scale * z_scale)
+          adni_pme_aug_mesh_list[[time_idx]] <- temp_pme_mesh
         }
 
         if (!is.null(adni_pc_part_reconstructions)) {
@@ -716,6 +724,7 @@ fit_adni <- function(
           temp_pc_mesh <- estimate_mesh_volume_poisson(temp_pc_reconstructions)
           adni_pc_part_volumes[time_idx] <- temp_pc_mesh$volume *
             (x_scale * y_scale * z_scale)
+          adni_pc_part_mesh_list[[time_idx]] <- temp_pc_mesh
         }
 
         if (!is.null(adni_lpme_part_reconstructions)) {
@@ -729,6 +738,7 @@ fit_adni <- function(
           )
           adni_lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
+          adni_lpme_part_mesh_list[[time_idx]] <- temp_lpme_part_mesh
         }
 
         if (!is.null(adni_pme_part_reconstructions)) {
@@ -742,6 +752,7 @@ fit_adni <- function(
           )
           adni_pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
+          adni_pme_part_mesh_list[[time_idx]] <- temp_pme_part_mesh
         }
       }
 
@@ -749,13 +760,15 @@ fit_adni <- function(
         lpme = adni_lpme_aug,
         reconstructions = adni_lpme_aug_reconstructions,
         volumes = adni_lpme_aug_volumes,
-        fit_time = adni_lpme_aug_time
+        fit_time = adni_lpme_aug_time,
+        meshes = adni_lpme_aug_mesh_list
       )
       adni_pme_aug_out <- list(
         pme = adni_pme_aug_list,
         reconstructions = adni_pme_aug_reconstructions,
         volumes = adni_pme_aug_volumes,
-        fit_time = adni_pme_aug_time_list
+        fit_time = adni_pme_aug_time_list,
+        meshes = adni_pme_aug_mesh_list
       )
 
       adni_lpme_part_out <- list(
@@ -763,7 +776,8 @@ fit_adni <- function(
         reconstructions = adni_lpme_part_reconstructions,
         volumes = adni_lpme_part_volumes,
         volumes_mesh = adni_lpme_part_volumes_mesh,
-        fit_time = adni_lpme_part_times
+        fit_time = adni_lpme_part_times,
+        meshes = adni_lpme_part_mesh_list
       )
 
       adni_pme_part_out <- list(
@@ -771,14 +785,16 @@ fit_adni <- function(
         reconstructions = adni_pme_part_reconstructions,
         volumes = adni_pme_part_volumes,
         volumes_mesh = adni_pme_part_volumes_mesh,
-        fit_time = adni_pme_part_times
+        fit_time = adni_pme_part_times,
+        meshes = adni_pme_part_mesh_list
       )
 
       adni_pc_part_out <- list(
         pc = adni_pc_part,
         reconstructions = adni_pc_part_reconstructions,
         volumes = adni_pc_part_volumes,
-        fit_time = adni_pc_part_times
+        fit_time = adni_pc_part_times,
+        meshes = adni_pc_part_mesh_list
       )
 
       adni <- list(

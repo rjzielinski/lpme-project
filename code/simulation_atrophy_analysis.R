@@ -26,6 +26,13 @@ calc_volumes <- function(files_case8) {
     .options.future = list(seed = TRUE)
   ) %dofuture%
     {
+      require(reticulate, warn.conflicts = FALSE, quietly = TRUE)
+      use_condaenv("lpme")
+
+      np <- import("numpy")
+      pv <- import("pyvista")
+      o3d <- import("open3d")
+
       file_name <- files_case8[file_idx]
       file_stripped <- str_replace(file_name, ".RDS", "")
       file_parsed <- str_split(file_stripped, "_")
