@@ -8,6 +8,12 @@ estimate_mesh_volume_poisson <- function(
 ) {
   require(dplyr, warn.conflicts = FALSE, quietly = TRUE)
 
+  require(reticulate, warn.conflicts = FALSE, quietly = TRUE)
+  use_condaenv("lpme")
+  np <- import("numpy")
+  o3d <- import("open3d")
+  pv <- import("pyvista")
+
   pcd <- o3d$geometry$PointCloud()
   pcd$points <- o3d$utility$Vector3dVector(points)
 
