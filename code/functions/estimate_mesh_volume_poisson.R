@@ -109,9 +109,10 @@ estimate_mesh_volume_poisson <- function(
       min(which(abs(mesh_vol_change) < threshold))
     )
 
-    out_mesh <- mesh_list[[first_idx]]
+    pv_mesh <- mesh_list[[first_idx]]
   }
 
+  out_mesh <- pv_mesh
   # mf <- pymeshfix$MeshFix(pv_mesh)
   # mf$repair(verbose = TRUE)
   # out_mesh <- mf$mesh
