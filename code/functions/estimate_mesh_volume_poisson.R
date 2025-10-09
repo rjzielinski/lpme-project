@@ -84,32 +84,32 @@ estimate_mesh_volume_poisson <- function(
 
     cloud <- pv$PolyData(points)
 
-    pv_mesh <- cloud$reconstruct_surface()
+    # out_mesh <- cloud$reconstruct_surface()
 
-    #   mesh_list <- list()
-    #   mesh_volumes <- vector(mode = "numeric", length = length(alpha_vals))
-    #
-    #   for (alpha_idx in seq_along(alpha_vals)) {
-    #     mesh_list[[alpha_idx]] <- cloud$delaunay_3d(alpha = alpha_vals[alpha_idx])
-    #     mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
-    #   }
-    #
-    #   mesh_vol_change <- c(
-    #     NA,
-    #     ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
-    #       -length(mesh_volumes)
-    #     ]
-    #   )
-    #
-    #   n_elig <- length(which(abs(mesh_vol_change) < threshold))
-    #
-    #   first_idx <- ifelse(
-    #     length(which(abs(mesh_vol_change) < threshold)) == 0,
-    #     which.min(abs(mesh_vol_change)),
-    #     min(which(abs(mesh_vol_change) < threshold))
-    #   )
-    #
-    #   out_mesh <- mesh_list[[first_idx]]
+    mesh_list <- list()
+    mesh_volumes <- vector(mode = "numeric", length = length(alpha_vals))
+
+    for (alpha_idx in seq_along(alpha_vals)) {
+      mesh_list[[alpha_idx]] <- cloud$delaunay_3d(alpha = alpha_vals[alpha_idx])
+      mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+    }
+
+    mesh_vol_change <- c(
+      NA,
+      ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
+        -length(mesh_volumes)
+      ]
+    )
+
+    n_elig <- length(which(abs(mesh_vol_change) < threshold))
+
+    first_idx <- ifelse(
+      length(which(abs(mesh_vol_change) < threshold)) == 0,
+      which.min(abs(mesh_vol_change)),
+      min(which(abs(mesh_vol_change) < threshold))
+    )
+
+    out_mesh <- mesh_list[[first_idx]]
   }
 
   # mf <- pymeshfix$MeshFix(pv_mesh)
