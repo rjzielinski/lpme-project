@@ -7,9 +7,8 @@ library(readr)
 library(reticulate)
 library(RColorBrewer)
 
-require(doRNG)
-require(doSNOW)
-require(foreach)
+library(doRNG)
+library(doSNOW)
 
 use_condaenv("lpme")
 np <- import("numpy")
@@ -54,12 +53,12 @@ rhipp_surface <- read_csv(here("data/rhipp_surface_fsl_processed.csv"))
 lthal_surface <- read_csv(here("data/lthal_surface_fsl_processed.csv"))
 rthal_surface <- read_csv(here("data/rthal_surface_fsl_processed.csv"))
 
-cl <- makeCluster(cores, outfile = "")
+cl <- makeCluster(cores, outfile = "log.txt")
 registerDoSNOW(cl)
 registerDoRNG(42)
 
 adni_volumes <- foreach(
-  patno = common_patnos[1:4],
+  patno = common_patnos,
   .combine = "rbind",
   .inorder = FALSE,
   .export = c(
@@ -225,4 +224,6 @@ adni_volumes <- foreach(
     )
   }
 
-write_csv(adni_volumes, here("output/test_adni_volumes.csv"))
+stopCluster(cl)
+
+write_csv(adni_volumes, here("output/adni_volumes.csv"))
