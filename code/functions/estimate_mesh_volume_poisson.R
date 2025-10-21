@@ -102,16 +102,16 @@ estimate_mesh_volume_poisson <- function(
         if (!alpha_mesh$is_empty()) {
           mesh_list[[alpha_idx]] <- o3d_to_pv(alpha_mesh)
           mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+
+          if (alpha_mesh$is_watertight() == TRUE) {
+            if (alpha_mesh$get_volume() > mesh_error_vol) {
+              pv_mesh <- o3d_to_pv(alpha_mesh)
+              break
+            }
+          }
         } else {
           mesh_list[[alpha_idx]] <- NULL
           mesh_volumes[alpha_idx] <- NA
-        }
-
-        if (alpha_mesh$is_watertight() == TRUE) {
-          if (alpha_mesh$get_volume() > mesh_error_vol) {
-            pv_mesh <- o3d_to_pv(alpha_mesh)
-            break
-          }
         }
 
         # o3d$visualization$draw_geometries(
