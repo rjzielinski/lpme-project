@@ -1,7 +1,7 @@
 estimate_mesh_volume_poisson <- function(
   points,
   depth_val = 3,
-  alpha_vals = exp(seq(-3, 0, 0.5)),
+  alpha_vals = exp(seq(-2, 0, 0.25)),
   ball_radii = c(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1),
   threshold = 0.01,
   mesh_error_vol = 0.5,
