@@ -97,14 +97,21 @@ estimate_mesh_volume_poisson <- function(
           convex_hull[[2]]
         )
 
-        alpha_mesh$compute_vertex_normals()
+        # alpha_mesh$compute_vertex_normals()
 
-        mesh_list[[alpha_idx]] <- o3d_to_pv(alpha_mesh)
-        mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+        if (!alpha_mesh$is_empty()) {
+          mesh_list[[alpha_idx]] <- o3d_to_pv(alpha_mesh)
+          mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+        } else {
+          mesh_list[[alpha_idx]] <- NULL
+          mesh_volumes[alpha_idx] <- NA
+        }
 
         if (alpha_mesh$is_watertight() == TRUE) {
-          pv_mesh <- o3d_to_pv(alpha_mesh)
-          break
+          if (alpha_mesh$get_volume() > mesh_error_vol) {
+            pv_mesh <- o3d_to_pv(alpha_mesh)
+            break
+          }
         }
 
         # o3d$visualization$draw_geometries(
