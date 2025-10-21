@@ -1,24 +1,33 @@
 estimate_mesh_volume_poisson <- function(
   points,
   depth_val = 3,
-  alpha_vals = seq(0.2, 2.0, by = 0.1),
+  alpha_vals = exp(seq(-3, 0, 0.5)),
   ball_radii = c(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1),
-  threshold = 0.005,
+  threshold = 0.01,
+  mesh_error_vol = 0.5,
   plot_mesh = FALSE
 ) {
   require(dplyr, warn.conflicts = FALSE, quietly = TRUE)
+  require(here)
 
   require(reticulate, warn.conflicts = FALSE, quietly = TRUE)
   use_condaenv("lpme")
   np <- import("numpy")
   o3d <- import("open3d")
+  mf <- import("pymeshfix")
+  plt <- import("matplotlib.pyplot")
   pv <- import("pyvista")
+  warnings <- import("warnings")
+
+  warnings$simplefilter("ignore")
+
+  source(here("code/functions/convert_mesh_lib.R"))
 
   pcd <- o3d$geometry$PointCloud()
   pcd$points <- o3d$utility$Vector3dVector(points)
 
   pcd$estimate_normals()
-  pcd$orient_normals_consistent_tangent_plane(100L)
+  pcd$orient_normals_consistent_tangent_plane(20L)
 
   poisson_results <- o3d$geometry$TriangleMesh$create_from_point_cloud_poisson(
     pcd,
@@ -28,88 +37,124 @@ estimate_mesh_volume_poisson <- function(
     linear_fit = TRUE,
     n_threads = 1L
   )
-
-  ball_mesh <- o3d$geometry$TriangleMesh$create_from_point_cloud_ball_pivoting(
-    pcd,
-    o3d$utility$DoubleVector(ball_radii)
-  )
-
   poisson_mesh <- poisson_results[[1]]
   poisson_densities <- np$array(poisson_results[[2]])
 
-  if (poisson_mesh$is_watertight() == TRUE) {
-    vertices <- np$asarray(poisson_mesh$vertices)
-    faces <- np$asarray(poisson_mesh$triangles)
+  poisson_mesh <- poisson_mesh$remove_degenerate_triangles()
+  poisson_mesh <- poisson_mesh$remove_duplicated_triangles()
+  poisson_mesh <- poisson_mesh$remove_non_manifold_edges()
+  poisson_mesh <- poisson_mesh$remove_unreferenced_vertices()
 
-    # PyVista requires faces in the format [3, p1, p2, p3, 3, p4, p5, p6, ...]
-    # We'll use numpy's functions to prepend a '3' to each face
+  poisson_mesh_filled <- o3d$t$geometry$TriangleMesh$from_legacy(poisson_mesh)
+  poisson_mesh_filled <- poisson_mesh_filled$fill_holes(1000000)
 
-    # Get the number of faces (triangles)
-    num_faces <- dim(faces)[1]
+  poisson_mesh <- poisson_mesh_filled$to_legacy()
 
-    # Create a 1D NumPy array of '3's, one for each face
-    int_vec <- np$full(as.integer(num_faces), 3L)
+  # Create and return the PyVista PolyData object
+  pv_mesh <- o3d_to_pv(poisson_mesh)
+  init_poisson_vol <- pv_mesh$volume
 
-    # Combine the '3's column with the face indices column-wise
-    # np$column_stack is the function equivalent of Python's np.c_
-    faces_aug <- cbind(int_vec, faces)
-    mode(faces_aug) <- "integer"
+  meshfix <- mf$MeshFix(pv_mesh)
+  holes <- meshfix$extract_holes()
 
-    # Create and return the PyVista PolyData object
-    pv_mesh <- pv$PolyData(vertices, faces_aug)
-  } else if (ball_mesh$is_watertight() == TRUE) {
-    vertices <- np$asarray(ball_mesh$vertices)
-    faces <- np$asarray(ball_mesh$triangles)
+  if (holes$n_cells > 0 || init_poisson_vol < mesh_error_vol) {
+    # if there are still holes, switch to ball-pivoting mesh
+    ball_mesh <- o3d$geometry$TriangleMesh$create_from_point_cloud_ball_pivoting(
+      pcd,
+      o3d$utility$DoubleVector(ball_radii)
+    )
 
-    # PyVista requires faces in the format [3, p1, p2, p3, 3, p4, p5, p6, ...]
-    # We'll use numpy's functions to prepend a '3' to each face
+    ball_mesh <- ball_mesh$remove_degenerate_triangles()
+    ball_mesh <- ball_mesh$remove_duplicated_triangles()
+    ball_mesh <- ball_mesh$remove_non_manifold_edges()
+    ball_mesh <- ball_mesh$remove_unreferenced_vertices()
 
-    # Get the number of faces (triangles)
-    num_faces <- dim(faces)[1]
+    ball_mesh_filled <- o3d$t$geometry$TriangleMesh$from_legacy(ball_mesh)
+    ball_mesh_filled <- ball_mesh_filled$fill_holes(1000000)
 
-    # Create a 1D NumPy array of '3's, one for each face
-    int_vec <- np$full(as.integer(num_faces), 3L)
+    ball_mesh <- ball_mesh_filled$to_legacy()
 
-    # Combine the '3's column with the face indices column-wise
-    # np$column_stack is the function equivalent of Python's np.c_
-    faces_aug <- cbind(int_vec, faces)
-    mode(faces_aug) <- "integer"
+    pv_mesh <- o3d_to_pv(ball_mesh)
+    init_ball_vol <- pv_mesh$volume
 
-    # Create and return the PyVista PolyData object
-    pv_mesh <- pv$PolyData(vertices, faces_aug)
-  } else {
-    # use Delaunay triangulation to estimate volume of point cloud
-    # loop through possible alpha values to find stable volume estimate
-    # assume that we have already loaded pyvista as pv through reticulate package
+    # check ball mesh for holes
+    meshfix <- mf$MeshFix(pv_mesh)
+    ball_holes <- meshfix$extract_holes()
 
-    cloud <- pv$PolyData(points)
+    if (ball_holes$n_cells > 0 || init_ball_vol < mesh_error_vol) {
+      # use alpha shapes to estimate volume of point cloud
+      # loop through possible alpha values to find stable volume estimate
 
-    # out_mesh <- cloud$reconstruct_surface()
+      mesh_list <- list()
+      mesh_volumes <- vector(mode = "numeric", length = length(alpha_vals))
 
-    mesh_list <- list()
-    mesh_volumes <- vector(mode = "numeric", length = length(alpha_vals))
+      convex_hull <- o3d$geometry$TetraMesh$create_from_point_cloud(pcd)
+      for (alpha_idx in seq_along(alpha_vals)) {
+        alpha_mesh <- o3d$geometry$TriangleMesh$create_from_point_cloud_alpha_shape(
+          pcd,
+          alpha_vals[alpha_idx],
+          convex_hull[[1]],
+          convex_hull[[2]]
+        )
 
-    for (alpha_idx in seq_along(alpha_vals)) {
-      mesh_list[[alpha_idx]] <- cloud$delaunay_3d(alpha = alpha_vals[alpha_idx])
-      mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+        alpha_mesh$compute_vertex_normals()
+
+        mesh_list[[alpha_idx]] <- o3d_to_pv(alpha_mesh)
+        mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+
+        if (alpha_mesh$is_watertight() == TRUE) {
+          pv_mesh <- o3d_to_pv(alpha_mesh)
+          break
+        }
+
+        # o3d$visualization$draw_geometries(
+        #   list(alpha_mesh),
+        #   mesh_show_back_face = TRUE
+        # )
+
+        # mesh_list[[alpha_idx]] <- o3d_to_pv(alpha_mesh)
+        # mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+        #
+        # mesh_vol_change <- c(
+        #   NA,
+        #   ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
+        #     -length(mesh_volumes)
+        #   ]
+        # )
+      }
+
+      # cloud <- pv$PolyData(points)
+      #
+      # mesh_list <- list()
+      # mesh_volumes <- vector(mode = "numeric", length = length(alpha_vals))
+      #
+      # for (alpha_idx in seq_along(alpha_vals)) {
+      #   alpha_mesh <- cloud$delaunay_3d(
+      #     alpha = alpha_vals[alpha_idx]
+      #   )$extract_surface()
+      #
+      #   mesh_list[[alpha_idx]] <- alpha_mesh
+      #   mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+      #
+      #   mesh_vol_change <- c(
+      #     NA,
+      #     ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
+      #       -length(mesh_volumes)
+      #     ]
+      #   )
+      #
+      #   if (sum(abs(mesh_vol_change) < threshold, na.rm = TRUE) > 0) {
+      #     pv_mesh <- mesh_list[[alpha_idx]]
+      #     break
+      #   }
+      # }
+
+      n_elig <- length(which(abs(mesh_vol_change) < threshold))
+
+      if (n_elig == 0) {
+        pv_mesh <- mesh_list[[which.min(abs(mesh_vol_change))]]
+      }
     }
-
-    mesh_vol_change <- c(
-      NA,
-      ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
-        -length(mesh_volumes)
-      ]
-    )
-
-    n_elig <- length(which(abs(mesh_vol_change) < threshold))
-
-    first_idx <- ifelse(
-      length(which(abs(mesh_vol_change) < threshold)) == 0,
-      which.min(abs(mesh_vol_change)),
-      min(which(abs(mesh_vol_change) < threshold))
-    )
-
-    pv_mesh <- mesh_list[[first_idx]]
   }
 
   out_mesh <- pv_mesh
