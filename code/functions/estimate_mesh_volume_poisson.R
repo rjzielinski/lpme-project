@@ -149,6 +149,13 @@ estimate_mesh_volume_poisson <- function(
       #   }
       # }
 
+      mesh_vol_change <- c(
+        NA,
+        ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
+          -length(mesh_volumes)
+        ]
+      )
+
       n_elig <- length(which(abs(mesh_vol_change) < threshold))
 
       if (n_elig == 0) {
