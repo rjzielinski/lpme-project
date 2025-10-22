@@ -2,7 +2,7 @@ fit_adni <- function(
   adni_surface,
   adni_centers,
   structure,
-  partition_overlap = 0.15,
+  partition_overlap = 0,
   cores = parallelly::availableCores(),
   verbose = FALSE
 ) {
