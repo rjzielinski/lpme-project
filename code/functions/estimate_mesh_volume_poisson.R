@@ -59,6 +59,7 @@ estimate_mesh_volume_poisson <- function(
 
   if (holes$n_cells > 0 || init_poisson_vol < mesh_error_vol) {
     # if there are still holes, switch to ball-pivoting mesh
+
     ball_mesh <- o3d$geometry$TriangleMesh$create_from_point_cloud_ball_pivoting(
       pcd,
       o3d$utility$DoubleVector(ball_radii)
@@ -88,6 +89,7 @@ estimate_mesh_volume_poisson <- function(
       mesh_list <- list()
       mesh_volumes <- vector(mode = "numeric", length = length(alpha_vals))
 
+      watertight_found <- FALSE
       convex_hull <- o3d$geometry$TetraMesh$create_from_point_cloud(pcd)
       for (alpha_idx in seq_along(alpha_vals)) {
         alpha_mesh <- o3d$geometry$TriangleMesh$create_from_point_cloud_alpha_shape(
@@ -106,6 +108,7 @@ estimate_mesh_volume_poisson <- function(
           if (alpha_mesh$is_watertight() == TRUE) {
             if (alpha_mesh$get_volume() > mesh_error_vol) {
               pv_mesh <- o3d_to_pv(alpha_mesh)
+              watertight_found <- TRUE
               break
             }
           }
@@ -156,17 +159,19 @@ estimate_mesh_volume_poisson <- function(
       #   }
       # }
 
-      mesh_vol_change <- c(
-        NA,
-        ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
-          -length(mesh_volumes)
-        ]
-      )
+      if (watertight_found == FALSE) {
+        mesh_vol_change <- c(
+          NA,
+          ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
+            -length(mesh_volumes)
+          ]
+        )
 
-      n_elig <- length(which(abs(mesh_vol_change) < threshold))
+        n_elig <- length(which(abs(mesh_vol_change) < threshold))
 
-      if (n_elig == 0) {
-        pv_mesh <- mesh_list[[which.min(abs(mesh_vol_change))]]
+        if (n_elig == 0) {
+          pv_mesh <- mesh_list[[which.min(abs(mesh_vol_change))]]
+        }
       }
     }
   }
