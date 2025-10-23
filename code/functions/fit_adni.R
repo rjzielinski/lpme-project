@@ -53,6 +53,12 @@ fit_adni <- function(
 
   patnos <- patnos[remove_patnos]
 
+  alpha_vals <- ifelse(
+    grepl("hipp", structure),
+    exp(seq(-3, 0, 0.25)),
+    exp(seq(-2, 0, 0.25))
+  )
+
   if (verbose == FALSE) {
     # plan(
     #   future.batchtools::batchtools_slurm,
@@ -113,6 +119,7 @@ fit_adni <- function(
     patno_idx = seq_along(patnos),
     .export = c(
       "patnos",
+      "alpha_vals",
       "adni_surface",
       "adni_centers",
       "structure",
@@ -679,9 +686,6 @@ fit_adni <- function(
       o3d <- import("open3d")
       pv <- import("pyvista")
 
-      # alpha_vals <- ifelse(grepl("hipp", structure), 0.5, 0.9)
-      alpha_vals <- seq(0.3, 1.5, by = 0.1)
-
       for (time_idx in seq_along(time_values)) {
         x_scale <- patno_adni_centers$max_x[time_idx]
         y_scale <- patno_adni_centers$max_y[time_idx]
@@ -694,7 +698,8 @@ fit_adni <- function(
           ]
 
           temp_lpme_mesh <- estimate_mesh_volume_poisson(
-            temp_lpme_reconstructions
+            temp_lpme_reconstructions,
+            alpha_vals = alpha_vals
           )
           adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
             (x_scale * y_scale * z_scale)
@@ -708,7 +713,8 @@ fit_adni <- function(
           ]
 
           temp_pme_mesh <- estimate_mesh_volume_poisson(
-            temp_pme_reconstructions
+            temp_pme_reconstructions,
+            alpha_vals = alpha_vals
           )
           adni_pme_aug_volumes[time_idx] <- temp_pme_mesh$volume *
             (x_scale * y_scale * z_scale)
@@ -721,7 +727,10 @@ fit_adni <- function(
             2:4
           ]
 
-          temp_pc_mesh <- estimate_mesh_volume_poisson(temp_pc_reconstructions)
+          temp_pc_mesh <- estimate_mesh_volume_poisson(
+            temp_pc_reconstructions,
+            alpha_vals = alpha_vals
+          )
           adni_pc_part_volumes[time_idx] <- temp_pc_mesh$volume *
             (x_scale * y_scale * z_scale)
           adni_pc_part_mesh_list[[time_idx]] <- temp_pc_mesh
@@ -734,7 +743,8 @@ fit_adni <- function(
           ]
 
           temp_lpme_part_mesh <- estimate_mesh_volume_poisson(
-            temp_lpme_part_reconstructions
+            temp_lpme_part_reconstructions,
+            alpha_vals = alpha_vals
           )
           adni_lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
@@ -748,7 +758,8 @@ fit_adni <- function(
           ]
 
           temp_pme_part_mesh <- estimate_mesh_volume_poisson(
-            temp_pme_part_reconstructions
+            temp_pme_part_reconstructions,
+            alpha_vals = alpha_vals
           )
           adni_pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume *
             (x_scale * y_scale * z_scale)
