@@ -53,11 +53,11 @@ fit_adni <- function(
 
   patnos <- patnos[remove_patnos]
 
-  alpha_vals <- ifelse(
-    grepl("hipp", structure),
-    exp(seq(-3, 0, 0.25)),
-    exp(seq(-2, 0, 0.25))
-  )
+  if (grepl("hipp", structure) == TRUE) {
+    alpha_vals <- exp(seq(-3, 0, 0.25))
+  } else {
+    alpha_vals <- exp(seq(-2, 0, 0.25))
+  }
 
   if (verbose == FALSE) {
     # plan(
@@ -190,6 +190,26 @@ fit_adni <- function(
         select(time_from_bl, x, y, z) |>
         as.matrix()
 
+      min_obs_aug <- patno_adni |>
+        group_by(time_from_bl) |>
+        summarize(n = n()) |>
+        select(n) |>
+        min()
+
+      min_obs_pt1 <- patno_adni |>
+        filter(partition1 == TRUE) |>
+        group_by(time_from_bl) |>
+        summarize(n = n()) |>
+        select(n) |>
+        min()
+
+      min_obs_pt2 <- patno_adni |>
+        filter(partition2 == TRUE) |>
+        group_by(time_from_bl) |>
+        summarize(n = n()) |>
+        select(n) |>
+        min()
+
       time_values <- unique(patno_adni$time_from_bl)
 
       adni_pme_aug_list <- list()
@@ -249,6 +269,7 @@ fit_adni <- function(
           adni_lpme_aug <- lpme(
             adni_aug,
             d = 2,
+            min_clusters = min(20, floor(min_obs_aug / 2)),
             verbose = verbose,
             print_plots = FALSE
           )
@@ -279,6 +300,7 @@ fit_adni <- function(
           adni_lpme_part[[1]] <- lpme(
             adni_pt1,
             d = 2,
+            min_clusters = min(20, floor(min_obs_pt1 / 2)),
             verbose = verbose,
             print_plots = FALSE
           )
@@ -303,6 +325,7 @@ fit_adni <- function(
           adni_lpme_part[[2]] <- lpme(
             adni_pt2,
             d = 2,
+            min_clusters = min(20, floor(min_obs_pt2 / 2)),
             verbose = verbose,
             print_plots = FALSE
           )
@@ -341,6 +364,7 @@ fit_adni <- function(
             adni_pme_aug_list[[time_idx]] <- pme(
               temp_adni,
               d = 2,
+              min_clusters = min(20, floor(nrow(temp_adni) / 2)),
               verbose = FALSE
             )
             temp_pme_aug_time <- toc(quiet = TRUE)
@@ -373,7 +397,11 @@ fit_adni <- function(
         tryCatch(
           {
             tic()
-            adni_pme_part[[1]][[time_idx]] <- pme(temp_adni_pt1, d = 2)
+            adni_pme_part[[1]][[time_idx]] <- pme(
+              temp_adni_pt1,
+              d = 2,
+              min_clusters = min(20, floor(nrow(temp_adni_pt1) / 2))
+            )
             temp_pme_time_pt1 <- toc(quiet = TRUE)
             adni_pme_part_times[[1]][[time_idx]] <- temp_pme_time_pt1$toc -
               temp_pme_time_pt1$tic
@@ -403,7 +431,11 @@ fit_adni <- function(
         tryCatch(
           {
             tic()
-            adni_pme_part[[2]][[time_idx]] <- pme(temp_adni_pt2, d = 2)
+            adni_pme_part[[2]][[time_idx]] <- pme(
+              temp_adni_pt2,
+              d = 2,
+              min_clusters = min(20, floor(nrow(temp_adni_pt2) / 2))
+            )
             temp_pme_time_pt2 <- toc(quiet = TRUE)
             adni_pme_part_times[[2]][[time_idx]] <- temp_pme_time_pt2$toc -
               temp_pme_time_pt2$tic
@@ -701,6 +733,7 @@ fit_adni <- function(
             temp_lpme_reconstructions,
             alpha_vals = alpha_vals
           )
+
           adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
             (x_scale * y_scale * z_scale)
           adni_lpme_aug_mesh_list[[time_idx]] <- temp_lpme_mesh
