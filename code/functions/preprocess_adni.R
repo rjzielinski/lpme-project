@@ -1,4 +1,9 @@
-preprocess_adni <- function(adni_surface, adni_info, min_duration = 2) {
+preprocess_adni <- function(
+  adni_surface,
+  adni_info,
+  min_duration = 2,
+  min_visits = 3
+) {
   require(dplyr)
   require(lubridate)
   require(tidyr)
@@ -26,7 +31,8 @@ preprocess_adni <- function(adni_surface, adni_info, min_duration = 2) {
     arrange(date) |>
     summarize(
       date_bl = first(date),
-      date_max = max(date)
+      date_max = max(date),
+      n_visits = length(unique(date))
     ) |>
     mutate(duration = date_max - date_bl)
 
@@ -39,7 +45,7 @@ preprocess_adni <- function(adni_surface, adni_info, min_duration = 2) {
       z = (z - mean_z) / max_z,
       time_from_bl = (date - date_bl) / duration
     ) |>
-    filter(duration > min_duration)
+    filter(duration > min_duration, n_visits >= min_visits)
 
   adni_surface_spherical <- adni_surface |>
     select(x, y, z) |>
