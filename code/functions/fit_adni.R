@@ -686,6 +686,10 @@ fit_adni <- function(
         adni_pme_part_volumes <- NULL
       }
 
+      patno_adni_volumes_mesh <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
       adni_lpme_aug_volumes <- vector(
         mode = "numeric",
         length = length(time_values)
@@ -708,6 +712,7 @@ fit_adni <- function(
         length = length(time_values)
       )
 
+      patno_adni_mesh_list <- list()
       adni_lpme_aug_mesh_list <- list()
       adni_pme_aug_mesh_list <- list()
       adni_pc_part_mesh_list <- list()
@@ -722,6 +727,19 @@ fit_adni <- function(
         x_scale <- patno_adni_centers$max_x[time_idx]
         y_scale <- patno_adni_centers$max_y[time_idx]
         z_scale <- patno_adni_centers$max_z[time_idx]
+
+        temp_data <- patno_adni |>
+          filter(time_from_bl == time_values[time_idx]) |>
+          select(x, y, z) |>
+          as.matrix()
+
+        temp_data_mesh <- estimate_mesh_volume_poisson(
+          temp_data,
+          alpha_vals = alpha_vals
+        )
+        patno_adni_volumes_mesh[time_idx] <- temp_data_mesh$volume *
+          (x_scale * y_scale * z_scale)
+        patno_adni_mesh_list[[time_idx]] <- temp_data_mesh
 
         if (!is.null(adni_lpme_aug_reconstructions)) {
           temp_lpme_reconstructions <- adni_lpme_aug_reconstructions[
@@ -800,6 +818,12 @@ fit_adni <- function(
         }
       }
 
+      data_out <- list(
+        data = patno_adni,
+        volumes_mesh = patno_adni_volumes_mesh,
+        meshes = patno_adni_mesh_list
+      )
+
       adni_lpme_aug_out <- list(
         lpme = adni_lpme_aug,
         reconstructions = adni_lpme_aug_reconstructions,
@@ -842,7 +866,7 @@ fit_adni <- function(
       )
 
       adni <- list(
-        data = patno_adni,
+        data = data_out,
         lpme_aug = adni_lpme_aug_out,
         pme_aug = adni_pme_aug_out,
         lpme_part = adni_lpme_part_out,
