@@ -173,13 +173,15 @@ adni_volumes <- foreach(
           rhipp_scaling$max_z)
 
       lthal_data_vol[time_idx] <- estimate_mesh_volume_poisson(
-        temp_lthal_data
+        temp_lthal_data,
+        alpha_vals = exp(seq(-2, 0, 0.25))
       )$volume *
         (lthal_scaling$max_x *
           lthal_scaling$max_y *
           lthal_scaling$max_z)
       rthal_data_vol[time_idx] <- estimate_mesh_volume_poisson(
-        temp_rthal_data
+        temp_rthal_data,
+        alpha_vals = exp(seq(-2, 0, 0.25))
       )$volume *
         (rthal_scaling$max_x *
           rthal_scaling$max_y *
