@@ -40,9 +40,9 @@ rhipp_patnos <- isolate_patno(rhipp_files, result_dir, "rhipp")
 lthal_patnos <- isolate_patno(lthal_files, result_dir, "lthal")
 rthal_patnos <- isolate_patno(rthal_files, result_dir, "rthal")
 
-common_patnos <- intersect(lhipp_patnos, lthal_patnos)
-common_patnos <- intersect(common_patnos, rhipp_patnos)
-common_patnos <- intersect(common_patnos, rthal_patnos)
+common_patnos <- intersect(lhipp_patnos, lthal_patnos) |>
+  intersect(rhipp_patnos) |>
+  intersect(rthal_patnos)
 
 # RETRIEVE VOLUME ESTIMATES FROM MESHES -------------------------------------
 
@@ -121,72 +121,11 @@ adni_volumes <- foreach(
     lthal_result <- readRDS(paste0(patno_dir, "lthal_results.RDS"))
     rthal_result <- readRDS(paste0(patno_dir, "rthal_results.RDS"))
 
-    time_points <- unique(lhipp_result$data$time_from_bl)
-    lhipp_data_vol <- vector(mode = "numeric", length = length(time_points))
-    rhipp_data_vol <- vector(mode = "numeric", length = length(time_points))
-    lthal_data_vol <- vector(mode = "numeric", length = length(time_points))
-    rthal_data_vol <- vector(mode = "numeric", length = length(time_points))
-
-    for (time_idx in seq_along(time_points)) {
-      lhipp_scaling <- lhipp_info |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        summarize(max_x = mean(max_x), max_y = mean(max_y), max_z = mean(max_z))
-      rhipp_scaling <- rhipp_info |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        summarize(max_x = mean(max_x), max_y = mean(max_y), max_z = mean(max_z))
-      lthal_scaling <- lthal_info |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        summarize(max_x = mean(max_x), max_y = mean(max_y), max_z = mean(max_z))
-      rthal_scaling <- rthal_info |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        summarize(max_x = mean(max_x), max_y = mean(max_y), max_z = mean(max_z))
-
-      temp_lhipp_data <- lhipp_result$data |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        select(x, y, z) |>
-        as.matrix()
-      temp_rhipp_data <- rhipp_result$data |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        select(x, y, z) |>
-        as.matrix()
-
-      temp_lthal_data <- lthal_result$data |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        select(x, y, z) |>
-        as.matrix()
-      temp_rthal_data <- rthal_result$data |>
-        filter(time_from_bl == time_points[time_idx]) |>
-        select(x, y, z) |>
-        as.matrix()
-
-      lhipp_data_vol[time_idx] <- estimate_mesh_volume_poisson(
-        temp_lhipp_data
-      )$volume *
-        (lhipp_scaling$max_x *
-          lhipp_scaling$max_y *
-          lhipp_scaling$max_z)
-      rhipp_data_vol[time_idx] <- estimate_mesh_volume_poisson(
-        temp_rhipp_data
-      )$volume *
-        (rhipp_scaling$max_x *
-          rhipp_scaling$max_y *
-          rhipp_scaling$max_z)
-
-      lthal_data_vol[time_idx] <- estimate_mesh_volume_poisson(
-        temp_lthal_data,
-        alpha_vals = exp(seq(-2, 0, 0.25))
-      )$volume *
-        (lthal_scaling$max_x *
-          lthal_scaling$max_y *
-          lthal_scaling$max_z)
-      rthal_data_vol[time_idx] <- estimate_mesh_volume_poisson(
-        temp_rthal_data,
-        alpha_vals = exp(seq(-2, 0, 0.25))
-      )$volume *
-        (rthal_scaling$max_x *
-          rthal_scaling$max_y *
-          rthal_scaling$max_z)
-    }
+    time_points <- unique(lhipp_result$data$data$time_from_bl)
+    lhipp_data_vol <- lhipp_result$data$volumes_mesh
+    rhipp_data_vol <- rhipp_result$data$volumes_mesh
+    lthal_data_vol <- lthal_result$data$volumes_mesh
+    rthal_data_vol <- rthal_result$data$volumes_mesh
 
     lhipp_lpme_vols <- lhipp_result$lpme_part$volumes_mesh
     lhipp_pme_vols <- lhipp_result$pme_part$volumes_mesh
