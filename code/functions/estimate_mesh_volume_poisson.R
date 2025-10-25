@@ -42,8 +42,13 @@ estimate_mesh_volume_poisson <- function(
   poisson_densities <- np$array(poisson_results[[2]])
 
   # Create and return the PyVista PolyData object
+  init_poisson_vol <- ifelse(
+    poisson_mesh$is_watertight(),
+    poisson_mesh$get_volume(),
+    0
+  )
   pv_mesh <- o3d_to_pv(poisson_mesh)
-  init_poisson_vol <- pv_mesh$volume
+  mesh_volume <- init_poisson_vol
 
   meshfix <- mf$MeshFix(pv_mesh)
   holes <- meshfix$extract_holes()
@@ -54,7 +59,9 @@ estimate_mesh_volume_poisson <- function(
     poisson_mesh <- pv_to_o3d(pv_mesh)
   }
 
-  if (holes$n_cells > 0 || init_poisson_vol < mesh_error_vol) {
+  if (
+    poisson_mesh$is_watertight() == FALSE || init_poisson_vol < mesh_error_vol
+  ) {
     # if there are still holes, switch to ball-pivoting mesh
 
     ball_mesh <- o3d$geometry$TriangleMesh$create_from_point_cloud_ball_pivoting(
@@ -63,7 +70,12 @@ estimate_mesh_volume_poisson <- function(
     )
 
     pv_mesh <- o3d_to_pv(ball_mesh)
-    init_ball_vol <- pv_mesh$volume
+    init_ball_vol <- ifelse(
+      ball_mesh$is_watertight(),
+      ball_mesh$get_volume(),
+      0
+    )
+    mesh_volume <- init_ball_vol
 
     meshfix <- mf$MeshFix(pv_mesh)
     holes <- meshfix$extract_holes()
@@ -75,14 +87,14 @@ estimate_mesh_volume_poisson <- function(
       ball_mesh <- pv_to_o3d(pv_mesh)
     }
 
-    if (holes$n_cells > 0 || init_ball_vol < mesh_error_vol) {
+    if (ball_mesh$is_watertight() == FALSE || init_ball_vol < mesh_error_vol) {
       # use alpha shapes to estimate volume of point cloud
       # loop through possible alpha values to find stable volume estimate
 
       mesh_list <- list()
       mesh_volumes <- vector(mode = "numeric", length = length(alpha_vals))
 
-      no_holes <- FALSE
+      watertight <- FALSE
       convex_hull <- o3d$geometry$TetraMesh$create_from_point_cloud(pcd)
       for (alpha_idx in seq_along(alpha_vals)) {
         alpha_mesh <- o3d$geometry$TriangleMesh$create_from_point_cloud_alpha_shape(
@@ -96,16 +108,21 @@ estimate_mesh_volume_poisson <- function(
 
         if (!alpha_mesh$is_empty()) {
           mesh_list[[alpha_idx]] <- o3d_to_pv(alpha_mesh)
-          mesh_volumes[alpha_idx] <- mesh_list[[alpha_idx]]$volume
+          mesh_volumes[alpha_idx] <- ifelse(
+            alpha_mesh$is_watertight(),
+            alpha_mesh$get_volume(),
+            NA
+          )
 
           meshfix <- mf$MeshFix(pv_mesh)
           holes <- meshfix$extract_holes()
 
-          if (holes$n_cells == 0) {
+          if (alpha_mesh$is_watertight() == TRUE) {
             if (alpha_mesh$get_volume() > mesh_error_vol) {
               pv_mesh <- o3d_to_pv(alpha_mesh)
+              mesh_volume <- alpha_mesh$get_volume()
 
-              no_holes <- TRUE
+              watertight <- TRUE
               break
             }
           }
@@ -115,19 +132,10 @@ estimate_mesh_volume_poisson <- function(
         }
       }
 
-      if (no_holes == FALSE) {
-        mesh_vol_change <- c(
-          NA,
-          ((lead(mesh_volumes) - mesh_volumes) / mesh_volumes)[
-            -length(mesh_volumes)
-          ]
-        )
-
-        n_elig <- length(which(abs(mesh_vol_change) < threshold))
-
-        if (n_elig == 0) {
-          pv_mesh <- mesh_list[[which.min(abs(mesh_vol_change))]]
-        }
+      if (watertight == FALSE) {
+        convex_hull_trimesh <- pcd$compute_convex_hull()[[1]]
+        pv_mesh <- o3d_to_pv(convex_hull_trimesh)
+        mesh_volume <- convex_hull_trimesh$get_volume()
       }
     }
   }
@@ -142,7 +150,7 @@ estimate_mesh_volume_poisson <- function(
 
   out_list <- list(
     mesh = out_mesh,
-    volume = out_mesh$volume
+    volume = mesh_volume
   )
 
   return(out_list)
