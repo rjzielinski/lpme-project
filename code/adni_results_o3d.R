@@ -43,8 +43,8 @@ common_patnos <- intersect(lhipp_patnos, lthal_patnos) |>
   intersect(rhipp_patnos) |>
   intersect(rthal_patnos)
 
-lhipp_idx <- which(grepl(common_patnos[4], lhipp_files))
-lthal_idx <- which(grepl(common_patnos[4], lthal_files))
+lhipp_idx <- which(grepl(common_patnos[1], lhipp_files))
+lthal_idx <- which(grepl(common_patnos[1], lthal_files))
 
 lhipp_ex <- readRDS(lhipp_files[lhipp_idx])
 lthal_ex <- readRDS(lthal_files[lthal_idx])
@@ -54,25 +54,76 @@ lhipp_plots <- structure_plot_grid(lhipp_ex, line_width = 5)
 lhipp_plots$mesh_plot$show()
 lhipp_plots$mesh_plot$screenshot(here("output/figures/lhipp_mesh_plot.png"))
 
-lhipp_plots$sil_plot$show()
-lhipp_plots$sil_plot$screenshot(here("output/figures/lhipp_alg_silhouette.png"))
-
-lhipp_plots$time_sil_plot$show()
-lhipp_plots$time_sil_plot$screenshot(here(
-  "output/figures/lhipp_time_silhouette.png"
+lhipp_plots$sil_plots$dim1$show()
+lhipp_plots$sil_plots$dim1$screenshot(here(
+  "output/figures/lhipp_alg_silhouette_dim1.png"
 ))
 
-lthal_plots <- structure_plot_grid(lthal_ex, line_width = 5)
+lhipp_plots$sil_plots$dim2$show()
+lhipp_plots$sil_plots$dim2$screenshot(here(
+  "output/figures/lhipp_alg_silhouette_dim2.png"
+))
+
+lhipp_plots$sil_plots$dim3$show()
+lhipp_plots$sil_plots$dim3$screenshot(here(
+  "output/figures/lhipp_alg_silhouette_dim3.png"
+))
+
+
+lhipp_plots$time_sil_plots$dim1$show()
+lhipp_plots$time_sil_plots$dim1$screenshot(here(
+  "output/figures/lhipp_time_silhouette_dim1.png"
+))
+
+lhipp_plots$time_sil_plots$dim2$show()
+lhipp_plots$time_sil_plots$dim2$screenshot(here(
+  "output/figures/lhipp_time_silhouette_dim2.png"
+))
+
+lhipp_plots$time_sil_plots$dim3$show()
+lhipp_plots$time_sil_plots$dim3$screenshot(here(
+  "output/figures/lhipp_time_silhouette_dim3.png"
+))
+
+
+lthal_plots <- structure_plot_grid(
+  lthal_ex,
+  alpha_vals = exp(seq(-2, 0, 0.25)),
+  line_width = 5
+)
 
 lthal_plots$mesh_plot$show()
 lthal_plots$mesh_plot$screenshot(here("output/figures/lthal_mesh_plot.png"))
 
-lthal_plots$sil_plot$show()
-lthal_plots$sil_plot$screenshot(here("output/figures/lthal_alg_silhouette.png"))
+lthal_plots$sil_plots$dim1$show()
+lthal_plots$sil_plots$dim1$screenshot(here(
+  "output/figures/lthal_alg_silhouette_dim1.png"
+))
 
-lthal_plots$time_sil_plot$show()
-lthal_plots$time_sil_plot$screenshot(here(
-  "output/figures/lthal_time_silhouette.png"
+lthal_plots$sil_plots$dim2$show()
+lthal_plots$sil_plots$dim2$screenshot(here(
+  "output/figures/lthal_alg_silhouette_dim2.png"
+))
+
+lthal_plots$sil_plots$dim3$show()
+lthal_plots$sil_plots$dim3$screenshot(here(
+  "output/figures/lthal_alg_silhouette_dim3.png"
+))
+
+
+lthal_plots$time_sil_plots$dim1$show()
+lthal_plots$time_sil_plots$dim1$screenshot(here(
+  "output/figures/lthal_time_silhouette_dim1.png"
+))
+
+lthal_plots$time_sil_plots$dim2$show()
+lthal_plots$time_sil_plots$dim2$screenshot(here(
+  "output/figures/lthal_time_silhouette_dim2.png"
+))
+
+lthal_plots$time_sil_plots$dim3$show()
+lthal_plots$time_sil_plots$dim3$screenshot(here(
+  "output/figures/lthal_time_silhouette_dim3.png"
 ))
 
 colors <- brewer.pal(3, "Set1")
@@ -439,7 +490,7 @@ adni_sd_med <- adni_info_sd %>%
 
 print(adni_sd_med, width = Inf)
 
-set.seed(8310)
+set.seed(412)
 sampled_patnos <- adni_info_ts %>%
   sample_n_keys(3) %>%
   .$patno %>%
@@ -451,34 +502,10 @@ adni_info_ts %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
   geom_point(aes(y = lhipp_data_vol), shape = 16, color = colors[1]) +
   geom_line(aes(y = lhipp_data_vol), color = colors[1]) +
-  # geom_smooth(
-  #   aes(y = lhipp_data_vol2),
-  #   color = colors[1],
-  #   method = "lm",
-  #   se = FALSE,
-  #   linetype = "dashed",
-  #   linewidth = 1
-  # ) +
   geom_point(aes(y = lhipp_lpme_vol), shape = 15, color = colors[2]) +
   geom_line(aes(y = lhipp_lpme_vol), color = colors[2]) +
-  # geom_smooth(
-  #   aes(y = lhipp_vol_lpme2),
-  #   color = colors[2],
-  #   method = "lm",
-  #   se = FALSE,
-  #   linetype = "dashed",
-  #   linewidth = 1
-  # ) +
   geom_point(aes(y = lhipp_pme_vol), shape = 17, color = colors[3]) +
   geom_line(aes(y = lhipp_pme_vol), color = colors[3]) +
-  # geom_smooth(
-  #   aes(y = lhipp_vol_pme2),
-  #   color = colors[3],
-  #   method = "lm",
-  #   se = FALSE,
-  #   linetype = "dashed",
-  #   linewidth = 1
-  # ) +
   facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left Hippocampus Volume") +
@@ -498,34 +525,10 @@ adni_info_ts %>%
   ggplot(aes(x = time_from_bl, group = patno)) +
   geom_point(aes(y = lthal_data_vol), shape = 16, color = colors[1]) +
   geom_line(aes(y = lthal_data_vol), color = colors[1]) +
-  # geom_smooth(
-  #   aes(y = lthal_data_vol2),
-  #   color = colors[1],
-  #   method = "lm",
-  #   se = FALSE,
-  #   linetype = "dashed",
-  #   linewidth = 1
-  # ) +
   geom_point(aes(y = lthal_lpme_vol), shape = 15, color = colors[2]) +
   geom_line(aes(y = lthal_lpme_vol), color = colors[2]) +
-  # geom_smooth(
-  #   aes(y = lthal_vol_lpme2),
-  #   color = colors[2],
-  #   method = "lm",
-  #   se = FALSE,
-  #   linetype = "dashed",
-  #   linewidth = 1
-  # ) +
   geom_point(aes(y = lthal_pme_vol), shape = 17, color = colors[3]) +
   geom_line(aes(y = lthal_pme_vol), color = colors[3]) +
-  # geom_smooth(
-  #   aes(y = lthal_vol_pme2),
-  #   color = colors[3],
-  #   method = "lm",
-  #   se = FALSE,
-  #   linetype = "dashed",
-  #   linewidth = 1
-  # ) +
   facet_wrap(~patno) +
   xlab("Time from Baseline Visit (Years)") +
   ylab("Estimated Left thalocampus Volume") +
