@@ -23,6 +23,7 @@ mesh_projection <- function(data, axis = 3) {
   )
   out_list <- list(
     mesh = out_mesh,
-    boundary = edges
+    boundary = edges,
+    area = out_mesh$area
   )
 }
