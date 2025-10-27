@@ -34,6 +34,7 @@ fit_adni <- function(
   source(here("code/prinSurf_v3.R"))
   source(here("code/functions/estimate_volume_interior.R"))
   source(here("code/functions/estimate_mesh_volume_poisson.R"))
+  source(here("code/functions/mesh_projection.R"))
 
   handlers(global = TRUE)
 
@@ -297,13 +298,15 @@ fit_adni <- function(
       tryCatch(
         {
           tic()
+
           adni_lpme_part[[1]] <- lpme(
             adni_pt1,
             d = 2,
-            min_clusters = min(20, floor(min_obs_pt1 / 2)),
+            min_clusters = min(20, floor(min_obs_pt1 - 2)),
             verbose = verbose,
             print_plots = FALSE
           )
+
           adni_lpme_time_pt1 <- toc(quiet = TRUE)
           adni_lpme_part_times[[1]] <- adni_lpme_time_pt1$toc -
             adni_lpme_time_pt1$tic
@@ -325,7 +328,7 @@ fit_adni <- function(
           adni_lpme_part[[2]] <- lpme(
             adni_pt2,
             d = 2,
-            min_clusters = min(20, floor(min_obs_pt2 / 2)),
+            min_clusters = min(20, floor(min_obs_pt2 - 2)),
             verbose = verbose,
             print_plots = FALSE
           )
@@ -686,42 +689,93 @@ fit_adni <- function(
         adni_pme_part_volumes <- NULL
       }
 
-      patno_adni_volumes_mesh <- vector(
+      patno_adni_area_dim1 <- vector(
         mode = "numeric",
         length = length(time_values)
       )
-      adni_lpme_aug_volumes <- vector(
+      patno_adni_area_dim2 <- vector(
         mode = "numeric",
         length = length(time_values)
       )
-      adni_pme_aug_volumes <- vector(
-        mode = "numeric",
-        length = length(time_values)
-      )
-      adni_pc_part_volumes <- vector(
+      patno_adni_area_dim3 <- vector(
         mode = "numeric",
         length = length(time_values)
       )
 
-      adni_lpme_part_volumes_mesh <- vector(
+      adni_lpme_aug_area_dim1 <- vector(
         mode = "numeric",
         length = length(time_values)
       )
-      adni_pme_part_volumes_mesh <- vector(
+      adni_lpme_aug_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_lpme_aug_area_dim3 <- vector(
         mode = "numeric",
         length = length(time_values)
       )
 
-      patno_adni_mesh_list <- list()
-      adni_lpme_aug_mesh_list <- list()
-      adni_pme_aug_mesh_list <- list()
-      adni_pc_part_mesh_list <- list()
-      adni_lpme_part_mesh_list <- list()
-      adni_pme_part_mesh_list <- list()
+      adni_pme_aug_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_aug_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_aug_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_pc_part_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pc_part_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pc_part_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_lpme_part_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_lpme_part_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_lpme_part_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_pme_part_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_part_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_part_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
 
       np <- import("numpy")
       o3d <- import("open3d")
       pv <- import("pyvista")
+
+      palette <- colorRampPalette(c(brewer.pal(8, "Spectral")))
+      palette_colors <- palette(101)
+      time_colors <- palette_colors[ceiling((time_values + 1e-10) * 100)]
+
+      p <- pv$Plotter(shape = tuple(2L, 2L))
 
       for (time_idx in seq_along(time_values)) {
         x_scale <- patno_adni_centers$max_x[time_idx]
@@ -733,13 +787,13 @@ fit_adni <- function(
           select(x, y, z) |>
           as.matrix()
 
-        temp_data_mesh <- estimate_mesh_volume_poisson(
-          temp_data,
-          alpha_vals = alpha_vals
-        )
-        patno_adni_volumes_mesh[time_idx] <- temp_data_mesh$volume *
-          (x_scale * y_scale * z_scale)
-        patno_adni_mesh_list[[time_idx]] <- temp_data_mesh
+        temp_data_proj_dim1 <- mesh_projection(temp_data, axis = 1)
+        temp_data_proj_dim2 <- mesh_projection(temp_data, axis = 2)
+        temp_data_proj_dim3 <- mesh_projection(temp_data, axis = 3)
+
+        patno_adni_area_dim1[time_idx] <- temp_data_proj_dim1$area
+        patno_adni_area_dim2[time_idx] <- temp_data_proj_dim2$area
+        patno_adni_area_dim3[time_idx] <- temp_data_proj_dim3$area
 
         if (!is.null(adni_lpme_aug_reconstructions)) {
           temp_lpme_reconstructions <- adni_lpme_aug_reconstructions[
@@ -747,14 +801,22 @@ fit_adni <- function(
             2:4
           ]
 
-          temp_lpme_mesh <- estimate_mesh_volume_poisson(
+          temp_lpme_proj_dim1 <- mesh_projection(
             temp_lpme_reconstructions,
-            alpha_vals = alpha_vals
+            axis = 1
+          )
+          temp_lpme_proj_dim2 <- mesh_projection(
+            temp_lpme_reconstructions,
+            axis = 2
+          )
+          temp_lpme_proj_dim3 <- mesh_projection(
+            temp_lpme_reconstructions,
+            axis = 3
           )
 
-          adni_lpme_aug_volumes[time_idx] <- temp_lpme_mesh$volume *
-            (x_scale * y_scale * z_scale)
-          adni_lpme_aug_mesh_list[[time_idx]] <- temp_lpme_mesh
+          adni_lpme_aug_area_dim1[time_idx] <- temp_lpme_proj_dim1$area
+          adni_lpme_aug_area_dim2[time_idx] <- temp_lpme_proj_dim2$area
+          adni_lpme_aug_area_dim3[time_idx] <- temp_lpme_proj_dim3$area
         }
 
         if (!is.null(adni_pme_aug_reconstructions)) {
@@ -763,13 +825,22 @@ fit_adni <- function(
             2:4
           ]
 
-          temp_pme_mesh <- estimate_mesh_volume_poisson(
+          temp_pme_proj_dim1 <- mesh_projection(
             temp_pme_reconstructions,
-            alpha_vals = alpha_vals
+            axis = 1
           )
-          adni_pme_aug_volumes[time_idx] <- temp_pme_mesh$volume *
-            (x_scale * y_scale * z_scale)
-          adni_pme_aug_mesh_list[[time_idx]] <- temp_pme_mesh
+          temp_pme_proj_dim2 <- mesh_projection(
+            temp_pme_reconstructions,
+            axis = 2
+          )
+          temp_pme_proj_dim3 <- mesh_projection(
+            temp_pme_reconstructions,
+            axis = 3
+          )
+
+          adni_pme_aug_area_dim1[time_idx] <- temp_pme_proj_dim1$area
+          adni_pme_aug_area_dim2[time_idx] <- temp_pme_proj_dim2$area
+          adni_pme_aug_area_dim3[time_idx] <- temp_pme_proj_dim3$area
         }
 
         if (!is.null(adni_pc_part_reconstructions)) {
@@ -778,13 +849,22 @@ fit_adni <- function(
             2:4
           ]
 
-          temp_pc_mesh <- estimate_mesh_volume_poisson(
+          temp_pc_proj_dim1 <- mesh_projection(
             temp_pc_reconstructions,
-            alpha_vals = alpha_vals
+            axis = 1
           )
-          adni_pc_part_volumes[time_idx] <- temp_pc_mesh$volume *
-            (x_scale * y_scale * z_scale)
-          adni_pc_part_mesh_list[[time_idx]] <- temp_pc_mesh
+          temp_pc_proj_dim2 <- mesh_projection(
+            temp_pc_reconstructions,
+            axis = 2
+          )
+          temp_pc_proj_dim3 <- mesh_projection(
+            temp_pc_reconstructions,
+            axis = 3
+          )
+
+          adni_pc_part_area_dim1[time_idx] <- temp_pc_proj_dim1$area
+          adni_pc_part_area_dim2[time_idx] <- temp_pc_proj_dim2$area
+          adni_pc_part_area_dim3[time_idx] <- temp_pc_proj_dim3$area
         }
 
         if (!is.null(adni_lpme_part_reconstructions)) {
@@ -793,13 +873,22 @@ fit_adni <- function(
             2:4
           ]
 
-          temp_lpme_part_mesh <- estimate_mesh_volume_poisson(
+          temp_lpme_part_proj_dim1 <- mesh_projection(
             temp_lpme_part_reconstructions,
-            alpha_vals = alpha_vals
+            axis = 1
           )
-          adni_lpme_part_volumes_mesh[time_idx] <- temp_lpme_part_mesh$volume *
-            (x_scale * y_scale * z_scale)
-          adni_lpme_part_mesh_list[[time_idx]] <- temp_lpme_part_mesh
+          temp_lpme_part_proj_dim2 <- mesh_projection(
+            temp_lpme_part_reconstructions,
+            axis = 2
+          )
+          temp_lpme_part_proj_dim3 <- mesh_projection(
+            temp_lpme_part_reconstructions,
+            axis = 3
+          )
+
+          adni_lpme_part_area_dim1[time_idx] <- temp_lpme_part_proj_dim1$area
+          adni_lpme_part_area_dim2[time_idx] <- temp_lpme_part_proj_dim2$area
+          adni_lpme_part_area_dim3[time_idx] <- temp_lpme_part_proj_dim3$area
         }
 
         if (!is.null(adni_pme_part_reconstructions)) {
@@ -808,61 +897,74 @@ fit_adni <- function(
             2:4
           ]
 
-          temp_pme_part_mesh <- estimate_mesh_volume_poisson(
+          temp_pme_part_proj_dim1 <- mesh_projection(
             temp_pme_part_reconstructions,
-            alpha_vals = alpha_vals
+            axis = 1
           )
-          adni_pme_part_volumes_mesh[time_idx] <- temp_pme_part_mesh$volume *
-            (x_scale * y_scale * z_scale)
-          adni_pme_part_mesh_list[[time_idx]] <- temp_pme_part_mesh
+          temp_pme_part_proj_dim2 <- mesh_projection(
+            temp_pme_part_reconstructions,
+            axis = 2
+          )
+          temp_pme_part_proj_dim3 <- mesh_projection(
+            temp_pme_part_reconstructions,
+            axis = 3
+          )
+
+          adni_pme_part_area_dim1[time_idx] <- temp_pme_part_proj_dim1$area
+          adni_pme_part_area_dim2[time_idx] <- temp_pme_part_proj_dim2$area
+          adni_pme_part_area_dim3[time_idx] <- temp_pme_part_proj_dim3$area
         }
       }
 
       data_out <- list(
         data = patno_adni,
-        volumes_mesh = patno_adni_volumes_mesh,
-        meshes = patno_adni_mesh_list
+        area_dim1 = patno_adni_area_dim1,
+        area_dim2 = patno_adni_area_dim2,
+        area_dim3 = patno_adni_area_dim3
       )
 
       adni_lpme_aug_out <- list(
         lpme = adni_lpme_aug,
         reconstructions = adni_lpme_aug_reconstructions,
-        volumes = adni_lpme_aug_volumes,
-        fit_time = adni_lpme_aug_time,
-        meshes = adni_lpme_aug_mesh_list
+        area_dim1 = adni_lpme_aug_area_dim1,
+        area_dim2 = adni_lpme_aug_area_dim2,
+        area_dim3 = adni_lpme_aug_area_dim3,
+        fit_time = adni_lpme_aug_time
       )
       adni_pme_aug_out <- list(
         pme = adni_pme_aug_list,
         reconstructions = adni_pme_aug_reconstructions,
-        volumes = adni_pme_aug_volumes,
-        fit_time = adni_pme_aug_time_list,
-        meshes = adni_pme_aug_mesh_list
+        area_dim1 = adni_pme_aug_area_dim1,
+        area_dim2 = adni_pme_aug_area_dim2,
+        area_dim3 = adni_pme_aug_area_dim3,
+        fit_time = adni_pme_aug_time_list
       )
 
       adni_lpme_part_out <- list(
         lpme = adni_lpme_part,
         reconstructions = adni_lpme_part_reconstructions,
-        volumes = adni_lpme_part_volumes,
-        volumes_mesh = adni_lpme_part_volumes_mesh,
-        fit_time = adni_lpme_part_times,
-        meshes = adni_lpme_part_mesh_list
+        area_dim1 = adni_lpme_part_area_dim1,
+        area_dim2 = adni_lpme_part_area_dim2,
+        area_dim3 = adni_lpme_part_area_dim3,
+        fit_time = adni_lpme_part_times
       )
 
       adni_pme_part_out <- list(
         pme = adni_pme_part,
         reconstructions = adni_pme_part_reconstructions,
-        volumes = adni_pme_part_volumes,
-        volumes_mesh = adni_pme_part_volumes_mesh,
-        fit_time = adni_pme_part_times,
-        meshes = adni_pme_part_mesh_list
+        area_dim1 = adni_pme_part_area_dim1,
+        area_dim2 = adni_pme_part_area_dim2,
+        area_dim3 = adni_pme_part_area_dim3,
+        fit_time = adni_pme_part_times
       )
 
       adni_pc_part_out <- list(
         pc = adni_pc_part,
         reconstructions = adni_pc_part_reconstructions,
-        volumes = adni_pc_part_volumes,
-        fit_time = adni_pc_part_times,
-        meshes = adni_pc_part_mesh_list
+        area_dim1 = adni_pc_part_area_dim1,
+        area_dim2 = adni_pc_part_area_dim2,
+        area_dim3 = adni_pc_part_area_dim3,
+        fit_time = adni_pc_part_times
       )
 
       adni <- list(
