@@ -992,7 +992,7 @@ fit_adni <- function(
       saveRDS(
         adni,
         here(paste0(
-          "output/adni/",
+          "output/adni_area/",
           patno,
           "/",
           structure,
