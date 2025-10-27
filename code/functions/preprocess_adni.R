@@ -2,7 +2,8 @@ preprocess_adni <- function(
   adni_surface,
   adni_info,
   min_duration = 2,
-  min_visits = 3
+  min_visits = 3,
+  scan_exclude_threshold = 0.0025
 ) {
   require(dplyr)
   require(lubridate)
@@ -13,6 +14,20 @@ preprocess_adni <- function(
 
   adni_surface <- adni_surface |>
     mutate(date = decimal_date(date))
+
+  adni_n <- adni_surface |>
+    group_by(subid, scan_id) |>
+    tally() |>
+    ungroup()
+  adni_threshold <- quantile(adni_n$n, scan_exclude_threshold)
+
+  exclude_scans <- adni_n |>
+    filter(n < adni_threshold) |>
+    select(scan_id) |>
+    unlist()
+
+  adni_surface <- adni_surface |>
+    filter(!(scan_id %in% exclude_scans))
 
   adni_centers <- adni_surface |>
     group_by(subid, date, scan_id) |>
