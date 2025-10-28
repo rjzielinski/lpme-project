@@ -43,7 +43,7 @@ fit_adni <- function(
   remove_patnos <- map(
     patnos,
     ~ !file.exists(here(paste0(
-      "output/adni/",
+      "output/adni_area/",
       .x,
       "/",
       structure,
@@ -976,8 +976,8 @@ fit_adni <- function(
         pc_part = adni_pc_part_out
       )
 
-      if (!dir.exists(here(paste0("output/adni/", patno)))) {
-        dir.create(here(paste0("output/adni/", patno)), recursive = TRUE)
+      if (!dir.exists(here(paste0("output/adni_area/", patno)))) {
+        dir.create(here(paste0("output/adni_area/", patno)), recursive = TRUE)
       }
 
       print(
