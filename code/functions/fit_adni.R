@@ -133,7 +133,8 @@ fit_adni <- function(
       "estimate_volume_interior_pme",
       "interior_identification",
       "get_orientation",
-      "estimate_mesh_volume_poisson"
+      "estimate_mesh_volume_poisson",
+      "mesh_projection"
     ),
     .packages = c(
       "alphashape3d",
