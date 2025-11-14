@@ -18,9 +18,9 @@ pv <- import("pyvista")
 # source(here("code/functions/estimate_mesh_volume.R"))
 source(here("code/functions/estimate_mesh_volume_poisson.R"))
 
-cores <- parallel::detectCores() - 2
+# cores <- parallel::detectCores() - 2
 
-result_dir <- here("output/adni")
+result_dir <- here("output/adni_area")
 
 isolate_patno <- function(file_vec, file_path, structure) {
   patnos <- gsub(file_path, "", file_vec)
@@ -48,14 +48,37 @@ common_patnos <- intersect(lhipp_patnos, lthal_patnos) |>
 
 adni <- read_csv("data/adni_info_full.csv")
 
-lhipp_surface <- read_csv(here("data/lhipp_surface_fsl_processed.csv"))
-rhipp_surface <- read_csv(here("data/rhipp_surface_fsl_processed.csv"))
-lthal_surface <- read_csv(here("data/lthal_surface_fsl_processed.csv"))
-rthal_surface <- read_csv(here("data/rthal_surface_fsl_processed.csv"))
+lhipp_surface <- read_csv(
+  here("data/lhipp_surface_fsl_processed.csv"),
+  col_select = c("subid", "date")
+) |>
+  distinct()
+gc()
 
-cl <- makeCluster(cores, outfile = "log.txt")
-registerDoSNOW(cl)
-registerDoRNG(42)
+rhipp_surface <- read_csv(
+  here("data/rhipp_surface_fsl_processed.csv"),
+  col_select = c("subid", "date")
+) |>
+  distinct()
+gc()
+
+lthal_surface <- read_csv(
+  here("data/lthal_surface_fsl_processed.csv"),
+  col_select = c("subid", "date")
+) |>
+  distinct()
+gc()
+
+rthal_surface <- read_csv(
+  here("data/rthal_surface_fsl_processed.csv"),
+  col_select = c("subid", date)
+) |>
+  distinct()
+gc()
+
+# cl <- makeCluster(cores, outfile = "log.txt")
+# registerDoSNOW(cl)
+# registerDoRNG(42)
 
 adni_volumes <- foreach(
   patno = common_patnos,
@@ -78,8 +101,9 @@ adni_volumes <- foreach(
     "purrr",
     "reticulate",
     "tidyr"
-  )
-) %dopar%
+  ),
+  .errorhandling = "remove"
+) %do%
   {
     use_condaenv("lpme")
     np <- import("numpy")
@@ -107,8 +131,6 @@ adni_volumes <- foreach(
     rthal_info <- rthal_surface |>
       filter(subid == patno)
 
-    gc()
-
     patno_dates <- unique(c(
       lhipp_info$date,
       rhipp_info$date,
@@ -122,49 +144,148 @@ adni_volumes <- foreach(
     rthal_result <- readRDS(paste0(patno_dir, "rthal_results.RDS"))
 
     time_points <- unique(lhipp_result$data$data$time_from_bl)
-    lhipp_data_vol <- lhipp_result$data$volumes_mesh
-    rhipp_data_vol <- rhipp_result$data$volumes_mesh
-    lthal_data_vol <- lthal_result$data$volumes_mesh
-    rthal_data_vol <- rthal_result$data$volumes_mesh
+    lhipp_data_area_dim1 <- lhipp_result$data$area_dim1
+    lhipp_data_area_dim2 <- lhipp_result$data$area_dim2
+    lhipp_data_area_dim3 <- lhipp_result$data$area_dim3
 
-    lhipp_lpme_vols <- lhipp_result$lpme_part$volumes_mesh
-    lhipp_pme_vols <- lhipp_result$pme_part$volumes_mesh
-    lhipp_pc_vols <- lhipp_result$pc_part$volumes
+    rhipp_data_area_dim1 <- rhipp_result$data$area_dim1
+    rhipp_data_area_dim2 <- rhipp_result$data$area_dim2
+    rhipp_data_area_dim3 <- rhipp_result$data$area_dim3
 
-    rhipp_lpme_vols <- rhipp_result$lpme_part$volumes_mesh
-    rhipp_pme_vols <- rhipp_result$pme_part$volumes_mesh
-    rhipp_pc_vols <- rhipp_result$pc_part$volumes
+    lthal_data_area_dim1 <- lthal_result$data$area_dim1
+    lthal_data_area_dim2 <- lthal_result$data$area_dim2
+    lthal_data_area_dim3 <- lthal_result$data$area_dim3
 
-    lthal_lpme_vols <- lthal_result$lpme_part$volumes_mesh
-    lthal_pme_vols <- lthal_result$pme_part$volumes_mesh
-    lthal_pc_vols <- lthal_result$pc_part$volumes
+    rthal_data_area_dim1 <- rthal_result$data$area_dim1
+    rthal_data_area_dim2 <- rthal_result$data$area_dim2
+    rthal_data_area_dim3 <- rthal_result$data$area_dim3
 
-    rthal_lpme_vols <- rthal_result$lpme_part$volumes_mesh
-    rthal_pme_vols <- rthal_result$pme_part$volumes_mesh
-    rthal_pc_vols <- rthal_result$pc_part$volumes
+    lhipp_lpme_part_area_dim1 <- lhipp_result$lpme_part$area_dim1
+    lhipp_lpme_part_area_dim2 <- lhipp_result$lpme_part$area_dim2
+    lhipp_lpme_part_area_dim3 <- lhipp_result$lpme_part$area_dim3
+    lhipp_lpme_part_time <- lhipp_result$lpme_part$fit_time
+
+    lhipp_pme_part_area_dim1 <- lhipp_result$pme_part$area_dim1
+    lhipp_pme_part_area_dim2 <- lhipp_result$pme_part$area_dim2
+    lhipp_pme_part_area_dim3 <- lhipp_result$pme_part$area_dim3
+    lhipp_pme_part_time <- lhipp_result$pme_part$fit_time
+
+    lhipp_pc_part_area_dim1 <- lhipp_result$pc_part$area_dim1
+    lhipp_pc_part_area_dim2 <- lhipp_result$pc_part$area_dim2
+    lhipp_pc_part_area_dim3 <- lhipp_result$pc_part$area_dim3
+    lhipp_pc_part_time <- lhipp_result$pc_part$fit_time
+
+    rhipp_lpme_part_area_dim1 <- rhipp_result$lpme_part$area_dim1
+    rhipp_lpme_part_area_dim2 <- rhipp_result$lpme_part$area_dim2
+    rhipp_lpme_part_area_dim3 <- rhipp_result$lpme_part$area_dim3
+    rhipp_lpme_part_time <- rhipp_result$lpme_part$fit_time
+
+    rhipp_pme_part_area_dim1 <- rhipp_result$pme_part$area_dim1
+    rhipp_pme_part_area_dim2 <- rhipp_result$pme_part$area_dim2
+    rhipp_pme_part_area_dim3 <- rhipp_result$pme_part$area_dim3
+    rhipp_pme_part_time <- rhipp_result$pme_part$fit_time
+
+    rhipp_pc_part_area_dim1 <- rhipp_result$pc_part$area_dim1
+    rhipp_pc_part_area_dim2 <- rhipp_result$pc_part$area_dim2
+    rhipp_pc_part_area_dim3 <- rhipp_result$pc_part$area_dim3
+    rhipp_pc_part_time <- rhipp_result$pc_part$fit_time
+
+    lthal_lpme_part_area_dim1 <- lthal_result$lpme_part$area_dim1
+    lthal_lpme_part_area_dim2 <- lthal_result$lpme_part$area_dim2
+    lthal_lpme_part_area_dim3 <- lthal_result$lpme_part$area_dim3
+    lthal_lpme_part_time <- lthal_result$lpme_part$fit_time
+
+    lthal_pme_part_area_dim1 <- lthal_result$pme_part$area_dim1
+    lthal_pme_part_area_dim2 <- lthal_result$pme_part$area_dim2
+    lthal_pme_part_area_dim3 <- lthal_result$pme_part$area_dim3
+    lthal_pme_part_time <- lthal_result$pme_part$fit_time
+
+    lthal_pc_part_area_dim1 <- lthal_result$pc_part$area_dim1
+    lthal_pc_part_area_dim2 <- lthal_result$pc_part$area_dim2
+    lthal_pc_part_area_dim3 <- lthal_result$pc_part$area_dim3
+    lthal_pc_part_time <- lthal_result$pc_part$fit_time
+
+    rthal_lpme_part_area_dim1 <- rthal_result$lpme_part$area_dim1
+    rthal_lpme_part_area_dim2 <- rthal_result$lpme_part$area_dim2
+    rthal_lpme_part_area_dim3 <- rthal_result$lpme_part$area_dim3
+    rthal_lpme_part_time <- rthal_result$lpme_part$fit_time
+
+    rthal_pme_part_area_dim1 <- rthal_result$pme_part$area_dim1
+    rthal_pme_part_area_dim2 <- rthal_result$pme_part$area_dim2
+    rthal_pme_part_area_dim3 <- rthal_result$pme_part$area_dim3
+    rthal_pme_part_time <- rthal_result$pme_part$fit_time
+
+    rthal_pc_part_area_dim1 <- rthal_result$pc_part$area_dim1
+    rthal_pc_part_area_dim2 <- rthal_result$pc_part$area_dim2
+    rthal_pc_part_area_dim3 <- rthal_result$pc_part$area_dim3
+    rthal_pc_part_time <- rthal_result$pc_part$fit_time
 
     patno_info <- data.frame(
       patno = rep(patno, length(patno_dates)),
       date = patno_dates,
-      lhipp_data_vol = lhipp_data_vol,
-      lhipp_lpme_vol = lhipp_lpme_vols,
-      lhipp_pme_vol = lhipp_pme_vols,
-      lhipp_pc_vol = lhipp_pc_vols,
-      rhipp_data_vol = rhipp_data_vol,
-      rhipp_lpme_vol = rhipp_lpme_vols,
-      rhipp_pme_vol = rhipp_pme_vols,
-      rhipp_pc_vol = rhipp_pc_vols,
-      lthal_data_vol = lthal_data_vol,
-      lthal_lpme_vol = lthal_lpme_vols,
-      lthal_pme_vol = lthal_pme_vols,
-      lthal_pc_vol = lthal_pc_vols,
-      rthal_data_vol = rthal_data_vol,
-      rthal_lpme_vol = rthal_lpme_vols,
-      rthal_pme_vol = rthal_pme_vols,
-      rthal_pc_vol = rthal_pc_vols
+      lhipp_data_area_dim1 = lhipp_data_area_dim1,
+      lhipp_data_area_dim2 = lhipp_data_area_dim2,
+      lhipp_data_area_dim3 = lhipp_data_area_dim3,
+      lhipp_lpme_area_dim1 = lhipp_lpme_part_area_dim1,
+      lhipp_lpme_area_dim2 = lhipp_lpme_part_area_dim2,
+      lhipp_lpme_area_dim3 = lhipp_lpme_part_area_dim3,
+      lhipp_lpme_time = lhipp_lpme_part_time,
+      lhipp_pme_area_dim1 = lhipp_pme_part_area_dim1,
+      lhipp_pme_area_dim2 = lhipp_pme_part_area_dim2,
+      lhipp_pme_area_dim3 = lhipp_pme_part_area_dim3,
+      lhipp_pme_time = lhipp_pme_part_time,
+      lhipp_pc_area_dim1 = lhipp_pc_part_area_dim1,
+      lhipp_pc_area_dim2 = lhipp_pc_part_area_dim2,
+      lhipp_pc_area_dim3 = lhipp_pc_part_area_dim3,
+      lhipp_pc_time = lhipp_pc_part_time,
+      rhipp_data_area_dim1 = rhipp_data_area_dim1,
+      rhipp_data_area_dim2 = rhipp_data_area_dim2,
+      rhipp_data_area_dim3 = rhipp_data_area_dim3,
+      rhipp_lpme_area_dim1 = rhipp_lpme_part_area_dim1,
+      rhipp_lpme_area_dim2 = rhipp_lpme_part_area_dim2,
+      rhipp_lpme_area_dim3 = rhipp_lpme_part_area_dim3,
+      rhipp_lpme_time = rhipp_lpme_part_time,
+      rhipp_pme_area_dim1 = rhipp_pme_part_area_dim1,
+      rhipp_pme_area_dim2 = rhipp_pme_part_area_dim2,
+      rhipp_pme_area_dim3 = rhipp_pme_part_area_dim3,
+      rhipp_pme_time = rhipp_pme_part_time,
+      rhipp_pc_area_dim1 = rhipp_pc_part_area_dim1,
+      rhipp_pc_area_dim2 = rhipp_pc_part_area_dim2,
+      rhipp_pc_area_dim3 = rhipp_pc_part_area_dim3,
+      rhipp_pc_time = rhipp_pc_part_time,
+      lthal_data_area_dim1 = lthal_data_area_dim1,
+      lthal_data_area_dim2 = lthal_data_area_dim2,
+      lthal_data_area_dim3 = lthal_data_area_dim3,
+      lthal_lpme_area_dim1 = lthal_lpme_part_area_dim1,
+      lthal_lpme_area_dim2 = lthal_lpme_part_area_dim2,
+      lthal_lpme_area_dim3 = lthal_lpme_part_area_dim3,
+      lthal_lpme_time = lthal_lpme_part_time,
+      lthal_pme_area_dim1 = lthal_pme_part_area_dim1,
+      lthal_pme_area_dim2 = lthal_pme_part_area_dim2,
+      lthal_pme_area_dim3 = lthal_pme_part_area_dim3,
+      lthal_pme_time = lthal_pme_part_time,
+      lthal_pc_area_dim1 = lthal_pc_part_area_dim1,
+      lthal_pc_area_dim2 = lthal_pc_part_area_dim2,
+      lthal_pc_area_dim3 = lthal_pc_part_area_dim3,
+      lthal_pc_time = lthal_pc_part_time,
+      rthal_data_area_dim1 = rthal_data_area_dim1,
+      rthal_data_area_dim2 = rthal_data_area_dim2,
+      rthal_data_area_dim3 = rthal_data_area_dim3,
+      rthal_lpme_area_dim1 = rthal_lpme_part_area_dim1,
+      rthal_lpme_area_dim2 = rthal_lpme_part_area_dim2,
+      rthal_lpme_area_dim3 = rthal_lpme_part_area_dim3,
+      rthal_lpme_time = rthal_lpme_part_time,
+      rthal_pme_area_dim1 = rthal_pme_part_area_dim1,
+      rthal_pme_area_dim2 = rthal_pme_part_area_dim2,
+      rthal_pme_area_dim3 = rthal_pme_part_area_dim3,
+      rthal_pme_time = rthal_pme_part_time,
+      rthal_pc_area_dim1 = rthal_pc_part_area_dim1,
+      rthal_pc_area_dim2 = rthal_pc_part_area_dim2,
+      rthal_pc_area_dim3 = rthal_pc_part_area_dim3,
+      rthal_pc_time = rthal_pc_part_time
     )
   }
 
-stopCluster(cl)
+# stopCluster(cl)
 
-write_csv(adni_volumes, here("output/adni_volumes.csv"))
+write_csv(adni_volumes, here("output/adni_areas.csv"))
