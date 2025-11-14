@@ -776,8 +776,6 @@ fit_adni <- function(
       palette_colors <- palette(101)
       time_colors <- palette_colors[ceiling((time_values + 1e-10) * 100)]
 
-      p <- pv$Plotter(shape = tuple(2L, 2L))
-
       for (time_idx in seq_along(time_values)) {
         x_scale <- patno_adni_centers$max_x[time_idx]
         y_scale <- patno_adni_centers$max_y[time_idx]
