@@ -22,7 +22,7 @@ source("functions/calculate_pme_reconstructions.R")
 
 durations <- c(1, 2, 5)
 intervals <- c(0.25, 0.5)
-cases <- 9:1
+cases <- 8:1
 obs_noises <- c(0.05, 0.1, 0.25, 0.5)
 amplitude_noises <- c(0, 0.05, 0.1, 0.25, 0.5)
 period_noises <- c(0, 0.05, 0.1, 0.25, 0.5)
@@ -41,10 +41,69 @@ parameter_df <- expand_grid(
   time_change = time_changes
 )
 
+file_names <- foreach(
+  row_idx = seq_len(nrow(parameter_df)),
+  .combine = c
+) %do%
+  {
+    duration_value <- parameter_df$duration[row_idx]
+    interval_value <- parameter_df$interval[row_idx]
+    case_value <- parameter_df$case[row_idx]
+    obs_noise_value <- parameter_df$obs_noise[row_idx]
+    amplitude_noise_value <- parameter_df$amplitude_noise[row_idx]
+    period_noise_value <- parameter_df$period_noise[row_idx]
+    trend_value <- parameter_df$time_trend[row_idx]
+    change_value <- parameter_df$time_change[row_idx]
+
+    # additional stability is needed for Swiss roll and spherical cases
+    # to maintain structural integrity
+    if (case_value == 3) {
+      period_noise_value <- period_noise_value / 5
+    } else if (case_value == 5) {
+      period_noise_value <- period_noise_value / 5
+      obs_noise_value <- obs_noise_value / 5
+    } else if (case_value == 7) {
+      amplitude_noise_value <- amplitude_noise_value / 10
+      period_noise_value <- period_noise_value / 10
+    } else if (case_value == 8) {
+      period_noise_value <- period_noise_value / 10
+    }
+
+    result_dir <- paste0("../output/simulations/case", case_value)
+    if (!dir.exists(result_dir)) {
+      dir.create(result_dir, recursive = TRUE)
+    }
+
+    simulation_file <- paste0(
+      "duration_",
+      duration_value,
+      "_interval_",
+      str_pad(as.character(interval_value * 100), 3, pad = "0"),
+      "_obs_noise_",
+      str_pad(as.character(obs_noise_value * 100), 3, pad = "0"),
+      "_amplitude_noise_",
+      str_pad(as.character(amplitude_noise_value * 100), 3, pad = "0"),
+      "_period_noise_",
+      str_pad(as.character(period_noise_value * 100), 3, pad = "0"),
+      "_time_trend_",
+      trend_value,
+      "_time_change_",
+      str_pad(as.character(change_value * 100), 3, pad = "0"),
+      ".RDS"
+    )
+
+    file.path(result_dir, simulation_file)
+  }
+
+
+included <- !file.exists(file_names)
+
+parameter_df <- parameter_df[included, ]
+
 
 seed_states <- list()
 
-cl <- makeCluster(parallel::detectCores() / 2)
+cl <- makeCluster(parallel::detectCores())
 registerDoSNOW(cl)
 
 registerDoRNG(611492)
@@ -65,9 +124,11 @@ error_list <- foreach(
   # .combine = rbind,
   .inorder = TRUE,
   .options.snow = opts,
-  .errorhandling = "pass"
-) %dopar%
+  .errorhandling = "stop"
+) %do%
   {
+    print(paste("Running case", row_idx, "of", nrow(parameter_df)))
+
     seed_val <- .Random.seed
     seed_states[[row_idx]] <- seed_val
 
@@ -117,58 +178,6 @@ error_list <- foreach(
       case_value == 9 ~ 2
     )
 
-    sim_data <- simulate_data(
-      duration = duration_value,
-      interval = interval_value,
-      case = case_value,
-      obs_noise = obs_noise_value,
-      amplitude_noise = amplitude_noise_value,
-      period_noise = period_noise_value,
-      time_trend = trend_value,
-      time_change = change_value,
-      N = 1000
-    )
-    sim_df <- sim_data$df
-
-    sim_processed <- preprocess_data(
-      sim_df,
-      case = case_value,
-      d = d_value,
-      D = D_value
-    )
-
-    sim_models <- fit_models(
-      sim_processed,
-      case = case_value,
-      d = d_value,
-      D = D_value
-    )
-
-    model_errors <- evaluate_models(
-      sim_processed,
-      sim_models,
-      case = case_value,
-      d = d_value,
-      D = D_value
-    )
-
-    result_plot <- display_results(
-      sim_processed,
-      sim_models,
-      case = case_value,
-      d = d_value,
-      D = D_value
-    )
-
-    simulation_output <- list(
-      data = sim_data,
-      processed_data = sim_processed,
-      models = sim_models,
-      errors = model_errors,
-      plot = result_plot,
-      seed = seed_val
-    )
-
     result_dir <- paste0("../output/simulations/case", case_value)
     if (!dir.exists(result_dir)) {
       dir.create(result_dir, recursive = TRUE)
@@ -192,6 +201,84 @@ error_list <- foreach(
       ".RDS"
     )
 
+    sim_data <- simulate_data(
+      duration = duration_value,
+      interval = interval_value,
+      case = case_value,
+      obs_noise = obs_noise_value,
+      amplitude_noise = amplitude_noise_value,
+      period_noise = period_noise_value,
+      time_trend = trend_value,
+      time_change = change_value,
+      N = 1000
+    )
+
+    print(paste("Data generated for case", row_idx, "of", nrow(parameter_df)))
+
+    sim_df <- sim_data$df
+
+    sim_processed <- preprocess_data(
+      sim_df,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste("Fitting models for case", row_idx, "of", nrow(parameter_df)))
+
+    sim_models <- fit_models(
+      sim_processed,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste(
+      "Evaluating models for case",
+      row_idx,
+      "of",
+      nrow(parameter_df)
+    ))
+
+    model_errors <- evaluate_models(
+      sim_processed,
+      sim_models,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste(
+      "Plotting results for case",
+      row_idx,
+      "of",
+      nrow(parameter_df)
+    ))
+
+    result_plot <- display_results(
+      sim_processed,
+      sim_models,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste(
+      "Saving results for case",
+      row_idx,
+      "of",
+      nrow(parameter_df)
+    ))
+
+    simulation_output <- list(
+      data = sim_data,
+      processed_data = sim_processed,
+      models = sim_models,
+      errors = model_errors,
+      plot = result_plot,
+      seed = seed_val
+    )
+
     saveRDS(simulation_output, file.path(result_dir, simulation_file))
 
     unlist(model_errors)
@@ -199,18 +286,18 @@ error_list <- foreach(
 
 stopCluster(cl)
 
-run_include <- vector(mode = "logical", length = length(error_list))
-for (i in seq_along(error_list)) {
-  if ("numeric" %in% class(error_list[[i]])) {
-    run_include[i] <- TRUE
-  } else {
-    run_include[i] <- FALSE
-  }
-}
-
-error_df <- error_list[run_include] |>
-  reduce(rbind) |>
-  as_tibble()
-
-simulation_results <- bind_cols(parameter_df[run_include, ], error_df)
-write_csv(simulation_results, "../output/simulation_results.csv")
+# run_include <- vector(mode = "logical", length = length(error_list))
+# for (i in seq_along(error_list)) {
+#   if ("numeric" %in% class(error_list[[i]])) {
+#     run_include[i] <- TRUE
+#   } else {
+#     run_include[i] <- FALSE
+#   }
+# }
+#
+# error_df <- error_list[run_include] |>
+#   reduce(rbind) |>
+#   as_tibble()
+#
+# simulation_results <- bind_cols(parameter_df[run_include, ], error_df)
+# write_csv(simulation_results, "../output/simulation_results.csv")
