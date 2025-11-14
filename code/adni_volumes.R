@@ -20,7 +20,7 @@ source(here("code/functions/estimate_mesh_volume_poisson.R"))
 
 cores <- parallel::detectCores() - 2
 
-result_dir <- here("output/adni")
+result_dir <- here("output/adni_area")
 
 isolate_patno <- function(file_vec, file_path, structure) {
   patnos <- gsub(file_path, "", file_vec)
