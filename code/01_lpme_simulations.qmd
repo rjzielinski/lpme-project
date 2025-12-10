@@ -1,11 +1,11 @@
 ---
 title: "LPME Simulation Studies"
 author: "Robert Zielinski"
-date: "February 25, 2025"
+date: "December 10, 2025"
 format: html
 ---
 
-This notebook includes all code needed to replicate the results of the simulations comparing performance between the Principal Manifold Estimation (PME), Longitudinal Principal Manifold Estimation (LPME), and Principal Curve/Surface (PC/PS) algorithms on data generated from a common underlying manifold, but with varying degrees of noise added independently between time points. The LPME algorithm is designed to obtain *smooth* estimates of the manifolds underlying noisy data. Consequently, if the algorithm achieves its stated goal, it will not show the best goodness of fit to the observed data in these conditions. Simulated data is useful in this setting because we can generate the data from a known underlying manifold, allowing us to measure the algorithm's success at recovering this known manifold.
+This notebook includes code to run simulations comparing performance between the Principal Manifold Estimation (PME), Longitudinal Principal Manifold Estimation (LPME), and Principal Curve/Surface (PC/PS) algorithms on data generated from a common underlying manifold, but with varying degrees of noise added independently between time points. The LPME algorithm is designed to obtain *smooth* estimates of the manifolds underlying noisy data. Consequently, if the algorithm achieves its stated goal, it will not show the best goodness of fit to the observed data in these conditions. Simulated data is useful in this setting because we can generate the data from a known underlying manifold, allowing us to measure the algorithm's success at recovering this known manifold.
 
 ```{r, echo=FALSE}
 #| label: chunk_setup
@@ -17,15 +17,16 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 library(tidyverse)
 library(plotly)
 library(pracma)
-library(foreach)
-library(doParallel)
 library(furrr)
+library(here)
 library(progress)
 library(pme)
 library(princurve)
-library(Rfast)
-library(knitr)
-library(kableExtra)
+library(doSNOW)
+library(foreach)
+library(doRNG)
+
+setwd(here("code"))
 
 source("prinSurf_v3.R")
 source("functions/simulations/simulate_data.R")
@@ -35,13 +36,11 @@ source("functions/simulations/evaluate_models.R")
 source("functions/simulations/display_results.R")
 source("functions/calculate_lpme_reconstructions.R")
 source("functions/calculate_pme_reconstructions.R")
-source("functions/estimate_volume.R")
-source("functions/simulations/estimate_volume_case8.R")
-source("functions/interior_identification.R")
 ```
 ## Simulated Manifolds
 
-Machine learning algorithms traditionally have tradeoffs when compared to each other, meaning that an algorithm that displays strong performance for one manifold may be outperformed by another algorithm when considering a different manifold. Because of this, it is advantageous to evaluate manifold learning algorithms with several manifolds meant to test an algorithm's performance on data with a variety of attributes. The function given in the code chunk below will be used to generate data lying along the manifolds of interest.
+Manifold learning algorithms typically have tradeoffs when compared to each other, meaning that an algorithm that displays strong performance for a certain class of manifolds may be outperformed by another algorithm when considering manifolds that exhibit different behavior. Because of this, it is advantageous to evaluate manifold learning algorithms with several manifolds meant to test an algorithm's performance on data with a variety of attributes. The manifolds we consider are given in Table 1 of the corresponding manuscript and are generated using the `simulate_data` function found in `code/functions/simulations/simulate_data.R`.
+
 In the function above, we consider eight different manifolds:
 
 1. For $r \in [-3, 3]$, $f(r) = (r, \sin(r + \frac{\pi}{2}))$.
@@ -49,11 +48,11 @@ In the function above, we consider eight different manifolds:
 #| label: plot_case1
 set.seed(100)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 1,
-  obs_noise = 0.1,
-  amplitude_noise = 0.25,
+  obs_noise = 0.05,
+  amplitude_noise = 0.1,
   period_noise = 0.05,
   time_trend = "constant",
   time_change = 0,
@@ -85,8 +84,8 @@ plot_ly(
 #| label: plot_case2
 set.seed(200)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 2,
   obs_noise = 0.1,
   amplitude_noise = 0.25,
@@ -120,10 +119,11 @@ plot_ly(
 3. For $r \in [-\frac{4}{5}\pi, \frac{\pi}{2}]$, $f(r) = (\cos(r), \sin(r))$.
 ```{r, echo=FALSE}
 #| label: plot_case3
+
 set.seed(300)
-sim_df <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+sim_data <- simulate_data(
+  duration = 2,
+  interval = 0.5,
   case = 3,
   obs_noise = 0.15,
   amplitude_noise = 0.25,
@@ -132,7 +132,7 @@ sim_df <- simulate_data(
   time_change = 0,
   N = 1000
 )
-sim_df <- sim_data$df 
+sim_df <- sim_data$df
 
 plot_ly(
   data = sim_df,
@@ -158,8 +158,8 @@ plot_ly(
 #| label: plot_case4
 set.seed(400)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 4,
   obs_noise = 0.15,
   amplitude_noise = 0.25,
@@ -197,8 +197,8 @@ plot_ly(
 #| label: plot_case5
 set.seed(500)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 5,
   obs_noise = 0.15,
   amplitude_noise = 0.25,
@@ -228,7 +228,6 @@ plot_ly(
     marker = list(size = 3, color = "red"),
     name = "True Manifold"
   )
-
 ```
 
 6. For $r_1 \in [-1, 1]$, $r_2 \in [-1, 1]$, $f(r_1, r_2) = (r_1, r_2, \|\mathbf{r}\|^2)$
@@ -237,8 +236,8 @@ plot_ly(
 #| label: plot_case6
 set.seed(600)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 6,
   obs_noise = 0.15,
   amplitude_noise = 0.25,
@@ -268,7 +267,6 @@ plot_ly(
     marker = list(size = 3, color = "red"),
     name = "True Manifold"
   )
-
 ```
 
 7. For $r_1 \in [0, 3\pi]$, $r_2 \in [-1, 1]$, $f(r_1, r_2) = (r_1\cos(r_1), r_1\sin(r_1), r_2)$
@@ -277,8 +275,8 @@ plot_ly(
 #| label: plot_case7
 set.seed(700)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 7,
   obs_noise = 0.15,
   amplitude_noise = 0.05,
@@ -308,7 +306,6 @@ plot_ly(
     marker = list(size = 3, color = "red"),
     name = "True Manifold"
   )
-
 ```
 
 8. For $r_1 \in [0, \pi]$, $r_2 \in [0, 2\pi]$, $f(r_1, r_2) = (\sin(r_1)\cos(r_2), \sin(r_1)\sin(r_2), \cos(r_1))$
@@ -317,8 +314,8 @@ plot_ly(
 #| label: plot_case8
 set.seed(800)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 8,
   obs_noise = 0.15,
   amplitude_noise = 0.25,
@@ -348,7 +345,6 @@ plot_ly(
     marker = list(size = 3, color = "red"),
     name = "True Manifold"
   )
-
 ```
 
 Note that case 8, in which observations drawn from a 2-dimensional manifold take the form of a sphere in 3 dimensions, is of particular interest due to our application to the surfaces of subcortical structures in the brain.
@@ -359,39 +355,40 @@ Simulation runs were conducted by varying the following arguments:
 - `interval`: The scheduled interval of study visits. Values tested are 0.25 and 0.5, representing study visits every 3 months and every 6 months, respectively.
 - `case`: Specifies the manifold used to generate the data. 
 - `obs_noise`: The standard deviation of the independent Gaussian observation-level noise. Values tested include {0.05, 0.1, 0.25, 0.5}.
-- `amplitude_noise`: The standard deviation of Gaussian noise applied to the amplitude of the manifold at each time point. Values tested include {0.05, 0.1, 0.25, 0.5}.
-- `period_noise`: The standard deviation of Gaussian noise applied to the period of the manifold at each time point. Values tested include {0.05, 0.1, 0.25, 0.5}.
+- `amplitude_noise`: The standard deviation of Gaussian noise applied to the amplitude of the manifold at each time point. Values tested include {0, 0.05, 0.1, 0.25, 0.5}.
+- `period_noise`: The standard deviation of Gaussian noise applied to the period of the manifold at each time point. Values tested include {0, 0.05, 0.1, 0.25, 0.5}.
 - `time_trend`: Specifies systematic longitudinal changes in the manifold amplitude. Possible values include "constant", indicating that the manifold does not change over time, "linear", representing a constant rate of change in manifold amplitude, and "quadratic", indicating a quadratic rate of change in the manifold amplitude. To approximate trends observed when the brain atrophies, all changes in amplitude are downward.
 - `time_change`: Scales the longitudinal amplitude changes. Values tested include {0, 0.05, 0.1, 0.25, 0.5}.
 
-The sample size at each time point is set to 1,000. A factorial design was used to specify combinations of parameter values, with each simulation case being run a total of 5,760 times.
+The sample size at each time point is set to 1,000. A factorial design was used to specify combinations of parameter values, with each simulation case being run a total of 9,000 times.
 
 ## Simulation Analysis Pipeline
 
 For our purposes, analysis of the simulated data consists of the following steps:
 
 - Preprocessing: Standardize observations to fall between -1 and 1 and augment with polar or spherical coordinates if needed.
-- Manifold learning: Fit the LPME, PME and Principal Curve/Surface algorithms to the observed data.
-- Model evaluation: For each model, obtain reconstructed estimates of the original observations. Compute the mean squared distance between these estimates and the D-dimensional observations generated from the true manifold.
+- Manifold learning: Fit the LPME, PME and Principal Curve/Surface algorithms to the observed data, and measure the time required to run each method.
+- Model evaluation: For each model, obtain reconstructed estimates of the original observations by projecting them to the estimated manifold. Compute the mean squared distance between these estimates and the D-dimensional observations generated from the true manifold.
 
-Functions used to obtain the algorithm-specific reconstructions are provided in the code chunk below:
+Functions specifying each step of the analysis process can be found at `code/functions/simulations/preprocess_data.R`, `code/functions/simulations/fit_models.R`, and `code/functions/simulations/evaluate_models.R`. 
 
-Functions specifying each step of the analysis process can be found at `code/functions/simulations/preprocess_data.R`, `code/functions/simulations/fit_models.R`, and `code/functions/simulations/evaluate_models.R`. An additional function used to generate plots to display the resulting model estimates can be found at `code/functions/simulations/display_results.R`.
+An additional function used to generate plots to display the resulting model estimates can be found at `code/functions/simulations/display_results.R`.
 
 Demonstrations of this analysis pipeline for several simulation cases can be found below.
 
-### Simulation Demonstrations
+### Simulation Demonstration
 
 ```{r, eval=TRUE}
 #| label: demo_case1
-set.seed(100)
+set.seed(900)
+
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 1,
   obs_noise = 0.1,
   amplitude_noise = 0.25,
-  period_noise = 0.05,
+  period_noise = 0.1,
   time_trend = "constant",
   time_change = 0,
   N = 1000
@@ -400,6 +397,9 @@ sim_df <- sim_data$df
 
 sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 sim_models <- fit_models(sim_processed, case = 1, d = 1, D = 2)
+```
+
+```{r}
 model_errors <- evaluate_models(
   sim_processed,
   sim_models,
@@ -408,6 +408,13 @@ model_errors <- evaluate_models(
   D = 2
 )
 model_errors
+```
+
+The model evaluation output above displays the MSD values associated with model estimates, along with the time required to fit each model. Note that the error outputs for partitioned models are missing, as this manifold is not self-intersecting and does not require partitioning. We see that the LPME estimate shows slightly improved ability to recover the true manifold in this setting when compared to the PME model applied naively at individual time points.
+
+The plot of the manifold estimates shown below indicates that while the PME estimates reflect the time point-specific noise present in the observed data (shown in black), the LPME estimate is not as responsive to this noise. However, because the amplitude of the observed curve is highest at the latest time points, LPME does estimate an upward trend in the amplitude across all time points, causing bias in the estimates at earlier time points.
+
+```{r}
 result_plot <- display_results(
   sim_processed,
   sim_models,
@@ -417,90 +424,14 @@ result_plot <- display_results(
 )
 result_plot
 ```
-
-
-```{r, eval=TRUE}
-#| label: demo_case3
-set.seed(300)
-sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
-  case = 3,
-  obs_noise = 0.1,
-  amplitude_noise = 0.25,
-  period_noise = 0.05,
-  time_trend = "constant",
-  time_change = 0,
-  N = 1000
-)
-sim_df <- sim_data$df
-
-sim_processed <- preprocess_data(sim_df, case = 3, d = 1, D = 2)
-sim_models <- fit_models(sim_processed, case = 3, d = 1, D = 2)
-model_errors <- evaluate_models(
-  sim_processed,
-  sim_models,
-  case = 3,
-  d = 1,
-  D = 2
-)
-model_errors
-
-result_plot <- display_results(
-  sim_processed,
-  sim_models,
-  case = 3,
-  d = 1,
-  D = 2
-)
-result_plot
-```
-
-
-```{r, eval=TRUE}
-#| label: demo_case7
-set.seed(700)
-sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
-  case = 7,
-  obs_noise = 0.1,
-  amplitude_noise = 0.01,
-  period_noise = 0.01,
-  time_trend = "constant",
-  time_change = 0,
-  N = 1000
-)
-sim_df <- sim_data$df
-
-sim_processed <- preprocess_data(sim_df, case = 7, d = 2, D = 3)
-sim_models <- fit_models(sim_processed, case = 7, d = 2, D = 3)
-model_errors <- evaluate_models(
-  sim_processed,
-  sim_models,
-  case = 7,
-  d = 2,
-  D = 3
-)
-model_errors
-
-result_plot <- display_results(
-  sim_processed,
-  sim_models,
-  case = 7,
-  d = 2,
-  D = 3
-)
-result_plot
-```
-
+Another example of the simulation analysis workflow is shown below for spherical case 8.
 
 ```{r, eval=TRUE}
 #| label: demo_case8
-set.seed(800)
+set.seed(1200)
 sim_data <- simulate_data(
-  duration = 1,
-  interval = 0.25,
+  duration = 2,
+  interval = 0.5,
   case = 8,
   obs_noise = 0.1,
   amplitude_noise = 0.25,
@@ -534,21 +465,20 @@ result_plot
 
 ## Running Simulations
 
-The code chunks below specify the combinations of simulation parameters and runs the simulations in parallel. Note that due to computational demands, these simulations are not run in the process of compiling this notebook. This was handled by the `code/run_simulations.R` script. However, the code chunk below will yield identical results, and those same results are discussed later in the notebook.
+The code chunks below specify the combinations of simulation parameters and runs the simulations in parallel. Note that due to computational demands, these simulations are not run in the process of compiling this notebook. In practice, this was run on a high performance computing cluster. `run_simulations.sh` is used to initiate a batch job in slurm, which runs `code/run_simulations.R` in parallel. The code of `code/run_simulations.R` is shown in the chunk below. Broadly, this code creates a matrix with all permutations of the simulation parameters described above, then loops through each simulation case, running the workflow given in the examples above. The simulated data and the resulting manifold estimates are saved individually for each simulation run, to be summarized in `code/02_lpme_simulation_analysis.qmd`.
 
 ```{r, eval=FALSE}
-#| label: run_simulations 
+#| label: run_simulations
 
 # set possible values of simulation parameters as discussed above
 durations <- c(1, 2, 5)
 intervals <- c(0.25, 0.5)
-cases <- 1:8
+cases <- 8:1
 obs_noises <- c(0.05, 0.1, 0.25, 0.5)
-amplitude_noises <- c(0.05, 0.1, 0.25, 0.5)
-period_noises <- c(0.05, 0.1, 0.25, 0.5)
+amplitude_noises <- c(0, 0.05, 0.1, 0.25, 0.5)
+period_noises <- c(0, 0.05, 0.1, 0.25, 0.5)
 time_trends <- c("constant", "linear", "quadratic")
 time_changes <- c(0, 0.05, 0.1, 0.25, 0.5)
-
 
 # create dataframe of all combinations of parameter values
 parameter_df <- expand_grid(
@@ -562,31 +492,77 @@ parameter_df <- expand_grid(
   time_change = time_changes
 )
 
-# create empty dataframe to store error estimates
-error_df <- tibble(
-  lpme_error = vector(mode = "numeric", length = nrow(parameter_df)),
-  pme_error = vector(mode = "numeric", length = nrow(parameter_df)),
-  pc_error = vector(mode = "numeric", length = nrow(parameter_df)),
-  data_error = vector(mode = "numeric", length = nrow(parameter_df))
-)
+# get already-run simulations
+file_names <- foreach(
+  row_idx = seq_len(nrow(parameter_df)),
+  .combine = c
+) %do%
+  {
+    duration_value <- parameter_df$duration[row_idx]
+    interval_value <- parameter_df$interval[row_idx]
+    case_value <- parameter_df$case[row_idx]
+    obs_noise_value <- parameter_df$obs_noise[row_idx]
+    amplitude_noise_value <- parameter_df$amplitude_noise[row_idx]
+    period_noise_value <- parameter_df$period_noise[row_idx]
+    trend_value <- parameter_df$time_trend[row_idx]
+    change_value <- parameter_df$time_change[row_idx]
 
-# save the seed state that was set when each simulation was run
+    # additional stability is needed for Swiss roll and spherical cases
+    # to maintain structural integrity
+    if (case_value == 3) {
+      period_noise_value <- period_noise_value / 5
+    } else if (case_value == 5) {
+      period_noise_value <- period_noise_value / 5
+      obs_noise_value <- obs_noise_value / 5
+    } else if (case_value == 7) {
+      amplitude_noise_value <- amplitude_noise_value / 10
+      period_noise_value <- period_noise_value / 10
+    } else if (case_value == 8) {
+      period_noise_value <- period_noise_value / 10
+    }
+
+    result_dir <- paste0("../output/simulations/case", case_value)
+    if (!dir.exists(result_dir)) {
+      dir.create(result_dir, recursive = TRUE)
+    }
+
+    simulation_file <- paste0(
+      "duration_",
+      duration_value,
+      "_interval_",
+      str_pad(as.character(interval_value * 100), 3, pad = "0"),
+      "_obs_noise_",
+      str_pad(as.character(obs_noise_value * 100), 3, pad = "0"),
+      "_amplitude_noise_",
+      str_pad(as.character(amplitude_noise_value * 100), 3, pad = "0"),
+      "_period_noise_",
+      str_pad(as.character(period_noise_value * 100), 3, pad = "0"),
+      "_time_trend_",
+      trend_value,
+      "_time_change_",
+      str_pad(as.character(change_value * 100), 3, pad = "0"),
+      ".RDS"
+    )
+
+    file.path(result_dir, simulation_file)
+  }
+
+
+# do not repeat simulations that have already been run
+included <- !file.exists(file_names)
+parameter_df <- parameter_df[included, ]
+
 seed_states <- list()
 
-print("Starting Simulations...")
-
-cl <- makeCluster(parallel::detectCores() - 1)
-# unclear why, but registerDoSNOW worked better when running with slurm
+cl <- makeCluster(parallel::detectCores())
 registerDoSNOW(cl)
 
-# the registerDoRNG function allows reproducibility
-# of the simulations when run in parallel
 registerDoRNG(611492)
 
-pb  <- txtProgressBar(max = nrow(parameter_df), style = 3)
+pb <- txtProgressBar(max = nrow(parameter_df), style = 3)
 progress <- function(n) setTxtProgressBar(pb, n)
 opts <- list(progress = progress)
-error_df <- foreach(
+error_list <- foreach(
   row_idx = seq_len(nrow(parameter_df)),
   .export = c(
     "simulate_data",
@@ -596,989 +572,168 @@ error_df <- foreach(
     "display_results"
   ),
   .packages = c("tidyverse", "pme"),
-  .combine = rbind,
-  .options.snow = opts
-) %dopar% {
-  seed_val <- .Random.seed
-  seed_states[[row_idx]] <- seed_val
+  # .combine = rbind,
+  .inorder = TRUE,
+  .options.snow = opts,
+  .errorhandling = "stop"
+) %do%
+  {
+    print(paste("Running case", row_idx, "of", nrow(parameter_df)))
 
-  duration_value <- parameter_df$duration[row_idx]
-  interval_value <- parameter_df$interval[row_idx]
-  case_value <- parameter_df$case[row_idx]
-  obs_noise_value <- parameter_df$obs_noise[row_idx]
-  amplitude_noise_value <- parameter_df$amplitude_noise[row_idx]
-  period_noise_value <- parameter_df$period_noise[row_idx]
-  trend_value <- parameter_df$time_trend[row_idx]
-  change_value <- parameter_df$time_change[row_idx]
+    seed_val <- .Random.seed
+    seed_states[[row_idx]] <- seed_val
 
-  # additional stability is needed for Swiss roll and spherical cases
-  # to maintain structural integrity
-  if (case_value == 7) {
-    amplitude_noise_value <- amplitude_noise_value / 10
-    period_noise_value <- period_noise_value / 10
-  } else if (case_value == 8) {
-    period_noise_value <- period_noise_value / 10
+    duration_value <- parameter_df$duration[row_idx]
+    interval_value <- parameter_df$interval[row_idx]
+    case_value <- parameter_df$case[row_idx]
+    obs_noise_value <- parameter_df$obs_noise[row_idx]
+    amplitude_noise_value <- parameter_df$amplitude_noise[row_idx]
+    period_noise_value <- parameter_df$period_noise[row_idx]
+    trend_value <- parameter_df$time_trend[row_idx]
+    change_value <- parameter_df$time_change[row_idx]
+
+    # additional stability is needed for Swiss roll and spherical cases
+    # to maintain structural integrity
+    if (case_value == 3) {
+      period_noise_value <- period_noise_value / 5
+    } else if (case_value == 5) {
+      period_noise_value <- period_noise_value / 5
+      obs_noise_value <- obs_noise_value / 5
+    } else if (case_value == 7) {
+      amplitude_noise_value <- amplitude_noise_value / 10
+      period_noise_value <- period_noise_value / 10
+    } else if (case_value == 8) {
+      period_noise_value <- period_noise_value / 10
+    }
+
+    D_value <- case_when(
+      case_value == 1 ~ 2,
+      case_value == 2 ~ 2,
+      case_value == 3 ~ 2,
+      case_value == 4 ~ 3,
+      case_value == 5 ~ 3,
+      case_value == 6 ~ 3,
+      case_value == 7 ~ 3,
+      case_value == 8 ~ 3
+    )
+    d_value <- case_when(
+      case_value == 1 ~ 1,
+      case_value == 2 ~ 1,
+      case_value == 3 ~ 1,
+      case_value == 4 ~ 1,
+      case_value == 5 ~ 1,
+      case_value == 6 ~ 2,
+      case_value == 7 ~ 2,
+      case_value == 8 ~ 2
+    )
+
+    result_dir <- paste0("../output/simulations/case", case_value)
+    if (!dir.exists(result_dir)) {
+      dir.create(result_dir, recursive = TRUE)
+    }
+
+    simulation_file <- paste0(
+      "duration_",
+      duration_value,
+      "_interval_",
+      str_pad(as.character(interval_value * 100), 3, pad = "0"),
+      "_obs_noise_",
+      str_pad(as.character(obs_noise_value * 100), 3, pad = "0"),
+      "_amplitude_noise_",
+      str_pad(as.character(amplitude_noise_value * 100), 3, pad = "0"),
+      "_period_noise_",
+      str_pad(as.character(period_noise_value * 100), 3, pad = "0"),
+      "_time_trend_",
+      trend_value,
+      "_time_change_",
+      str_pad(as.character(change_value * 100), 3, pad = "0"),
+      ".RDS"
+    )
+
+    sim_data <- simulate_data(
+      duration = duration_value,
+      interval = interval_value,
+      case = case_value,
+      obs_noise = obs_noise_value,
+      amplitude_noise = amplitude_noise_value,
+      period_noise = period_noise_value,
+      time_trend = trend_value,
+      time_change = change_value,
+      N = 1000
+    )
+
+    print(paste("Data generated for case", row_idx, "of", nrow(parameter_df)))
+
+    sim_df <- sim_data$df
+
+    sim_processed <- preprocess_data(
+      sim_df,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste("Fitting models for case", row_idx, "of", nrow(parameter_df)))
+
+    sim_models <- fit_models(
+      sim_processed,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste(
+      "Evaluating models for case",
+      row_idx,
+      "of",
+      nrow(parameter_df)
+    ))
+
+    model_errors <- evaluate_models(
+      sim_processed,
+      sim_models,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste(
+      "Plotting results for case",
+      row_idx,
+      "of",
+      nrow(parameter_df)
+    ))
+
+    result_plot <- display_results(
+      sim_processed,
+      sim_models,
+      case = case_value,
+      d = d_value,
+      D = D_value
+    )
+
+    print(paste(
+      "Saving results for case",
+      row_idx,
+      "of",
+      nrow(parameter_df)
+    ))
+
+    simulation_output <- list(
+      data = sim_data,
+      processed_data = sim_processed,
+      models = sim_models,
+      errors = model_errors,
+      plot = result_plot,
+      seed = seed_val
+    )
+
+    # save results for each simulation run separately
+    # these will be aggregated in the following notebook
+    saveRDS(simulation_output, file.path(result_dir, simulation_file))
+
+    unlist(model_errors)
   }
-
-  D_value <- case_when(
-    case_value == 1 ~ 2,
-    case_value == 2 ~ 2,
-    case_value == 3 ~ 2,
-    case_value == 4 ~ 3,
-    case_value == 5 ~ 3,
-    case_value == 6 ~ 3,
-    case_value == 7 ~ 3,
-    case_value == 8 ~ 3
-  )
-  d_value <- case_when(
-    case_value == 1 ~ 1,
-    case_value == 2 ~ 1,
-    case_value == 3 ~ 1,
-    case_value == 4 ~ 1,
-    case_value == 5 ~ 1,
-    case_value == 6 ~ 2,
-    case_value == 7 ~ 2,
-    case_value == 8 ~ 2
-  )
-
-  # following the same analysis pipeline as described above
-  sim_data <- simulate_data(
-    duration = duration_value,
-    interval = interval_value,
-    case = case_value,
-    obs_noise = obs_noise_value,
-    amplitude_noise = amplitude_noise_value,
-    period_noise = period_noise_value,
-    time_trend = trend_value,
-    time_change = change_value,
-    N = 1000
-  )
-  sim_df <- sim_data$df
-
-
-  sim_processed <- preprocess_data(
-    sim_df,
-    case = case_value,
-    d = d_value,
-    D = D_value
-  )
-
-
-  sim_models <- fit_models(
-    sim_processed,
-    case = case_value,
-    d = d_value,
-    D = D_value
-  )
-
-
-  model_errors <- evaluate_models(
-    sim_processed,
-    sim_models,
-    case = case_value,
-    d = d_value,
-    D = D_value
-  )
-
-
-  result_plot <- display_results(
-    sim_processed,
-    sim_models,
-    case = case_value,
-    d = d_value,
-    D = D_value
-  )
-
-
-  simulation_output <- list(
-    data = sim_data,
-    processed_data = sim_processed,
-    models = sim_models,
-    errors = model_errors,
-    plot = result_plot,
-    seed = seed_val
-  )
-
-  result_dir <- paste0("../output/simulations/case", case_value)
-  if (!dir.exists(result_dir)) {
-    dir.create(result_dir, recursive = TRUE)
-  }
-
-  simulation_file <- paste0(
-    "duration_",
-    duration_value,
-    "_interval_",
-    str_pad(as.character(interval_value * 100), 3, pad = "0"),
-    "_obs_noise_",
-    str_pad(as.character(obs_noise_value * 100), 3, pad = "0"),
-    "_amplitude_noise_",
-    str_pad(as.character(amplitude_noise_value * 100), 3, pad = "0"),
-    "_period_noise_",
-    str_pad(as.character(period_noise_value * 100), 3, pad = "0"),
-    "_time_trend_",
-    trend_value,
-    "_time_change_",
-    str_pad(as.character(change_value * 100), 3, pad = "0"),
-    ".RDS"
-  )
-
-
-  saveRDS(simulation_output, file.path(result_dir, simulation_file))
-
-  unlist(model_errors)
-}
 
 stopCluster(cl)
 ```
-
-```{r, eval=FALSE}
-#| label: save_simulation_results
-error_df <- error_df %>%
-  as_tibble()
-print(error_df)
-
-print("Simulations Complete")
-
-simulation_results <- bind_cols(parameter_df, error_df)
-write_csv(simulation_results, "../output/simulation_results.csv")
-```
-## Simulation Results
-
-
-```{r}
-#| label: sample_result
-result_case1 <- readRDS(
-  file.path(
-    "../output/simulations/case1",
-    # "duration_1_interval_025_obs_noise_005_amplitude_noise_010_period_noise_010_time_trend_linear_time_change_010.RDS"
-    "duration_1_interval_025_obs_noise_005_amplitude_noise_005_period_noise_005_time_trend_linear_time_change_005.RDS"
-    # "duration_1_interval_050_obs_noise_010_amplitude_noise_025_period_noise_010_time_trend_linear_time_change_010.RDS"
-    # "duration_1_interval_025_obs_noise_005_amplitude_noise_005_period_noise_005_time_trend_constant_time_change_025.RDS"
-  )
-)
-
-case1_observed <- result_case1$processed_data$df_observed
-case1_true <- result_case1$processed_data$df_true
-case1_sim <- result_case1$data$df
-
-lpme_data <- result_case1$models$lpme$reconstructions
-pme_data <- result_case1$models$pme$reconstructions
-pc_data <- result_case1$models$pc$reconstructions
-
-case1_names <- c("time", "X1", "X2")
-names(case1_observed) <- case1_names
-names(case1_true) <- case1_names
-case1_observed$source <- "Data"
-case1_observed$param <- case1_sim$r1
-case1_true$source <- "True Manifold"
-case1_true$param <- case1_sim$r1
-
-lpme_df <- as_tibble(lpme_data, ..name_repair = NULL)
-names(lpme_df) <- case1_names
-lpme_df$source <- "LPME"
-lpme_df$param <- case1_sim$r1
-
-pme_df <- as_tibble(pme_data, ..name_repair = NULL)
-names(pme_df) <- case1_names
-pme_df$source <- "PME"
-pme_df$param <- case1_sim$r1
-
-pc_df <- as_tibble(pc_data, ..name_repair = NULL)
-names(pc_df) <- case1_names
-pc_df$source <- "PC"
-pc_df$param <- case1_sim$r1
-
-result_case1$plot
-```
-
-As an example simulation result, we consider the run using the first manifold case with a study duration of 1 year, visits every 3 months, observation noise = 0.025, amplitude noise = 0.005, period noise = 0.005, and no change in the underlying over time. The model estimates are shown in 3 dimensions in the interactive plot above, or in 2 dimensions below. Visual ispection indicates that the PME estimate, shown in green, tends to follow the observed data at each time point, while the LPME estimate appears to fall between the PME estimate and the observed manifold at most time points. When `time = 1`, the LPME estimate is much further from the true manifold, as there are no further time points to offset the error in the observations collected at that visit.
-
-```{r, echo=FALSE}
-#| label: result_plot
-case1_data <- bind_rows(
-  case1_observed,
-  case1_true,
-  lpme_df,
-  pme_df,
-  pc_df
-) |>
-  arrange(param)
-
-color_values <- c("black", "blue", "purple", "green", "red")
-
-set.seed(8195)
-# subsample data to improve clarity of visualization
-data_sampled <- case1_data |>
-  group_by(time, source) |>
-  sample_n(100)
-```
-
-```{r, echo=FALSE}
-#| label: result_facet_plot
-ggplot(case1_data, aes(x = X1, y = X2)) +
-  facet_wrap(~time, nrow = 3) +
-  geom_point(
-    data = subset(case1_data, source == "Data"),
-    color = "black",
-    alpha = 0.2,
-    size = 0.25
-  ) +
-  geom_point(
-    data = subset(case1_data, source != "Data"),
-    aes(color = source, shape = source),
-    size = 0.2
-  ) +
-  scale_color_manual(values = color_values[-1])
-```
-
-
-```{r}
-result_case1$errors
-```
-
-Strikingly, the principal curve algorithm does not appear to fit the data well at many points, visibly losing the structure of the underlying manifold at many points.
-
-## Atrophy Estimation
-
-The proposed use case for the LPME algorithm is to obtain smooth estimates of the manifold underlying the shape of the hippocampus over time, which can in turn be used to estimate the volume of the hippocampus, giving insight into atrophy that occurs as Alzheimer's disease progresses. To understand how well this approach performs, we consider simulation case 8, in which data from a 2-dimensional manifold is embedded in a spherical form. 
-
-Analogous to the proposed application, the LPME estimate can be used to approximate the volume of the simulated sphere. Unlike the application, the volume of the true sphere is known and provides a ground truth, allowing us to evaluate the performance of the smoothing in the presence of data generating patterns commonly found in neuroimaging data.
-
-For the spherical data, we consider two approaches to fitting the LPME and PME algorithms in a way that avoids self-intersections in the estimated manifold. The first approach augments the observed data with spherical coordinates, estimating a mapping between the low-dimensional manifold and the augmented ambient space. In this case, volumes are estimated by counting the voxels falling into the interior of the estimated manifold, then multiplying by the volume of each individual voxel. 
-
-The second approach partitions the sphere into a grid of voxels, estimating the volume of the manifold by counting the number of voxels that intersect the estimated manifold. The second approach partitions the observed data into two sets and estimates a manifold separately for each partition. Volumes are then estimated using a Monte Carlo simulation, where points are randomly sampled from a predefined range in three-dimensional ambient space, and the interior identification approach can be used to determine whether each point is in the interior of the estimated manifolds. The proportion of interior points is then multiplied by the volume of the predefined range to reach a volume estimate.
-
-```{r, echo=FALSE}
-dir_case8 <- "../output/simulations/case8"
-files_case8 <- list.files(dir_case8)
-```
-
-```{r, echo=FALSE}
-sim_volume_df <- read_csv("../output/simulation_volume_case8.csv")
-```
-```{r, echo=FALSE}
-file_name <- files_case8[11]
-file_stripped <- str_replace(file_name, ".RDS", "")
-file_parsed <- str_split(file_stripped, "_")
-
-duration_val <- as.numeric(file_parsed[[1]][2])
-interval_val <- as.numeric(file_parsed[[1]][4]) / 100
-obs_noise_val <- as.numeric(file_parsed[[1]][7]) / 100
-amplitude_noise_val <- as.numeric(file_parsed[[1]][10]) / 100
-period_noise_val <- as.numeric(file_parsed[[1]][[13]])
-time_trend_val <- file_parsed[[1]][16]
-time_change_val <- as.numeric(file_parsed[[1]][19]) / 100
-
-
-
-sim <- readRDS(file.path(dir_case8, file_name))
-n_points <- 10000
-
-sim_data <- sim$processed_data$df
-time_points <- sim_data |>
-  select(time) |>
-  unlist() |>
-  unique()
-
-observed_times <- sim$data$df |>
-  select(time) |>
-  unlist() |>
-  unique() |>
-  sort()
-
-sim_mat <- sim$processed_data$df_observed |>
-  select(time, contains("X")) |>
-  as.matrix()
-
-radii <- map(
-  seq_along(sim$data$amplitude_values),
-  ~ sim$data$amplitude_values[[.x]][1]
-) |>
-  reduce(c)
-
-observed_volumes <- (4 / 3) * pi * radii^3
-
-time_adjustments <- case_when(
-  time_trend_val == "constant" ~ 0 * time_points,
-  time_trend_val == "linear" ~ time_points,
-  time_trend_val == "quadratic" ~ time_points^2
-)
-
-# scale time adjustments to be proportion of 1
-if (max(time_adjustments) == 0) {
-  time_adjustments_scaled <- time_adjustments * time_change_val * 0
-} else {
-  time_adjustments_scaled <- (
-    time_adjustments / max(time_adjustments)
-  ) * time_change_val
-}
-# subtract from initial amplitude to replicate effects of atrophy
-true_radii <- 1 - time_adjustments_scaled
-true_volumes <- (4 / 3) * pi * true_radii^3 
-
-## Calcalate volumes from partitioned models
-
-lpme_volumes <- vector(mode = "numeric", length = length(time_points))
-pme_volumes <- vector(mode = "numeric", length = length(time_points))
-
-lpme_part_volumes <- vector(mode = "numeric", length = length(time_points))
-pme_part_volumes <- vector(mode = "numeric", length = length(time_points))
-
-scaling_factors <- sim$data$df |>
-  select(contains("X")) |>
-  select(!contains("true")) |>
-  colMinsMaxs()
-x_scale <- max(abs(scaling_factors[, 1]))
-y_scale <- max(abs(scaling_factors[, 2]))
-z_scale <- max(abs(scaling_factors[, 3]))
-
-lpme_est <- sim$models$lpme$lpme
-lpme_params <- lpme_est$parameterization_list[[which.min(lpme_est$msd)]] 
-
-lpme_part_voxels <- matrix(data = NA, ncol = 4)
-pme_part_voxels <- matrix(data = NA, ncol = 4)
-
-lpme_aug_voxels <- matrix(data = NA, ncol = 4)
-pme_aug_voxels <- matrix(data = NA, ncol = 4)
-
-lpme_aug_reconstructions <- matrix(data = NA, ncol = 4)
-pme_aug_reconstructions <- matrix(data = NA, ncol = 4)
-
-for (time_idx in seq_along(time_points)) {
-  observed_data <- sim$data$df |>
-    filter(time == observed_times[time_idx]) |>
-    select(contains("X")) |>
-    select(!contains("true")) |>
-    as.matrix()
-  obs_limits <- colMinsMaxs(observed_data)
-  limit_scaler <- 0.05
-  obs_x_range <- obs_limits[2, 1] - obs_limits[1, 1]
-  obs_y_range <- obs_limits[2, 2] - obs_limits[1, 2]
-  obs_z_range <- obs_limits[2, 3] - obs_limits[1, 3]
-
-  obs_x_scale <- max(abs(obs_limits[, 1]))
-  obs_y_scale <- max(abs(obs_limits[, 2]))
-  obs_z_scale <- max(abs(obs_limits[, 3]))
-
-  full_volume <- (obs_x_range * (1 + (2 * limit_scaler))) *
-    (obs_y_range * (1 + (2 * limit_scaler))) *
-    (obs_z_range * (1 + (2 * limit_scaler)))
-
-  temp_data <- sim_mat[sim_mat[, 1] == time_points[time_idx], -1]
-  data_limits <- colMinsMaxs(temp_data)
-
-  x_range <- data_limits[2, 1] - data_limits[1, 1]
-  y_range <- data_limits[2, 2] - data_limits[1, 2]
-  z_range <- data_limits[2, 3] - data_limits[1, 3]
-
-  x_min <- data_limits[1, 1] - (limit_scaler * x_range)
-  x_max <- data_limits[2, 1] + (limit_scaler * x_range)
-  y_min <- data_limits[1, 2] - (limit_scaler * y_range)
-  y_max <- data_limits[2, 2] + (limit_scaler * y_range)
-  z_min <- data_limits[1, 3] - (limit_scaler * z_range)
-  z_max <- data_limits[2, 3] + (limit_scaler * z_range)
-
-  x_candidates <- runif(n = n_points, min = x_min, max = x_max)
-  y_candidates <- runif(n = n_points, min = y_min, max = y_max)
-  z_candidates <- runif(n = n_points, min = z_min, max = z_max)
-
-  candidates <- cbind(x_candidates, y_candidates, z_candidates)
-
-  # Use partitioned models with interior identification
-  temp_pme_part1 <- sim$models$pme_part$pme[[1]][[time_idx]]
-  temp_pme_part2 <- sim$models$pme_part$pme[[2]][[time_idx]]
-  temp_pme_embedding_part1 <- temp_pme_part1$embedding_map
-  temp_pme_embedding_part2 <- temp_pme_part2$embedding_map
-  temp_pme_coefs_part1 <- temp_pme_part1$coefs[[which.min(temp_pme_part1$MSD)]]
-  temp_pme_coefs_part2 <- temp_pme_part2$coefs[[which.min(temp_pme_part2$MSD)]]
-  temp_pme_params_part1 <- temp_pme_part1$parameterization[[which.min(temp_pme_part1$MSD)]]
-  temp_pme_params_part2 <- temp_pme_part2$parameterization[[which.min(temp_pme_part2$MSD)]]
-
-  lpme_est_part1 <- sim$models$lpme_part$lpme[[1]]
-  lpme_est_part2 <- sim$models$lpme_part$lpme[[2]]
-
-  temp_lpme_coefs_part1 <- lpme_est_part1$sol_coef_functions[[
-    which.min(lpme_est_part1$msd)
-  ]](time_points[time_idx])
-  temp_lpme_coefs_part2 <- lpme_est_part2$sol_coef_functions[[
-    which.min(lpme_est_part2$msd)
-  ]](time_points[time_idx])
-
-  temp_lpme_params_part1 <- lpme_est_part1$parameterization_list[[which.min(lpme_est_part1$msd)]]
-  temp_lpme_params_part2 <- lpme_est_part2$parameterization_list[[which.min(lpme_est_part2$msd)]]
-  temp_lpme_params_part1 <- temp_lpme_params_part1[
-    temp_lpme_params_part1[, 1] == time_points[time_idx],
-    -1
-  ]
-  temp_lpme_params_part2 <- temp_lpme_params_part2[
-    temp_lpme_params_part2[, 1] == time_points[time_idx],
-    -1
-  ]
-
-  lpme_n_knots_part1 <- nrow(temp_lpme_params_part1)
-  lpme_n_knots_part2 <- nrow(temp_lpme_params_part2)
-  d <- ncol(temp_lpme_params_part1)
-  coef_mat_part1 <- matrix(
-    temp_lpme_coefs_part1,
-    lpme_n_knots_part1 + d + 1,
-    byrow = TRUE
-  )
-  coef_mat_part2 <- matrix(
-    temp_lpme_coefs_part2,
-    lpme_n_knots_part2 + d + 1,
-    byrow = TRUE
-  )
-
-  temp_lpme_embedding_part1 <- function(r) {
-    t(coef_mat_part1[1:lpme_n_knots_part1, ]) %*% pme::etaFunc(r, temp_lpme_params_part1, 4 - d) +
-      t(coef_mat_part1[(lpme_n_knots_part1 + 1):(lpme_n_knots_part1 + d + 1), ]) %*%
-        matrix(c(1, r), ncol = 1)
-  }
-
-  temp_lpme_embedding_part2 <- function(r) {
-    t(coef_mat_part2[1:lpme_n_knots_part2, ]) %*% pme::etaFunc(r, temp_lpme_params_part2, 4 - d) +
-      t(coef_mat_part2[(lpme_n_knots_part2 + 1):(lpme_n_knots_part2 + d + 1), ]) %*%
-        matrix(c(1, r), ncol = 1)
-  }
-
-  lpme_interior_part1 <- interior_identification(
-    temp_lpme_embedding_part1,
-    coef_mat_part1,
-    temp_lpme_params_part1,
-    candidates[candidates[, 1] > 0, ],
-    c(0, 0, 0)
-  )
-  lpme_interior_part2 <- interior_identification(
-    temp_lpme_embedding_part2,
-    coef_mat_part2,
-    temp_lpme_params_part2,
-    candidates[candidates[, 1] <= 0, ],
-    c(0, 0, 0)
-  )
-
-  lpme_interior <- c(lpme_interior_part1, lpme_interior_part2)
-
-  lpme_interior_candidates <- rbind(
-    candidates[candidates[, 1] > 0, ][lpme_interior_part1, ],
-    candidates[candidates[, 1] <= 0, ][lpme_interior_part2, ]
-  )
-
-  lpme_part_voxels <- rbind(
-    lpme_part_voxels, 
-    cbind(time_points[time_idx], lpme_interior_candidates)
-  )
-  
-  pme_interior_part1 <- interior_identification(
-    temp_pme_embedding_part1,
-    temp_pme_coefs_part1,
-    temp_pme_params_part1,
-    candidates[candidates[, 1] > 0, ],
-    c(0, 0, 0)
-  )
-  pme_interior_part2 <- interior_identification(
-    temp_pme_embedding_part2,
-    temp_pme_coefs_part2,
-    temp_pme_params_part2,
-    candidates[candidates[, 1] <= 0, ],
-    c(0, 0, 0)
-  )
-
-  pme_interior <- c(pme_interior_part1, pme_interior_part2)
-  pme_interior_candidates <- rbind(
-    candidates[candidates[, 1] > 0, ][pme_interior_part1, ],
-    candidates[candidates[, 1] <= 0, ][pme_interior_part2, ]
-  )
-
-  pme_part_voxels <- rbind(
-    pme_part_voxels, 
-    cbind(time_points[time_idx], pme_interior_candidates)
-  )
-
-  lpme_part_volumes[time_idx] <- mean(lpme_interior) * full_volume
-  pme_part_volumes[time_idx] <- mean(pme_interior) * full_volume
-
-
-  temp_pme <- sim$models$pme$pme[[time_idx]]
-  temp_pme_params <- temp_pme$parameterization[[which.min(temp_pme$MSD)]]
-
-  temp_lpme_params <- lpme_params[lpme_params[, 1] == time_points[time_idx], -1]
-
-  pme_param_limits <- colMinsMaxs(temp_pme_params)
-  lpme_param_limits <- colMinsMaxs(temp_lpme_params)
-
-  pme_param_candidates1 <- runif(
-    n = n_points, 
-    min = pme_param_limits[1, 1], 
-    max = pme_param_limits[2, 1]
-  )
-  pme_param_candidates2 <- runif(
-    n = n_points, 
-    min = pme_param_limits[1, 2], 
-    max = pme_param_limits[2, 2]
-  )
-  lpme_param_candidates1 <- runif(
-    n = n_points,
-    min = lpme_param_limits[1, 1],
-    max = lpme_param_limits[2, 1]
-  )
-  lpme_param_candidates2 <- runif(
-    n = n_points,
-    min = lpme_param_limits[1, 2],
-    max = lpme_param_limits[2, 2]
-  )
-
-  temp_lpme_reconstructions <- map(
-    seq_len(n_points),
-    ~ lpme_est$embedding_map(
-      c(
-        time_points[time_idx], 
-        lpme_param_candidates1[.x], 
-        lpme_param_candidates2[.x]
-      )
-    )
-  ) |>
-    reduce(rbind)
-
-  lpme_aug_reconstructions <- rbind(
-    lpme_aug_reconstructions, 
-    temp_lpme_reconstructions[, 1:4]
-  )
-  temp_lpme_reconstructions <- temp_lpme_reconstructions[, 2:4]
-
-  temp_pme_reconstructions <- map(
-    seq_len(n_points),
-    ~ temp_pme$embedding_map(
-      c(
-        pme_param_candidates1[.x],
-        pme_param_candidates2[.x]
-      )
-    )
-  ) |>
-    reduce(rbind)
-  pme_aug_reconstructions <- rbind(
-    pme_aug_reconstructions, 
-    cbind(time_points[time_idx], temp_pme_reconstructions[, 1:3])
-  )
-  temp_pme_reconstructions <- temp_pme_reconstructions[, 1:3]
-
-  temp_lpme_reconstructions[, 1] <- temp_lpme_reconstructions[, 1] * x_scale
-  temp_lpme_reconstructions[, 2] <- temp_lpme_reconstructions[, 2] * y_scale
-  temp_lpme_reconstructions[, 3] <- temp_lpme_reconstructions[, 3] * z_scale
-
-  temp_pme_reconstructions[, 1] <- temp_pme_reconstructions[, 1] * x_scale
-  temp_pme_reconstructions[, 2] <- temp_pme_reconstructions[, 2] * y_scale
-  temp_pme_reconstructions[, 3] <- temp_pme_reconstructions[, 3] * z_scale
-
-  temp_lpme_volume <- estimate_volume(
-    round(temp_lpme_reconstructions, 1),
-    voxel_volume = 0.1^3
-  )
-  temp_pme_volume <- estimate_volume(
-    round(temp_pme_reconstructions, 1),
-    voxel_volume = 0.1^3
-  )
-
-  lpme_aug_voxels <- rbind(
-    lpme_aug_voxels,
-    cbind(time_points[time_idx], as.matrix(temp_lpme_volume$interior_voxels))
-  )
-  pme_aug_voxels <- rbind(
-    pme_aug_voxels,
-    cbind(time_points[time_idx], as.matrix(temp_pme_volume$interior_voxels))
-  )
-
-  lpme_volumes[time_idx] <- temp_lpme_volume$volume
-  pme_volumes[time_idx] <- temp_pme_volume$volume
-}
-
-lpme_aug_reconstructions <- lpme_aug_reconstructions[-1, ]
-lpme_aug_reconstructions[, 2] <- lpme_aug_reconstructions[, 2] * x_scale
-lpme_aug_reconstructions[, 3] <- lpme_aug_reconstructions[, 3] * y_scale
-lpme_aug_reconstructions[, 4] <- lpme_aug_reconstructions[, 4] * z_scale
-
-lpme_aug_voxels <- lpme_aug_voxels[-1, ]
-lpme_aug_voxels[, 2] <- lpme_aug_voxels[, 2] * x_scale
-lpme_aug_voxels[, 3] <- lpme_aug_voxels[, 3] * y_scale
-lpme_aug_voxels[, 4] <- lpme_aug_voxels[, 4] * z_scale
-
-lpme_part_voxels <- lpme_part_voxels[-1, ]
-lpme_part_voxels[, 2] <- lpme_part_voxels[, 2] * x_scale
-lpme_part_voxels[, 3] <- lpme_part_voxels[, 3] * y_scale
-lpme_part_voxels[, 4] <- lpme_part_voxels[, 4] * z_scale
-
-pme_aug_reconstructions <- pme_aug_reconstructions[-1, ]
-pme_aug_reconstructions[, 2] <- pme_aug_reconstructions[, 2] * x_scale
-pme_aug_reconstructions[, 3] <- pme_aug_reconstructions[, 3] * y_scale
-pme_aug_reconstructions[, 4] <- pme_aug_reconstructions[, 4] * z_scale
-
-pme_aug_voxels <- pme_aug_voxels[-1, ]
-pme_aug_voxels[, 2] <- pme_aug_voxels[, 2] * x_scale
-pme_aug_voxels[, 3] <- pme_aug_voxels[, 3] * y_scale
-pme_aug_voxels[, 4] <- pme_aug_voxels[, 4] * z_scale
-
-pme_part_voxels <- pme_part_voxels[-1, ]
-pme_part_voxels[, 2] <- pme_part_voxels[, 2] * x_scale
-pme_part_voxels[, 3] <- pme_part_voxels[, 3] * y_scale
-pme_part_voxels[, 4] <- pme_part_voxels[, 4] * z_scale
-```
-
-```{r, echo=FALSE}
-sim_df <- sim$data$df
-sim_df <- sim_df |>
-  mutate(time = time / max(time))
-
-p_data <- plot_ly(
-  sim_df, 
-  x = ~X1, 
-  y = ~X2, 
-  z = ~X3, 
-  frame = ~time, 
-  type = "scatter3d", 
-  mode = "markers", 
-  marker = list(size = 3, color = "black"),
-  name = "Observed Data"
-) |>
-  add_markers(
-    x = ~X_true1,
-    y = ~X_true2,
-    z = ~X_true3,
-    frame = ~time,
-    marker = list(size = 3, color = "red"),
-    name = "True Data"
-  ) |>
-  layout(title = "Simulated Data")
-p_data
-```
-
-The plot above shows the observed data for one of the simulation cases, given in black, and true points on the manifold, given in red. We can see that the size and shape of the manifold itself do not change over time, but noise within and between time points is present. The plot below depicts the estimated manifolds obtained using the LPME (blue) and PME (green) algorithms. Both methods capture the shape of the sphere well at most points on the structure, but it is clear that the estimated manifolds do not fully enclose. 
-
-Meanwhile, the following plot depicts the manifold estimates found using the partitioning approach, with LPME estimates shown in blue and yellow, and PME estimates shown in green and orange. Here, we can see that both methods appropriately capture the spherical shape without the gaps in manifold fit seen in the augmentation estiamtes.
-
-```{r, echo=FALSE}
-p_aug_reconstructions <- plot_ly(
-  x = lpme_aug_reconstructions[, 2],
-  y = lpme_aug_reconstructions[, 3],
-  z = lpme_aug_reconstructions[, 4],
-  frame = lpme_aug_reconstructions[, 1],
-  type = "scatter3d",
-  mode = "markers",
-  marker = list(size = 3, color = "blue"),
-  name = "LPME"
-) |>
-  add_markers(
-    x = pme_aug_reconstructions[, 2],
-    y = pme_aug_reconstructions[, 3],
-    z = pme_aug_reconstructions[, 4],
-    frame = pme_aug_reconstructions[, 1],
-    marker = list(size = 3, color = "green"),
-    name = "PME"
-  ) |>
-  layout(title = "LPME and PME Manifold Estimates (Augmented)")
-p_aug_reconstructions
-```
-
-
-```{r, echo=FALSE}
-lpme_part_reconstructions <- sim$models$lpme_part$reconstructions
-lpme_reconstructions_part1 <- lpme_part_reconstructions[lpme_part_reconstructions[, 2] > 0, ]
-lpme_reconstructions_part2 <- lpme_part_reconstructions[lpme_part_reconstructions[, 2] <= 0, ]
-
-pme_part_reconstructions <- sim$models$pme_part$reconstructions
-pme_reconstructions_part1 <- pme_part_reconstructions[pme_part_reconstructions[, 2] > 0, ]
-pme_reconstructions_part2 <- pme_part_reconstructions[pme_part_reconstructions[, 2] <= 0, ]
-
-p_part_reconstructions <- plot_ly(
-  x = lpme_reconstructions_part1[, 2],
-  y = lpme_reconstructions_part1[, 3],
-  z = lpme_reconstructions_part1[, 4],
-  frame = lpme_reconstructions_part1[, 1],
-  type = "scatter3d",
-  mode = "markers",
-  marker = list(size = 3, color = "blue"),
-  name = "LPME (Partition 1)"
-) |>
-  add_markers(
-    x = lpme_reconstructions_part2[, 2],
-    y = lpme_reconstructions_part2[, 3],
-    z = lpme_reconstructions_part2[, 4],
-    frame = lpme_reconstructions_part2[, 1],
-    marker = list(size = 3, color = "yellow"),
-    name = "LPME (Partition 2)"
-  ) |>
-  add_markers(
-    x = pme_reconstructions_part1[, 2],
-    y = pme_reconstructions_part1[, 3],
-    z = pme_reconstructions_part1[, 4],
-    frame = pme_reconstructions_part1[, 1],
-    marker = list(size = 3, color = "green"),
-    name = "PME (Partition 1)"
-  ) |>
-  add_markers(
-    x = pme_reconstructions_part2[, 2],
-    y = pme_reconstructions_part2[, 3],
-    z = pme_reconstructions_part2[, 4],
-    frame = pme_reconstructions_part2[, 1],
-    marker = list(size = 3, color = "orange"),
-    name = "PME (Partition 2)"
-  )
-
-p_part_reconstructions
-```
-
-The plots below show the interior estimates associated with the manifold estimates shown above. First, we have a plot of the interior estiamtes for the augmented LPME and PME models in blue and green, along with the observed data and true structure in black and red, respectively. While the volume estimation method I use is able to account for the gap that extends along the full height of the estimated manifold, there are still some points at the poles of the sphere that are incorrectly included in the interior. This should result in overestimates of the sphere's volume. 
-
-The following plot shows the interior points estimated using the partitioned models. Because the same points are generated for both algorithms, the interior points overlap, meaning that it is necessary to click on the "PME" label in the plot's legend to see the LPME estimate's interior points. For both algorithms, the interior points appear confined to the true interior of the sphere. This indicates that we should expect the associated volume estimates to be either more accurate or to underestimate the true volume.
-
-```{r, echo=FALSE}
-p_aug_interiors <- plot_ly(
-  sim_df, 
-  x = ~X1, 
-  y = ~X2, 
-  z = ~X3, 
-  frame = ~time, 
-  type = "scatter3d", 
-  mode = "markers", 
-  marker = list(size = 3, color = "black"),
-  name = "Observed Data"
-) |>
-  add_markers(
-    x = ~X_true1,
-    y = ~X_true2,
-    z = ~X_true3,
-    frame = ~time,
-    marker = list(size = 3, color = "red"),
-    name = "True Data"
-  ) |>
-  add_markers(
-    x = lpme_aug_voxels[, 2],
-    y = lpme_aug_voxels[, 3],
-    z = lpme_aug_voxels[, 4],
-    frame = lpme_aug_voxels[, 1],
-    marker = list(size = 3, color = "blue", alpha = 0.5),
-    name = "LPME"
-  ) |>
-  add_markers(
-    x = pme_aug_voxels[, 2],
-    y = pme_aug_voxels[, 3],
-    z = pme_aug_voxels[, 4],
-    frame = pme_aug_voxels[, 1],
-    marker = list(size = 3, color = "green", alpha = 0.5),
-    name = "PME"
-  ) |>
-  layout(title = "Estimated LPME and PME Interiors (Augmented)")
-p_aug_interiors
-```
-
-```{r, echo=FALSE}
-p_part_interiors <- plot_ly(
-  sim_df, 
-  x = ~X1, 
-  y = ~X2, 
-  z = ~X3, 
-  frame = ~time, 
-  type = "scatter3d", 
-  mode = "markers", 
-  marker = list(size = 3, color = "black"),
-  name = "Observed Data"
-) |>
-  add_markers(
-    x = ~X_true1,
-    y = ~X_true2,
-    z = ~X_true3,
-    frame = ~time,
-    marker = list(size = 3, color = "red"),
-    name = "True Data"
-  ) |>
-  add_markers(
-    x = lpme_part_voxels[, 2],
-    y = lpme_part_voxels[, 3],
-    z = lpme_part_voxels[, 4],
-    frame = lpme_part_voxels[, 1],
-    marker = list(size = 3, color = "blue", alpha = 0.5),
-    name = "LPME"
-  ) |>
-  add_markers(
-    x = pme_part_voxels[, 2],
-    y = pme_part_voxels[, 3],
-    z = pme_part_voxels[, 4],
-    frame = pme_part_voxels[, 1],
-    marker = list(size = 3, color = "green", alpha = 0.5),
-    name = "PME"
-  ) |>
-  layout(title = "Estimated LPME and PME Interiors (Partitioned)")
-p_part_interiors
-```
-
-An example plot depicting the estimated volumes from four simulation runs is shown below, with the true volume of the sphere with no between-visit or between-observation error added shown in red, the volumes of the error-adjusted simulated spheres shown in black, LPME estimates shown in blue, and PME estimates shown in green. A solid line depicts volume estimates from the partitioned LPME and PME estimates, while a dashed line depicts volume estimates from the augmented LPME and PME estimates. The top left panel shows the volume estimates from the same simulation run highlighted above.
-
-I am having some difficulty understanding how these results are appearing. Visual inspection of the model fitting results indicates that the partitioned models seem to fit more reliably to the data. While there is usually a sort of "seam" along the partition boundary, the models for each partition appear to fit to the data extremely closely. Meanwhile, the models fit using the augmented data will show irregularities near the "poles" of the sphere, where the manifold is supposed to reconnect with itself. Additionally, we can sometimes see gaps in the estimated spheres where the manifold does not fully wrap around the complete surface. While the volume estimation approach I have designed for these estimates is able to account for most of these irregularities, there still appear to be extra points included toward the poles of the sphere when approximating the interior of the sphere. This example corresponds to the top left panel of the volume plot below. The extra points included in the interior of the augmented LPME estimate would suggest that the volume estimates for this model would overestimate the true volume, but this is not the case.
-
-
-```{r, echo = FALSE}
-sim_volume_plot <- sim_volume_df |>
-  pivot_longer(
-    cols = contains("volume"),
-    names_to = "source",
-    values_to = "volume"
-  ) |>
-  mutate(
-    source = gsub("_volume", "", source),
-    approach = ifelse(
-      source %in% c("observed", "true"), 
-      "Simulation",
-      ifelse(
-        source %in% c("lpme_aug", "pme_aug"),
-        "Augmented",
-        ifelse(
-          source %in% c("lpme_partitioned", "pme_partitioned"),
-          "Partitioned",
-          "Unknown"
-        )
-      )
-    ),
-    source = gsub("_", " ", source),
-    source = str_to_title(source),
-    source = gsub("Pme", "PME", source),
-    source = gsub("Lpme", "LPME", source),
-    source = gsub("Aug", "", source),
-    source = gsub("Partitioned", "", source)
-  )
-```
-
-```{r, echo=FALSE}
-colors <- c("blue", "black", "green", "red")
-
-ggplot(
-  filter(sim_volume_plot, run %in% c(11, 38, 53, 76)),
-  aes(x = time, y = volume, color = source, linetype = approach)
-) +
-  geom_line() +
-  facet_wrap(~run) +
-  xlab("Visit Time") +
-  ylab("Volume") +
-  scale_color_manual(values = colors)
-```
-
-```{r, echo=FALSE, eval=FALSE}
-ggplot(filter(sim_volume_df, run %in% c(11, 38, 53, 76))) +
-  geom_line(aes(x = time, y = observed_volume), color = "black") +
-  geom_line(aes(x = time, y = true_volume), color = "red") +
-  geom_line(aes(x = time, y = lpme_partitioned_volume), color = "blue") +
-  geom_line(aes(x = time, y = pme_partitioned_volume), color = "green") +
-  geom_line(aes(x = time, y = lpme_aug_volume), color = "blue", linetype = 2) +
-  geom_line(aes(x = time, y = pme_aug_volume), color = "green", linetype = 2) + 
-  facet_wrap(~run) +
-  xlab("Visit Time") +
-  ylab("Volume")
-
-```
-
-The PME results, shown in green, largely reflect these patterns. Because the PME algorithm is designed to fit as closely to the observed data as possible, we want to see that the estiamted volume tracks with the volume of the observed sphere as closely as possible. The partitioned PME volumes (dotted green lines) follow the observed volumes nearly exactly, while the volumes from the augmented models (solid green lines) appear to underestimate the volume somewhat. Given the observed imperfections in model fit using the augmented data and the fact that the volume estimation method used for the augmented models is less theoretically grounded than the interior identification used for the partitioned models, I largely expected these results.
-
-However, the LPME results show different trends. Because we want to see the LPME model mitigate the effects of between-visit error, we expect to see the LPME-estimated volumes smooth over the PME results, more closely following the true volumes (shown in red). Based on the example plots above and the summary table and plot below, the augmented LPME models show lower errors than the partitioned LPME models. While these results are based on a limited set of 929 preliminary simulation runs, it is striking that the performance of augmentation versus partitioning may differ between PME and LPME models when applied to spherical data.
-
-
-```{r, echo=FALSE}
-sim_volume_df <- sim_volume_df |>
-  rename(
-    true = true_volume
-  )
-
-sim_volume_long <- sim_volume_df |>
-  pivot_longer(
-    cols = contains("volume"), 
-    names_to = "source", 
-    values_to = "volume"
-  )
-
-sim_volume_long <- sim_volume_long |>
-  mutate(
-    error = volume - true,
-    error_pct = (volume - true) / true,
-    source = gsub("_volume", "", source),
-    source = gsub("_", " ", source),
-    source = str_to_title(source),
-    source = gsub("Pme", "PME", source),
-    source = gsub("Lpme", "LPME", source),
-    source = gsub("Aug", "Augmented", source)
-  )
-```
-
-
-```{r, echo=FALSE}
-ggplot(sim_volume_long) + 
-  geom_violin(aes(x = error_pct, y = time_trend, fill = source)) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  xlab("Percent Error from True Volume") +
-  ylab("Time Trend")
-```
-
-
-Also interesting is the fact that the distribution of the errors for the models fit to partitioned or augmented data differ substantially, with the partitioned models having errors that are higher than the augmented models at all quantiles, but particularly at the right tail. This pattern is particularly prevalent when comparing the PME results between augmented and partitioned datasets, as the temporal smoothing in the LPME algorithm seems to address some of the inconsistency in the volume estimates. The plots below indicate that this difference is present at all error levels, but is particularly prevalent at high levels of within-image observation-level noise. Visual inspection in the cases with the highest error showed that observation-level noise was so high that it was difficult for the models to recover the shape of the generated structure. Paritioning exacerbated this issue, but I do not expect it to be a problem when working with real data, as we are not primarily concerned with observation-level noise in those cases.
-
-```{r, echo=FALSE}
-ggplot(sim_volume_long) + 
-  geom_violin(aes(x = error_pct, y = as.factor(obs_noise), fill = source)) +
-  xlab("Percent Error from True Volume") +
-  ylab("Observation Noise")
-```
-
-```{r, echo=FALSE}
-ggplot(sim_volume_long) + 
-  geom_violin(aes(x = error_pct, y = as.factor(amplitude_noise), fill = source)) +
-  xlab("Percent Error from True Volume") +
-  ylab("Amplitude Noise")
-```
-
-```{r, echo=FALSE}
-ggplot(sim_volume_long) + 
-  geom_violin(aes(x = error_pct, y = as.factor(period_noise), fill = source)) +
-  xlab("Percent Error from True Volume") +
-  ylab("Period Noise")
-```
-
-
-
-The fact that the median root squared error is also substantially higher for the partitioned models indicates that the partitioning approach is routinely underperforming the augmented models. This is not all that surprising, since the augmentation approach should perform best on spherical data, but it does contradict my expectations given the fact that the estimated manifold did not properly enclose in the augmentation cases.
-
-```{r, echo=FALSE}
-volume_summary <- sim_volume_long |>
-  group_by(time_trend, source) |>
-  summarize(
-    root_mean_sq_error = sqrt(mean(error^2)),
-    root_median_sq_error = sqrt(median(error^2)),
-    sd_error = sd(error),
-  ) |>
-  ungroup() |>
-  select(-time_trend) |>
-  rename(
-    "Error Source" = source,
-    "Root Mean Sq. Error" = root_mean_sq_error,
-    "Root Median Sq. Error" = root_median_sq_error,
-    "SD of Error" = sd_error
-  )
-
-
-kable(volume_summary, format = "markdown", digits = 3) |>
-  pack_rows("Constant Volume", start_row = 1, end_row = 5) |>
-  pack_rows("Linear Change in Volume", start_row = 6, end_row = 10) |>
-  pack_rows("Quadratic Change in Volume", start_row = 11, end_row = 15) |>
-  row_spec(c(1, 6, 11), bold = TRUE)
-```
-
-
-```{r}
-sim_errors <- sim_volume_df |>
-  mutate(
-    lpme_part_pct = (lpme_partitioned_volume - true) / true,
-    pme_part_pct = (pme_partitioned_volume - true) / true,
-    lpme_aug_pct = (lpme_aug_volume - true) / true,
-    pme_aug_pct = (pme_aug_volume - true) / true
-  )
-```
-
-As we move on to the hippocampus, I expect partitioning to perform much better than the augmented models for two reasons:
-
-1. Augmenting spherical data with spherical coordinates helps to avoid self-intersections in the underlying manifold, but the same is not necessarily true with the irregularly shaped hippocampus.
-2. The voxel-counting volume estimation approach I have designed for the augmented models assumes some level of symmetry in the data as it corrects for imperfections in the manifold estimate (e.g. gaps in the manifold). This assumption holds for spherical data, but will not be as effective with the hippocampal data. However, the extent of the error this will introduce to hippocampal volume estimates is unknown.
-
