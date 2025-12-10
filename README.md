@@ -4,7 +4,7 @@ This repository includes the documents needed to reproduce the simulations and a
 
 [Longitudinal Principal Manifold Estimation](https://arxiv.org/pdf/2407.17450)
 
-This project is intended to create a longitudinal extension of the Principal Manifold Estimation (PME) algorithm introduced in [Meng and Eloyan, 2021](https://pubmed.ncbi.nlm.nih.gov/35813449/). The proposed LPME algorithm allows for the smooth estimation of manifolds over time. The files included here contain notebooks allowing the complete replication of the comparisons between LPME and naive applications of the PME and principal curve algorithms on simulated data. Notebooks also describe the analysis of hippocampus and thalamus data from structural MRI data from the Alzheimer's Disease Neuroimaging Initiative (ADNI) dataset. The relevant files needed to reproduce results can be found in the `code/` directory at the following locations:
+This project is intended to create a longitudinal extension of the Principal Manifold Estimation (PME) algorithm introduced in [Meng and Eloyan, 2021](https://pubmed.ncbi.nlm.nih.gov/35813449/). The proposed LPME algorithm allows for the smooth estimation of manifolds over time. The files included here contain notebooks walking through the workflow of the comparisons between LPME and naive applications of the PME and principal curve algorithms on simulated data. Notebooks also describe the analysis of hippocampus and thalamus data from structural MRI data from the Alzheimer's Disease Neuroimaging Initiative (ADNI) dataset. The relevant files needed to reproduce results can be found in the `code/` directory at the following locations:
 
 - `code/01_lpme_simulations.qmd`
 - `code/02_lpme_simulation_analysis.qmd`
@@ -18,9 +18,12 @@ The code in these files often depend on helper functions, which can be found in 
 
 ## Dependency installation
 
-We used the [renv package](https://rstudio.github.io/renv/) to manage this project's dependency environment. To install most of the necessary dependencies, use the following steps:
+This project relies on both R and Python libraries. To manage these dependencies, we rely on a [conda environment](https://docs.conda.io/projects/conda/en/latest/index.html) with Python version 3.13.7 installed. A complete list of dependencies for this environment can be found in `environment.yml`. An environment satisfying these requirements can be created using the following command:
+`conda env create --name lpme --file=environment.yml`.
 
-1. Clone this repository using `git clone [LINK]`.
+To manage R dependencies, we used the [renv package](https://rstudio.github.io/renv/) to manage this project's dependency environment. To install most of the necessary dependencies, use the following steps:
+
+1. Clone this repository using `git clone https://github.com/rjzielinski/lpme-project.git`.
 2. Install the `renv` package using `install.packages()`.
 3. Call `renv::restore()` to install dependencies.
 
