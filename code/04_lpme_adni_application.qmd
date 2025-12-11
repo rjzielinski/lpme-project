@@ -1,0 +1,1196 @@
+---
+title: "ADNI Application Code"
+author: "Robert Zielinski"
+date: "December 10, 2025"
+format: html
+---
+
+This notebook contains the code necessary to run the PME and LPME algorithms on the processed MRI data from the ADNI study. The code assumes that the data for the left and right hippocampi and left and right thalamuses of all participants of interest are stored in the following files:
+
+- `data/lhipp_surface_fsl.csv`
+- `data/rhipp_surface_fsl.csv`
+- `data/lthal_surface_fsl.csv`
+- `data/rthal_surface_fsl.csv`
+
+The previous notebook, `code/03_adni_mri_preprocess.qmd`, includes the code used to preprocess the MRI data into the required format.
+
+```{r}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+```{r}
+library(reticulate)
+use_condaenv("lpme")
+
+library(here)
+library(lubridate)
+library(future)
+library(plotly)
+library(pme)
+library(pracma)
+library(RColorBrewer)
+library(Rfast)
+library(tictoc)
+library(tidyverse)
+
+source(here("code/functions/preprocess_adni.R"))
+source(here("code/functions/fit_adni.R"))
+
+options(rgl.useNULL = TRUE)
+```
+
+The `preprocess_adni` function takes in a matrix of surface voxel data and applies preprocessing steps to prepare the data for analysis. First, images with the number of surface voxels falling below the 0.25th percentile are assumed to have faulty segmentations and are excluded. Then, the voxel coordinates are centered and scaled to fall between -1 and 1 in each dimension. The voxel coordinates are augmented with spherical coordinates, though the results presented in the paper relied on partitioning instead. The collection of image data was filtered to include only participants who meet minimum follow-up duration and number of visit thresholds.
+
+```{r}
+preprocess_adni <- function(
+  adni_surface,
+  adni_info,
+  min_duration = 2,
+  min_visits = 3,
+  scan_exclude_threshold = 0.0025
+) {
+  require(dplyr)
+  require(lubridate)
+  require(tidyr)
+
+  adni_surface <- adni_surface |>
+    left_join(adni_info, by = join_by(scan_id == image_id))
+
+  adni_surface <- adni_surface |>
+    mutate(date = decimal_date(date))
+
+  adni_n <- adni_surface |>
+    group_by(subid, scan_id) |>
+    tally() |>
+    ungroup()
+  adni_threshold <- quantile(adni_n$n, scan_exclude_threshold)
+
+  exclude_scans <- adni_n |>
+    filter(n < adni_threshold) |>
+    select(scan_id) |>
+    unlist()
+
+  adni_surface <- adni_surface |>
+    filter(!(scan_id %in% exclude_scans))
+
+  adni_centers <- adni_surface |>
+    group_by(subid, date, scan_id) |>
+    summarise(
+      mean_x = mean(x),
+      mean_y = mean(y),
+      mean_z = mean(z),
+      max_x = max(abs(x - mean_x)),
+      max_y = max(abs(y - mean_y)),
+      max_z = max(abs(z - mean_z))
+    ) |>
+    ungroup()
+
+  adni_bl <- adni_surface |>
+    group_by(subid) |>
+    arrange(date) |>
+    summarize(
+      date_bl = first(date),
+      date_max = max(date),
+      n_visits = length(unique(date))
+    ) |>
+    mutate(duration = date_max - date_bl)
+
+  adni_surface <- adni_surface |>
+    left_join(adni_centers, by = c("subid", "date", "scan_id")) |>
+    left_join(adni_bl, by = "subid") |>
+    mutate(
+      x = (x - mean_x) / max_x,
+      y = (y - mean_y) / max_y,
+      z = (z - mean_z) / max_z,
+      time_from_bl = (date - date_bl) / duration
+    ) |>
+    filter(duration > min_duration, n_visits >= min_visits)
+
+  adni_surface_spherical <- adni_surface |>
+    select(x, y, z) |>
+    as.matrix() |>
+    cart2sph() |>
+    as_tibble()
+
+  adni_surface <- bind_cols(adni_surface, adni_surface_spherical)
+
+  list(surface = adni_surface, centers = adni_centers)
+}
+```
+
+
+The `fit_adni` function takes the preprocessed data output by `preprocess_adni()` and loops through the images for each participant, applying the relevant manifold estimation methods for each individual. For each participant, the surface data are partitioned using the $xy$-plane. Then, the following models are fit:
+
+- Augmented LPME
+- Partitioned LPME
+- Augmented PME
+- Partitioned PME
+- Partitioned Principal Surface
+
+After model fitting, the volumes and profile surface areas of the estimated structures are calculated as one indication of the stability of the structure estimates. While the volume estimation approach yielded insufficient estimates, comparisons of the surface areas of the manifold estimates projected to 2-dimensional planes proved to appropriately represent the results in most cases. Specifically, the `mesh_projection` function found in `code/functions/mesh_projection.R` is used to generate these areas by projecting the estimated manifold reconstructions to each of the three coordinate planes in 3-dimensional Euclidean space, then calculating the area of these projections using a 2-dimensional Delaunay triangulation. These results are then saved for each individual and structure.
+
+```{r}
+fit_adni <- function(
+  adni_surface,
+  adni_centers,
+  structure,
+  partition_overlap = 0,
+  cores = parallelly::availableCores(),
+  verbose = FALSE
+) {
+  require(dplyr)
+  require(future)
+  require(future.batchtools)
+  require(future.mirai)
+  require(here)
+  require(mirai)
+  require(parallel)
+  require(pme)
+  require(purrr)
+  require(tidyr)
+  require(progressr)
+
+  require(reticulate)
+  use_condaenv("lpme")
+
+  require(doRNG)
+  require(doSNOW)
+  require(foreach)
+
+  source(here("code/functions/calculate_lpme_reconstructions.R"))
+  source(here("code/functions/calculate_pme_reconstructions.R"))
+  source(here("code/functions/estimate_volume.R"))
+  source(here("code/functions/interior_identification.R"))
+  source(here("code/prinSurf_v3.R"))
+  source(here("code/functions/estimate_volume_interior.R"))
+  source(here("code/functions/estimate_mesh_volume_poisson.R"))
+  source(here("code/functions/mesh_projection.R"))
+
+  handlers(global = TRUE)
+
+  patnos <- unique(adni_surface$subid)
+
+  # do not repeat fitting when estimates already exist for this participant
+  remove_patnos <- map(
+    patnos,
+    ~ !file.exists(here(paste0(
+      "output/adni_area/",
+      .x,
+      "/",
+      structure,
+      "_results.RDS"
+    )))
+  ) |>
+    reduce(c)
+
+  patnos <- patnos[remove_patnos]
+
+  # parameters for 3-dimensional mesh reconstruction should differ by structure
+  # this approach is not used in results
+  if (grepl("hipp", structure) == TRUE) {
+    alpha_vals <- exp(seq(-3, 0, 0.25))
+  } else {
+    alpha_vals <- exp(seq(-2, 0, 0.25))
+  }
+
+  # parallel processing setup, if applicable
+  if (verbose == FALSE) {
+    require(tictoc)
+    require(pme)
+    require(dplyr)
+    require(tidyr)
+
+    cl <- makeCluster(cores, outfile = "")
+    registerDoSNOW(cl)
+  } else {
+    plan(sequential, split = TRUE)
+    require(tictoc)
+    cl <- makeCluster(1, outfile = "")
+    registerDoSNOW(cl)
+  }
+
+  set.seed(500)
+
+  pb <- txtProgressBar(max = length(patnos), style = 3)
+  progress <- function(n) setTxtProgressBar(pb, n)
+  opts <- list(progress = progress)
+
+  registerDoRNG(716241)
+
+  # loop through participants in parallel
+  # adni_fit is not used in practice; results are saved as they are generated
+  adni_fit <- foreach(
+    patno_idx = seq_along(patnos),
+    .export = c(
+      "patnos",
+      "alpha_vals",
+      "adni_surface",
+      "adni_centers",
+      "structure",
+      "partition_overlap",
+      "verbose",
+      "prinSurf",
+      "calculate_lpme_reconstructions",
+      "calculate_pme_reconstructions",
+      "estimate_volume_interior_lpme",
+      "estimate_volume_interior_pme",
+      "interior_identification",
+      "get_orientation",
+      "estimate_mesh_volume_poisson",
+      "mesh_projection"
+    ),
+    .packages = c(
+      "alphashape3d",
+      "dplyr",
+      "here",
+      "lubridate",
+      "plotly",
+      "plot3D",
+      "pme",
+      "pracma",
+      "purrr",
+      "RColorBrewer",
+      "Rfast",
+      "tictoc",
+      "tidyr",
+      "reticulate"
+    ),
+    .inorder = TRUE,
+    .options.snow = opts,
+    .errorhandling = "stop"
+  ) %dopar%
+    {
+      use_condaenv("lpme")
+      patno <- patnos[patno_idx]
+
+      # create partitioning indicators
+      # allow for slight overlap in partitions to avoid gaps in final structure
+      patno_adni <- adni_surface |>
+        filter(subid == patno) |>
+        select(time_from_bl, x, y, z, theta, phi) |>
+        mutate(
+          partition = z > 0,
+          partition1 = z > -partition_overlap,
+          partition2 = z < partition_overlap
+        )
+
+      patno_adni_centers <- adni_centers |>
+        filter(subid == patno) |>
+        group_by(date) |>
+        summarize(
+          max_x = max(max_x),
+          max_y = max(max_y),
+          max_z = max(max_z)
+        )
+
+      adni_aug <- patno_adni |>
+        select(-partition, -partition1, -partition2) |>
+        as.matrix()
+
+      adni_pt1 <- patno_adni |>
+        filter(partition1 == TRUE) |>
+        select(time_from_bl, x, y, z) |>
+        as.matrix()
+
+      adni_pt2 <- patno_adni |>
+        filter(partition2 == TRUE) |>
+        select(time_from_bl, x, y, z) |>
+        as.matrix()
+
+      # compute minimum number of observations across time points
+      # used for LPME initialization - can't have more cluster components than
+      # surface voxels
+      min_obs_aug <- patno_adni |>
+        group_by(time_from_bl) |>
+        summarize(n = n()) |>
+        select(n) |>
+        min()
+
+      min_obs_pt1 <- patno_adni |>
+        filter(partition1 == TRUE) |>
+        group_by(time_from_bl) |>
+        summarize(n = n()) |>
+        select(n) |>
+        min()
+
+      min_obs_pt2 <- patno_adni |>
+        filter(partition2 == TRUE) |>
+        group_by(time_from_bl) |>
+        summarize(n = n()) |>
+        select(n) |>
+        min()
+
+      time_values <- unique(patno_adni$time_from_bl)
+
+      adni_pme_aug_list <- list()
+      adni_pme_aug_time_list <- list()
+      adni_pme_aug_reconstruction_list <- list()
+
+      # create empty lists to store model results
+      adni_lpme_aug <- NULL
+      adni_lpme_part <- replicate(2, NULL, simplify = FALSE)
+      adni_pme_part <- replicate(
+        2,
+        replicate(length(time_values), NULL, simplify = FALSE),
+        simplify = FALSE
+      )
+      adni_pc_part <- replicate(
+        2,
+        replicate(length(time_values), NULL, simplify = FALSE),
+        simplify = FALSE
+      )
+
+      adni_lpme_aug_reconstructions <- NULL
+      adni_lpme_part_reconstructions <- replicate(
+        2,
+        NULL,
+        simplify = FALSE
+      )
+      adni_pme_part_reconstructions <- replicate(
+        2,
+        replicate(length(time_values), NULL, simplify = FALSE),
+        simplify = FALSE
+      )
+      adni_pc_part_reconstructions <- replicate(
+        2,
+        replicate(length(time_values), NULL, simplify = FALSE),
+        simplify = FALSE
+      )
+
+      adni_lpme_aug_time <- NULL
+      adni_lpme_part_times <- replicate(2, NULL, simplify = FALSE)
+      adni_pme_part_times <- replicate(
+        2,
+        replicate(length(time_values), NULL, simplify = FALSE),
+        simplify = FALSE
+      )
+      adni_pc_part_times <- replicate(
+        2,
+        replicate(length(time_values), NULL, simplify = FALSE),
+        simplify = FALSE
+      )
+
+      if (verbose) {
+        print(paste0("Fitting augmented LPME"))
+      }
+
+      tryCatch(
+        {
+          tic()
+          adni_lpme_aug <- lpme(
+            adni_aug,
+            d = 2,
+            min_clusters = min(20, floor(min_obs_aug / 2)),
+            verbose = verbose,
+            print_plots = FALSE
+          )
+          adni_lpme_aug_time_end <- toc(quiet = TRUE)
+          adni_lpme_aug_time <- adni_lpme_aug_time_end$toc -
+            adni_lpme_aug_time_end$tic
+
+          adni_lpme_aug_reconstructions <- calculate_lpme_reconstructions(
+            adni_lpme_aug,
+            adni_aug
+          )
+        },
+        error = function(e) {
+          print(
+            paste0("Augmented LPME failed for patno ", patno, ":"),
+            e$message
+          )
+        }
+      )
+
+      if (verbose) {
+        print(paste0("Fitting partitioned LPME"))
+      }
+
+      tryCatch(
+        {
+          tic()
+
+          adni_lpme_part[[1]] <- lpme(
+            adni_pt1,
+            d = 2,
+            min_clusters = min(20, floor(min_obs_pt1 - 2)),
+            verbose = verbose,
+            print_plots = FALSE
+          )
+
+          adni_lpme_time_pt1 <- toc(quiet = TRUE)
+          adni_lpme_part_times[[1]] <- adni_lpme_time_pt1$toc -
+            adni_lpme_time_pt1$tic
+          adni_lpme_part_reconstructions[[
+            1
+          ]] <- calculate_lpme_reconstructions(
+            adni_lpme_part[[1]],
+            adni_pt1[adni_pt1[, 4] > 0, ]
+          )
+        },
+        error = function(e) {
+          print(paste0("LPME Part 1 failed for patno ", patno, ": "), e$message)
+        }
+      )
+
+      tryCatch(
+        {
+          tic()
+          adni_lpme_part[[2]] <- lpme(
+            adni_pt2,
+            d = 2,
+            min_clusters = min(20, floor(min_obs_pt2 - 2)),
+            verbose = verbose,
+            print_plots = FALSE
+          )
+          adni_lpme_time_pt2 <- toc(quiet = TRUE)
+          adni_lpme_part_times[[2]] <- adni_lpme_time_pt2$toc -
+            adni_lpme_time_pt2$tic
+          adni_lpme_part_reconstructions[[
+            2
+          ]] <- calculate_lpme_reconstructions(
+            adni_lpme_part[[2]],
+            adni_pt2[adni_pt2[, 4] <= 0, ]
+          )
+        },
+        error = function(e) {
+          print(paste0("LPME Part 2 failed for patno ", patno, ": "), e$message)
+        }
+      )
+
+      if (verbose) {
+        print(paste0("Fitting time point-specific estimates"))
+      }
+      for (time_idx in seq_along(time_values)) {
+        temp_adni <- adni_aug[adni_aug[, 1] == time_values[time_idx], -1]
+        temp_adni_pt1 <- adni_pt1[
+          adni_pt1[, 1] == time_values[time_idx],
+          -1
+        ]
+        temp_adni_pt2 <- adni_pt2[
+          adni_pt2[, 1] == time_values[time_idx],
+          -1
+        ]
+
+        tryCatch(
+          {
+            tic()
+            adni_pme_aug_list[[time_idx]] <- pme(
+              temp_adni,
+              d = 2,
+              min_clusters = min(20, floor(nrow(temp_adni) / 2)),
+              verbose = FALSE
+            )
+            temp_pme_aug_time <- toc(quiet = TRUE)
+            adni_pme_aug_time_list[[time_idx]] <- temp_pme_aug_time$toc -
+              temp_pme_aug_time$tic
+
+            temp_adni_pme_aug_reconstructions <- calculate_pme_reconstructions(
+              adni_pme_aug_list[[time_idx]],
+              temp_adni
+            )
+            adni_pme_aug_reconstruction_list[[time_idx]] <- cbind(
+              time_values[time_idx],
+              temp_adni_pme_aug_reconstructions
+            )
+          },
+          error = function(e) {
+            print(
+              paste0(
+                "Augmented PME failed at time point ",
+                time_idx,
+                " for patno ",
+                patno,
+                ": "
+              ),
+              e$message
+            )
+          }
+        )
+
+        tryCatch(
+          {
+            tic()
+            adni_pme_part[[1]][[time_idx]] <- pme(
+              temp_adni_pt1,
+              d = 2,
+              min_clusters = min(20, floor(nrow(temp_adni_pt1) / 2))
+            )
+            temp_pme_time_pt1 <- toc(quiet = TRUE)
+            adni_pme_part_times[[1]][[time_idx]] <- temp_pme_time_pt1$toc -
+              temp_pme_time_pt1$tic
+            temp_adni_pme_reconstructions_pt1 <- calculate_pme_reconstructions(
+              adni_pme_part[[1]][[time_idx]],
+              temp_adni_pt1[temp_adni_pt1[, 3] > 0, ]
+            )
+            adni_pme_part_reconstructions[[1]][[time_idx]] <- cbind(
+              time_values[time_idx],
+              temp_adni_pme_reconstructions_pt1
+            )
+          },
+          error = function(e) {
+            print(
+              paste0(
+                "PME Part 1 failed at time point ",
+                time_idx,
+                " for patno ",
+                patno,
+                ": "
+              ),
+              e$message
+            )
+          }
+        )
+
+        tryCatch(
+          {
+            tic()
+            adni_pme_part[[2]][[time_idx]] <- pme(
+              temp_adni_pt2,
+              d = 2,
+              min_clusters = min(20, floor(nrow(temp_adni_pt2) / 2))
+            )
+            temp_pme_time_pt2 <- toc(quiet = TRUE)
+            adni_pme_part_times[[2]][[time_idx]] <- temp_pme_time_pt2$toc -
+              temp_pme_time_pt2$tic
+            temp_adni_pme_reconstructions_pt2 <- calculate_pme_reconstructions(
+              adni_pme_part[[2]][[time_idx]],
+              temp_adni_pt2[temp_adni_pt2[, 3] <= 0, ]
+            )
+            adni_pme_part_reconstructions[[2]][[time_idx]] <- cbind(
+              time_values[time_idx],
+              temp_adni_pme_reconstructions_pt2
+            )
+          },
+          error = function(e) {
+            print(
+              paste0(
+                "PME Part 2 failed at time point ",
+                time_idx,
+                " for patno ",
+                patno,
+                ": "
+              ),
+              e$message
+            )
+          }
+        )
+
+        tryCatch(
+          {
+            tic()
+            principal_surface_part1 <- prinSurf(temp_adni_pt1, flag = FALSE)
+            temp_pc_time_pt1 <- toc(quiet = TRUE)
+            adni_pc_part_times[[1]][[time_idx]] <- temp_pc_time_pt1$toc -
+              temp_pc_time_pt1$tic
+            surface_mse_part1 <- map(
+              seq_along(principal_surface_part1),
+              ~ principal_surface_part1[[.x]]$MSE
+            ) |>
+              unlist()
+            opt_surface_part1 <- which.min(surface_mse_part1)
+
+            adni_pc_part[[1]][[time_idx]] <- principal_surface_part1[[
+              opt_surface_part1 + 2
+            ]]
+            temp_adni_pc_reconstructions_pt1 <- cbind(
+              time_values[time_idx],
+              principal_surface_part1[[opt_surface_part1 + 2]]$PS
+            )
+            adni_pc_part_reconstructions[[1]][[
+              time_idx
+            ]] <- temp_adni_pc_reconstructions_pt1[temp_adni_pt1[, 3] > 0, ]
+          },
+          error = function(e) {
+            print(
+              paste0(
+                "PS Part 1 failed at time point ",
+                time_idx,
+                " for patno ",
+                patno,
+                ": "
+              ),
+              e$message
+            )
+          }
+        )
+
+        tryCatch(
+          {
+            tic()
+            principal_surface_part2 <- prinSurf(temp_adni_pt2, flag = FALSE)
+            temp_pc_time_pt2 <- toc(quiet = TRUE)
+            adni_pc_part_times[[2]][[time_idx]] <- temp_pc_time_pt2$toc -
+              temp_pc_time_pt2$tic
+            surface_mse_part2 <- map(
+              seq_along(principal_surface_part2),
+              ~ principal_surface_part2[[.x]]$MSE
+            ) |>
+              unlist()
+            opt_surface_part2 <- which.min(surface_mse_part2)
+
+            adni_pc_part[[2]][[time_idx]] <- principal_surface_part2[[
+              opt_surface_part2 + 2
+            ]]
+            temp_adni_pc_reconstructions_pt2 <- cbind(
+              time_values[time_idx],
+              principal_surface_part2[[opt_surface_part2 + 2]]$PS
+            )
+            adni_pc_part_reconstructions[[2]][[
+              time_idx
+            ]] <- temp_adni_pc_reconstructions_pt2[temp_adni_pt2[, 3] <= 0, ]
+          },
+          error = function(e) {
+            print(
+              paste0(
+                "PS Part 2 failed at time point ",
+                time_idx,
+                " for patno ",
+                patno,
+                ": ",
+              ),
+              e$message
+            )
+          }
+        )
+      }
+
+      if (verbose) {
+        print(paste0("Fitting complete"))
+      }
+
+      # collapse lists of manifold estimate reconstructions and compute times
+      # compute times for partitioned models are summed
+      if (!(0 %in% lengths(adni_lpme_part_reconstructions))) {
+        adni_lpme_part_reconstructions <- reduce(
+          adni_lpme_part_reconstructions,
+          rbind
+        )
+        adni_lpme_part_times <- reduce(adni_lpme_part_times, sum)
+      } else {
+        adni_lpme_part_reconstructions <- NULL
+        adni_lpme_part_times <- NULL
+      }
+
+      adni_pme_aug_reconstructions <- NULL
+      if (!(0 %in% lengths(adni_pme_aug_reconstruction_list))) {
+        adni_pme_aug_reconstructions <- reduce(
+          adni_pme_aug_reconstruction_list,
+          rbind
+        )
+      }
+
+      adni_pme_aug_time_list <- ifelse(
+        !(0 %in% lengths(adni_pme_aug_time_list)),
+        reduce(
+          adni_pme_aug_time_list,
+          sum
+        ),
+        NULL
+      )
+
+      adni_pme_part_complete <- map(
+        seq_along(adni_pme_part_reconstructions),
+        ~ !(0 %in% lengths(adni_pme_part_reconstructions[[.x]]))
+      ) |>
+        reduce(c) |>
+        sum()
+
+      if (adni_pme_part_complete == length(adni_pme_part_reconstructions)) {
+        adni_pme_part_reconstructions <- map(
+          seq_along(adni_pme_part_reconstructions),
+          ~ reduce(adni_pme_part_reconstructions[[.x]], rbind)
+        ) |>
+          reduce(rbind)
+
+        adni_pme_part_times <- map(
+          seq_along(adni_pme_part_times),
+          ~ reduce(adni_pme_part_times[[.x]], sum)
+        ) |>
+          reduce(sum)
+      }
+
+      adni_pc_part_complete <- map(
+        seq_along(adni_pc_part_reconstructions),
+        ~ !(0 %in% lengths(adni_pc_part_reconstructions[[.x]]))
+      ) |>
+        reduce(c) |>
+        sum()
+
+      if (adni_pc_part_complete == length(adni_pc_part_reconstructions)) {
+        adni_pc_part_reconstructions <- map(
+          seq_along(adni_pc_part_reconstructions),
+          ~ reduce(adni_pc_part_reconstructions[[.x]], rbind)
+        ) |>
+          reduce(rbind)
+
+        adni_pc_part_times <- map(
+          seq_along(adni_pc_part_times),
+          ~ reduce(adni_pc_part_times[[.x]], sum)
+        ) |>
+          reduce(sum)
+      }
+
+      if (verbose) {
+        print(paste0("Estimating volumes"))
+      }
+
+      if (!(0 %in% lengths(adni_lpme_part))) {
+        adni_lpme_part_volumes <- tryCatch(
+          {
+            adni_lpme_part_interior_volume <- estimate_volume_interior_lpme(
+              adni_lpme_part,
+              list(adni_pt1, adni_pt2),
+              time_values,
+              n_points = 10000,
+              data_max = patno_adni_centers,
+              limit_scaler = 0.05,
+              partition_index = 3
+            )
+            adni_lpme_part_interior_volume$volumes
+          },
+          error = function(e) {
+            print(
+              paste0(
+                "Error in LPME Part interior volume calculation for patno ",
+                patno,
+                ": "
+              ),
+              e$message
+            )
+            NULL
+          }
+        )
+      } else {
+        adni_lpme_part_volumes <- NULL
+      }
+
+      pme_part_complete <- map(
+        seq_along(adni_pme_part),
+        ~ !(0 %in% lengths(adni_pme_part[[.x]]))
+      ) |>
+        reduce(c) |>
+        sum()
+
+      if (pme_part_complete == length(adni_pme_part)) {
+        adni_pme_part_volumes <- tryCatch(
+          {
+            adni_pme_part_interior_volumes <- estimate_volume_interior_pme(
+              adni_pme_part,
+              list(adni_pt1, adni_pt2),
+              time_values,
+              n_points = 10000,
+              data_max = patno_adni_centers,
+              limit_scaler = 0.05,
+              partition_index = 3
+            )
+            adni_pme_part_interior_volumes$volumes
+          },
+          error = function(e) {
+            print(
+              paste0(
+                "Error in PME Part interior volume calculation for patno ",
+                patno,
+                ": "
+              ),
+              e$message
+            )
+            NULL
+          }
+        )
+      } else {
+        adni_pme_part_volumes <- NULL
+      }
+
+      # create empty vectors to store profile area estimates
+      patno_adni_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      patno_adni_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      patno_adni_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_lpme_aug_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_lpme_aug_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_lpme_aug_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_pme_aug_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_aug_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_aug_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_pc_part_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pc_part_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pc_part_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_lpme_part_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_lpme_part_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_lpme_part_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      adni_pme_part_area_dim1 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_part_area_dim2 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+      adni_pme_part_area_dim3 <- vector(
+        mode = "numeric",
+        length = length(time_values)
+      )
+
+      np <- import("numpy")
+      o3d <- import("open3d")
+      pv <- import("pyvista")
+
+      palette <- colorRampPalette(c(brewer.pal(8, "Spectral")))
+      palette_colors <- palette(101)
+      time_colors <- palette_colors[ceiling((time_values + 1e-10) * 100)]
+
+      # for each model estimate at each time point, project reconstructed points
+      # to coordinate plane and compute area estimate using Delaunay triangulation
+
+      for (time_idx in seq_along(time_values)) {
+        x_scale <- patno_adni_centers$max_x[time_idx]
+        y_scale <- patno_adni_centers$max_y[time_idx]
+        z_scale <- patno_adni_centers$max_z[time_idx]
+
+        temp_data <- patno_adni |>
+          filter(time_from_bl == time_values[time_idx]) |>
+          select(x, y, z) |>
+          as.matrix()
+
+        temp_data_proj_dim1 <- mesh_projection(temp_data, axis = 1)
+        temp_data_proj_dim2 <- mesh_projection(temp_data, axis = 2)
+        temp_data_proj_dim3 <- mesh_projection(temp_data, axis = 3)
+
+        patno_adni_area_dim1[time_idx] <- temp_data_proj_dim1$area
+        patno_adni_area_dim2[time_idx] <- temp_data_proj_dim2$area
+        patno_adni_area_dim3[time_idx] <- temp_data_proj_dim3$area
+
+        if (!is.null(adni_lpme_aug_reconstructions)) {
+          temp_lpme_reconstructions <- adni_lpme_aug_reconstructions[
+            adni_lpme_aug_reconstructions[, 1] == time_values[time_idx],
+            2:4
+          ]
+
+          temp_lpme_proj_dim1 <- mesh_projection(
+            temp_lpme_reconstructions,
+            axis = 1
+          )
+          temp_lpme_proj_dim2 <- mesh_projection(
+            temp_lpme_reconstructions,
+            axis = 2
+          )
+          temp_lpme_proj_dim3 <- mesh_projection(
+            temp_lpme_reconstructions,
+            axis = 3
+          )
+
+          adni_lpme_aug_area_dim1[time_idx] <- temp_lpme_proj_dim1$area
+          adni_lpme_aug_area_dim2[time_idx] <- temp_lpme_proj_dim2$area
+          adni_lpme_aug_area_dim3[time_idx] <- temp_lpme_proj_dim3$area
+        }
+
+        if (!is.null(adni_pme_aug_reconstructions)) {
+          temp_pme_reconstructions <- adni_pme_aug_reconstructions[
+            adni_pme_aug_reconstructions[, 1] == time_values[time_idx],
+            2:4
+          ]
+
+          temp_pme_proj_dim1 <- mesh_projection(
+            temp_pme_reconstructions,
+            axis = 1
+          )
+          temp_pme_proj_dim2 <- mesh_projection(
+            temp_pme_reconstructions,
+            axis = 2
+          )
+          temp_pme_proj_dim3 <- mesh_projection(
+            temp_pme_reconstructions,
+            axis = 3
+          )
+
+          adni_pme_aug_area_dim1[time_idx] <- temp_pme_proj_dim1$area
+          adni_pme_aug_area_dim2[time_idx] <- temp_pme_proj_dim2$area
+          adni_pme_aug_area_dim3[time_idx] <- temp_pme_proj_dim3$area
+        }
+
+        if (!is.null(adni_pc_part_reconstructions)) {
+          temp_pc_reconstructions <- adni_pc_part_reconstructions[
+            adni_pc_part_reconstructions[, 1] == time_values[time_idx],
+            2:4
+          ]
+
+          temp_pc_proj_dim1 <- mesh_projection(
+            temp_pc_reconstructions,
+            axis = 1
+          )
+          temp_pc_proj_dim2 <- mesh_projection(
+            temp_pc_reconstructions,
+            axis = 2
+          )
+          temp_pc_proj_dim3 <- mesh_projection(
+            temp_pc_reconstructions,
+            axis = 3
+          )
+
+          adni_pc_part_area_dim1[time_idx] <- temp_pc_proj_dim1$area
+          adni_pc_part_area_dim2[time_idx] <- temp_pc_proj_dim2$area
+          adni_pc_part_area_dim3[time_idx] <- temp_pc_proj_dim3$area
+        }
+
+        if (!is.null(adni_lpme_part_reconstructions)) {
+          temp_lpme_part_reconstructions <- adni_lpme_part_reconstructions[
+            adni_lpme_part_reconstructions[, 1] == time_values[time_idx],
+            2:4
+          ]
+
+          temp_lpme_part_proj_dim1 <- mesh_projection(
+            temp_lpme_part_reconstructions,
+            axis = 1
+          )
+          temp_lpme_part_proj_dim2 <- mesh_projection(
+            temp_lpme_part_reconstructions,
+            axis = 2
+          )
+          temp_lpme_part_proj_dim3 <- mesh_projection(
+            temp_lpme_part_reconstructions,
+            axis = 3
+          )
+
+          adni_lpme_part_area_dim1[time_idx] <- temp_lpme_part_proj_dim1$area
+          adni_lpme_part_area_dim2[time_idx] <- temp_lpme_part_proj_dim2$area
+          adni_lpme_part_area_dim3[time_idx] <- temp_lpme_part_proj_dim3$area
+        }
+
+        if (!is.null(adni_pme_part_reconstructions)) {
+          temp_pme_part_reconstructions <- adni_pme_part_reconstructions[
+            adni_pme_part_reconstructions[, 1] == time_values[time_idx],
+            2:4
+          ]
+
+          temp_pme_part_proj_dim1 <- mesh_projection(
+            temp_pme_part_reconstructions,
+            axis = 1
+          )
+          temp_pme_part_proj_dim2 <- mesh_projection(
+            temp_pme_part_reconstructions,
+            axis = 2
+          )
+          temp_pme_part_proj_dim3 <- mesh_projection(
+            temp_pme_part_reconstructions,
+            axis = 3
+          )
+
+          adni_pme_part_area_dim1[time_idx] <- temp_pme_part_proj_dim1$area
+          adni_pme_part_area_dim2[time_idx] <- temp_pme_part_proj_dim2$area
+          adni_pme_part_area_dim3[time_idx] <- temp_pme_part_proj_dim3$area
+        }
+      }
+
+      # create list of estimates for each model estimate
+      data_out <- list(
+        data = patno_adni,
+        area_dim1 = patno_adni_area_dim1,
+        area_dim2 = patno_adni_area_dim2,
+        area_dim3 = patno_adni_area_dim3
+      )
+
+      adni_lpme_aug_out <- list(
+        lpme = adni_lpme_aug,
+        reconstructions = adni_lpme_aug_reconstructions,
+        area_dim1 = adni_lpme_aug_area_dim1,
+        area_dim2 = adni_lpme_aug_area_dim2,
+        area_dim3 = adni_lpme_aug_area_dim3,
+        fit_time = adni_lpme_aug_time
+      )
+      adni_pme_aug_out <- list(
+        pme = adni_pme_aug_list,
+        reconstructions = adni_pme_aug_reconstructions,
+        area_dim1 = adni_pme_aug_area_dim1,
+        area_dim2 = adni_pme_aug_area_dim2,
+        area_dim3 = adni_pme_aug_area_dim3,
+        fit_time = adni_pme_aug_time_list
+      )
+
+      adni_lpme_part_out <- list(
+        lpme = adni_lpme_part,
+        reconstructions = adni_lpme_part_reconstructions,
+        area_dim1 = adni_lpme_part_area_dim1,
+        area_dim2 = adni_lpme_part_area_dim2,
+        area_dim3 = adni_lpme_part_area_dim3,
+        fit_time = adni_lpme_part_times
+      )
+
+      adni_pme_part_out <- list(
+        pme = adni_pme_part,
+        reconstructions = adni_pme_part_reconstructions,
+        area_dim1 = adni_pme_part_area_dim1,
+        area_dim2 = adni_pme_part_area_dim2,
+        area_dim3 = adni_pme_part_area_dim3,
+        fit_time = adni_pme_part_times
+      )
+
+      adni_pc_part_out <- list(
+        pc = adni_pc_part,
+        reconstructions = adni_pc_part_reconstructions,
+        area_dim1 = adni_pc_part_area_dim1,
+        area_dim2 = adni_pc_part_area_dim2,
+        area_dim3 = adni_pc_part_area_dim3,
+        fit_time = adni_pc_part_times
+      )
+
+      adni <- list(
+        data = data_out,
+        lpme_aug = adni_lpme_aug_out,
+        pme_aug = adni_pme_aug_out,
+        lpme_part = adni_lpme_part_out,
+        pme_part = adni_pme_part_out,
+        pc_part = adni_pc_part_out
+      )
+
+      # save outputs
+      if (!dir.exists(here(paste0("output/adni_area/", patno)))) {
+        dir.create(here(paste0("output/adni_area/", patno)), recursive = TRUE)
+      }
+
+      print(
+        paste0(
+          "Saving results for participant ",
+          patno,
+          ", structure ",
+          structure
+        )
+      )
+
+      saveRDS(
+        adni,
+        here(paste0(
+          "output/adni_area/",
+          patno,
+          "/",
+          structure,
+          "_results.RDS"
+        ))
+      )
+      # output TRUE if fitting process completed
+      TRUE
+    }
+  if (verbose == FALSE) {
+    stopCluster(cl)
+  }
+  results <- adni_fit
+}
+```
+
+With the `preprocess_adni` and `fit_adni` functions defined, the code in the following chunk applies those functions to MRI data from ADNI participants for all structures of interest. This code is included in `code/adni_application.R`, which was in turn run as a batch job on the high performance computing cluster with `adni_lpme.sh`.
+
+```{r}
+lhipp_surface <- read_csv(here("data/lhipp_surface_fsl.csv"))
+rhipp_surface <- read_csv(here("data/rhipp_surface_fsl.csv"))
+lthal_surface <- read_csv(here("data/lthal_surface_fsl.csv"))
+rthal_surface <- read_csv(here("data/rthal_surface_fsl.csv"))
+
+adni_info <- read_csv(here("data/adni_info_full.csv")) |>
+  distinct()
+adni <- read_csv(here("data/adni_info.csv")) |>
+  rename(
+    image_id = "Image Data ID",
+    subid = "Subject",
+    date = "Acq Date"
+  )
+
+lhipp_processed <- preprocess_adni(lhipp_surface, adni_info)
+lhipp_surface <- lhipp_processed$surface
+lhipp_centers <- lhipp_processed$centers
+
+rhipp_processed <- preprocess_adni(rhipp_surface, adni_info)
+rhipp_surface <- rhipp_processed$surface
+rhipp_centers <- rhipp_processed$centers
+
+lthal_processed <- preprocess_adni(lthal_surface, adni_info)
+lthal_surface <- lthal_processed$surface
+lthal_centers <- lthal_processed$centers
+
+rthal_processed <- preprocess_adni(rthal_surface, adni_info)
+rthal_surface <- rthal_processed$surface
+rthal_centers <- rthal_processed$centers
+
+write_csv(lhipp_surface, here("data/lhipp_surface_fsl_processed.csv"))
+write_csv(rhipp_surface, here("data/rhipp_surface_fsl_processed.csv"))
+write_csv(lthal_surface, here("data/lthal_surface_fsl_processed.csv"))
+write_csv(rthal_surface, here("data/rthal_surface_fsl_processed.csv"))
+
+lhipp_fit <- fit_adni(
+  lhipp_surface,
+  lhipp_centers,
+  "lhipp",
+  verbose = FALSE,
+  cores = parallel::detectCores() / 2
+)
+
+lthal_fit <- fit_adni(
+  lthal_surface,
+  lthal_centers,
+  "lthal",
+  verbose = TRUE,
+  cores = parallel::detectCores() / 2
+)
+
+rthal_fit <- fit_adni(
+  rthal_surface,
+  rthal_centers,
+  "rthal",
+  verbose = FALSE,
+  cores = parallel::detectCores() / 2
+)
+rhipp_fit <- fit_adni(
+  rhipp_surface,
+  rhipp_centers,
+  "rhipp",
+  verbose = FALSE,
+  cores = parallel::detectCores() / 2
+)
+```

@@ -1,0 +1,82 @@
+---
+title: "Other Figures"
+author: "Robert Zielinski"
+date: "December 10, 2025"
+format: html
+---
+
+This notebook includes code used to generate Figure 2 in the manuscript, demonstrating how the unit circle can be augmented to avoid self-intersections in three dimensions.
+
+```{r, eval=FALSE}
+library(ggsci)
+library(plot3D)
+library(plotly)
+library(pracma)
+library(RColorBrewer)
+library(scatterplot3d)
+library(tidyverse)
+
+set.seed(1202)
+theta <- runif(1000, min = 0, max = 2 * pi)
+x <- cos(theta)
+y <- sin(theta)
+
+unit_df <- data.frame(theta, x, y) %>%
+  arrange(theta)
+angle <- cart2pol(as.matrix(unit_df[, 2:3], ncol = 2))
+
+
+png(
+  "paper/figures/unit_circle_augmentation.png",
+  res = 500,
+  height = 2000,
+  width = 2000
+)
+par(mfrow = c(1, 2))
+plot(
+  x = unit_df$x,
+  y = unit_df$y,
+  type = "l",
+  asp = 1,
+  main = "Unit Circle, D = 2",
+  xlab = "x",
+  ylab = "y"
+)
+
+plt2 <- lines3D(
+  x = unit_df$x,
+  y = unit_df$y,
+  z = angle[, 1],
+  main = "Unit Circle, D = 3",
+  xlab = "x",
+  ylab = "y",
+  zlab = ""
+)
+text3D(-2, -0.8, -2.25, labels = expression(theta), add = TRUE)
+dev.off()
+
+png("paper/figures/unit_circle_D2.png", res = 500, height = 2000, width = 2000)
+plot(
+  x = unit_df$x,
+  y = unit_df$y,
+  type = "l",
+  asp = 1,
+  main = "Unit Circle, D = 2",
+  xlab = "x",
+  ylab = "y"
+)
+dev.off()
+
+png("paper/figures/unit_circle_D3.png", res = 500, height = 2000, width = 2000)
+lines3D(
+  x = unit_df$x,
+  y = unit_df$y,
+  z = angle[, 1],
+  main = "Unit Circle, D = 3",
+  xlab = "x",
+  ylab = "y",
+  zlab = ""
+)
+text3D(-2.25, -0.85, -2.25, labels = expression(theta), add = TRUE)
+dev.off()
+```
