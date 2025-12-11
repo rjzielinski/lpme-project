@@ -11,8 +11,7 @@ This project is intended to create a longitudinal extension of the Principal Man
 - `code/03_adni_mri_preprocess.qmd`
 - `code/04_lpme_adni_application.qmd`
 - `code/05_lpme_adni_results.qmd`
-- `code/06_generate_lpme_figures.qmd`
-- `code/07_generate_misc_figures.qmd`
+- `code/06_generate_misc_figures.qmd`
 
 The code in these files often depend on helper functions, which can be found in the `code/functions` directory.
 
@@ -35,7 +34,7 @@ Also, note that for this analysis, the PME and LPME algorithms were implemented 
 
 ## ADNI Data
 
-To demonstrate the use of the LPME algorithm for a real dataset, we considered the surfaces of the thalamuses and hippocampuses of participants of the ADNI study, which offers access to high quality longitudinal imaging data for individuals with Alzheimer's disease, as well as a number of healthy control participants. Use of the ADNI data is governed by a Data Use Agreement, so we cannot make this data publicly available. However, those interested can easily apply for access to the ADNI data as described [here](https://adni.loni.usc.edu/data-samples/access-data/). Upon receiving access to the data, the process used to download the data for this analysis is described below.
+To demonstrate the use of the LPME algorithm for a real dataset, we considered the surfaces of the thalamuses and hippocampuses of participants of the ADNI study, which offers access to high quality longitudinal imaging data for individuals with Alzheimer's disease, as well as a number of healthy control participants. Use of the ADNI data is governed by a Data Use Agreement, so we cannot make this data publicly available. However, those interested can easily apply for access to the ADNI data as described [here](https://adni.loni.usc.edu/data-samples/adni-data/#AccessData). Upon receiving access to the data, the process used to download the data for this analysis is described below.
 
 - Log in to the Data Archive, accessed [here](https://ida.loni.usc.edu/login.jsp?project=ADNI).
 - Under the "Download" tab at the top of the page, select "Image Collections".
