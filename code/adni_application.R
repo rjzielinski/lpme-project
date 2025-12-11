@@ -19,6 +19,7 @@ source(here("code/functions/preprocess_adni.R"))
 source(here("code/functions/fit_adni.R"))
 
 # options(future.globals.maxSize = 4 * 1e9)
+options(rgl.useNULL = TRUE)
 
 voxel_vol <- 1.2 * 0.9375 * 0.9375
 
@@ -59,13 +60,6 @@ write_csv(rthal_surface, here("data/rthal_surface_fsl_processed.csv"))
 
 patnos <- unique(lhipp_surface$subid)[1:2]
 
-lthal_fit <- fit_adni(
-  lthal_surface,
-  lthal_centers,
-  "lthal",
-  verbose = FALSE,
-  cores = parallel::detectCores() / 2
-)
 lhipp_fit <- fit_adni(
   lhipp_surface,
   lhipp_centers,
@@ -74,6 +68,15 @@ lhipp_fit <- fit_adni(
   cores = parallel::detectCores() / 2
   # verbose = TRUE
 )
+
+lthal_fit <- fit_adni(
+  lthal_surface,
+  lthal_centers,
+  "lthal",
+  verbose = TRUE,
+  cores = parallel::detectCores() / 2
+)
+
 rthal_fit <- fit_adni(
   rthal_surface,
   rthal_centers,
