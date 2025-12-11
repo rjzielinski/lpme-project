@@ -14,9 +14,10 @@ structure_plot_grid <- function(
   source(here("code/functions/mesh_projection.R"))
   time_points <- unique(adni_est$data$data$time_from_bl)
 
-  palette <- colorRampPalette(c(brewer.pal(8, "Spectral")))
-  palette_colors <- palette(101)
-  time_colors <- palette_colors[ceiling((time_points + 1e-10) * 100)]
+  # palette <- colorRampPalette(c(brewer.pal(8, "YlGnBu")))
+  palette <- colorRampPalette(hcl.colors(8, palette = "viridis"))
+  palette_colors <- palette(151)
+  time_colors <- palette_colors[1:101][ceiling((time_points + 1e-10) * 100)]
 
   adni_plot <- pv$Plotter(shape = tuple(4L, as.integer(length(time_points))))
   adni_sil_plot1 <- pv$Plotter(shape = tuple(2L, 2L))
