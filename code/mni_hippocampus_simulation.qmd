@@ -1,3 +1,17 @@
+---
+title: "MNI Hippocampus Simulation"
+author: "Robert Zielinski"
+date: "May 11, 2026"
+format: html
+---
+
+This notebook provides the code used to run simulations designed to assess the ability of the LPME algorithm to recover the underlying surface of the hippocampus. When applying the algorithm to data obtained in the ADNI study, we rely solely on the observed data, which may have error introduced in the imaging or segmentation processes; we do not have a ground truth hippocampal surface to measure the performance of the LPME algorithm. To circumvent this issue in these simulations, we obtain the surface of the hippocampi from the MNI template and add random spatial perturbations to reflect the potential observed changes in the hippocampus throughout the course of a longitudinal imaging study.
+
+```{r}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, eval = TRUE)
+```
+
+```{r}
 library(divest)
 library(doFuture)
 library(dplyr)
@@ -27,8 +41,15 @@ kdtree <- import("scipy.spatial")$KDTree
 
 source(here("code/functions/calculate_lpme_reconstructions.R"))
 source(here("code/functions/calculate_pme_reconstructions.R"))
+```
 
+## Obtaining MNI Hippocampal Surface
 
+We begin by obtaining the surface of the left and right hippocampi from the MNI template. Specifically, the MNI hippocampus mask is used to identify the positions of voxels associated with the left and right hippocampi. For the purposes of this simulation, the voxels are centered along the $x$-axis, and the voxels highlighted by the mask with $x \leq 0$ are determined to be associated with the left hippocampus, and voxels with $x > 0$ are associated with the right hippocampus. For demonstration purposes, we focus on the left hippocampus here. 
+
+Of the mask-identified voxels associated with the left hipppocampus, those that are found to be extreme in at least one dimension are assumed to be voxels that lie along the hippocampal surface, and the indices of these voxels are saved as the x, y, and z coordinates in 3-dimensional space. This yields a matrix $\mathbf{X} \in \mathbb{R}^{I \times 3}$ containing the coordinates for all voxels on the surface of the left hippocampus, where $I$ denotes the number of surface voxels. This matrix will serve as our ground truth point cloud throughout the subsequent simulations.
+
+```{r}
 mni_hipp_mask <- paste0(
   fsl_dir(),
   "/data/standard/MNI152_T1_1mm_Hipp_mask_dil8.nii.gz"
@@ -39,7 +60,19 @@ hipp_idx <- which(mni_hipp_mask > 0, arr.ind = TRUE)
 hipp_idx <- scale(hipp_idx, scale = FALSE)
 
 lhipp_idx <- hipp_idx[hipp_idx[, 1] <= 0, ]
+plot_ly(
+  x = lhipp_idx[, 1],
+  y = lhipp_idx[, 2],
+  z = lhipp_idx[, 3],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3)
+)
+```
 
+The voxels included in the MNI left hippocampus map are included in the plot above. In the code chunk below, the surface voxels are identified as those with either a minimium or maximum coordinate in one dimension, given the other two dimensions. The resulting surface voxels are displayed in red in the plot that follows.
+
+```{r}
 surface <- rep(FALSE, nrow(lhipp_idx))
 
 for (dim in 1:3) {
@@ -87,8 +120,36 @@ for (dim in 1:3) {
 
 lhipp_mat <- lhipp_idx
 lhipp_surface <- lhipp_idx[surface, ]
+```
 
+```{r}
+plot_ly(
+  x = lhipp_mat[, 1],
+  y = lhipp_mat[, 2],
+  z = lhipp_mat[, 3],
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 1, color = "blue"),
+  name = "All Voxels"
+) |>
+  add_markers(
+    x = lhipp_surface[, 1],
+    y = lhipp_surface[, 2],
+    z = lhipp_surface[, 3],
+    marker = list(size = 2, alpha = 0.5, color = "red"),
+    name = "Surface Voxels"
+  )
+```
 
+## Adding Simulated Scaling Noise
+
+With the surface voxels identified, the task of the following simulations is to demonstrate the extent to which the LPME algorithm can recover these surface voxels in the presence of random deviations at different time points. To do this, we assume a 5-year longitudinal study, with the left hippocampal surface being observed at visits scheduled every 6 months, with a small, mean-zero noise value added to the time points to reflect the variability that exists in follow-up scheduling. At each time point, the surface voxels derived from the MNI template are rescaled such that the norm of the coordinates for rescaled voxel $x'_{i, t}$ follow $\|x'_{i, t}\| = \alpha_t \times \|x_{i, t}\|$, where $\alpha_t \sim \mathcal{N}(1, \sigma^2)$. This rescaling imitates a relative change in the size of the hippocampus measured during each image. We assume that the true hippocampal surface remains constant over time, while the random deviations are equally likely to cause overestimates of hippocampal size and volume as underestimates.
+
+The LPME and PME algorithms will be used to estimate the manifold underlying the hippocampal surface, with the LPME algorithm applied across all time points, and the PME algorithm being applied to each time point separately. We obtain projections of the artificially perturbed voxels to each manifold estimate, then compare the projected point cloud to the MNI surface.
+
+To incorporate a standard measure of shape recovery, we measure model performance using the partial Procrustes distance between the projected point clouds and the MNI surface. While the full Procrustes distance compares shapes after they have been optimally translated, rotated, and scaled, the partial Procrustes distance only optimally translates and rotates the shapes. Because the partial Procrustes distance does not scale the shapes under consideration, the effects of the simulated scaling of the true surface applied at each time point should still be incorporated in the distance measure.
+
+```{r}
 simulate_data <- function(
   surface_data,
   duration,
@@ -139,7 +200,9 @@ simulate_data <- function(
     true = true_surfaces
   )
 }
+```
 
+```{r}
 
 fit_models <- function(sim_data) {
   observed_surfaces <- sim_data$observed
@@ -228,7 +291,9 @@ fit_models <- function(sim_data) {
     partitions = partition
   )
 }
+```
 
+```{r}
 chamfer_distance <- function(A, B) {
   tree <- kdtree(B)
   dist_a <- tree$query(A)[[1]]
@@ -286,7 +351,33 @@ calc_distances <- function(estimates, metric = "msd") {
     pme_dist = pme_dist
   )
 }
+```
 
+```{r}
+set.seed(250)
+
+sim_data <- simulate_data(
+  lhipp_surface,
+  duration = 5,
+  interval = 0.5,
+  time_noise = 0.05,
+  scale_noise = 0.15
+)
+
+lhipp_ests <- fit_models(sim_data)
+msd_distances <- calc_distances(lhipp_ests, metric = "msd")
+
+print(paste0("LPME Distance: ", round(msd_distances$lpme_dist, 3)))
+print(paste0("PME Distance: ", round(msd_distances$pme_dist, 3)))
+
+chamfer_distances <- calc_distances(lhipp_ests, metric = "chamfer")
+
+print(paste0("LPME Distance: ", round(chamfer_distances$lpme_dist, 3)))
+print(paste0("PME Distance: ", round(chamfer_distances$pme_dist, 3)))
+```
+
+```{r}
+#| eval: false
 
 set.seed(500)
 
@@ -322,16 +413,17 @@ with_progress({
 
 saveRDS(lhipp_distances, here("output/mni_lhipp_simulation_dists.RDS"))
 
-# lpme_distances <- vector(mode = "numeric", length = length(lhipp_distances))
-# pme_distances <- vector(mode = "numeric", length = length(lhipp_distances))
-#
-# for (sim_idx in seq_along(lhipp_distances)) {
-#   lpme_distances[sim_idx] <- lhipp_distances[[sim_idx]]$lpme_dist
-#   pme_distances[sim_idx] <- lhipp_distances[[sim_idx]]$pme_dist
-# }
-#
-# ggplot() +
-#   geom_density(aes(x = lpme_distances), color = "blue", alpha = 0.5) +
-#   geom_vline(xintercept = mean(lpme_distances), color = "blue") +
-#   geom_density(aes(x = pme_distances), color = "green", alpha = 0.5) +
-#   geom_vline(xintercept = mean(pme_distances), color = "green")
+lpme_distances <- vector(mode = "numeric", length = length(lhipp_distances))
+pme_distances <- vector(mode = "numeric", length = length(lhipp_distances))
+
+for (sim_idx in seq_along(lhipp_distances)) {
+  lpme_distances[sim_idx] <- lhipp_distances[[sim_idx]]$lpme_dist
+  pme_distances[sim_idx] <- lhipp_distances[[sim_idx]]$pme_dist
+}
+
+ggplot() +
+  geom_density(aes(x = lpme_distances), color = "blue", alpha = 0.5) +
+  geom_vline(xintercept = mean(lpme_distances), color = "blue") +
+  geom_density(aes(x = pme_distances), color = "green", alpha = 0.5) +
+  geom_vline(xintercept = mean(pme_distances), color = "green")
+```
