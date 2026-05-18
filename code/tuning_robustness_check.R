@@ -53,10 +53,14 @@ with_progress({
 
       sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 
-      default_gamma <- exp(-15:5)
+      default_gamma <- -15:5
       deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.1)
+      gamma_vec <- c(
+        default_gamma,
+        default_gamma + (abs(default_gamma) * deltas)
+      )
+      gamma_vec <- exp(gamma_vec)
 
-      gamma_vec <- c(default_gamma, default_gamma + (default_gamma * deltas))
       gamma_idx <- rep(seq_along(default_gamma), 2)
 
       gamma_order <- sort(gamma_vec, index.return = TRUE)
@@ -84,7 +88,7 @@ with_progress({
 
       p()
 
-      sim_out <- c(abs(delta_val), msd_diff)
+      sim_out <- c(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)
 
       sim_out
     }
@@ -92,6 +96,7 @@ with_progress({
 
 sim_results_df <- do.call(rbind, sim_results) %>%
   as.data.frame() %>%
-  setNames(c("delta", "msd_diff"))
+  setNames(c("opt_gamma", "delta", "opt_msd", "mod_msd", "msd_diff"))
+
 
 write_csv(sim_results_df, here("output/lpme_tuning_robustness_check.csv"))

@@ -9,7 +9,7 @@ The LPME algorithm uses a smoothing spline to model to obtain temporally smooth 
 
 We evaluate whether this notion of continuity holds empirically, by applying LPME to simulated data. Specifically, we use the sinusoidal simulation case 1, shown in the manuscript's Figure 2, as our test case. We generate data according to a 5-year study duration, with study visits planned every 6 months. We specify a slight linear change in the underlying manifold over time and add noise to the amplitude and period of the observed structure, ensuring that choice of the smoothing parameter will contribute meaningfully to the model's fit. We then use the LPME algorithm to estimate the longitudinal principal manifold underlying the simulated data. We project the observed points to the estimated manifold, then compare these projections to the true underlying manifold. Through this process, we obtain the optimal embedding map and its associated tuning parameter value, $\gamma^*$, and mean squared distance, $MSD(\gamma^*)$.
 
-To assess the impact that a change in the tuning parameter makes, we update the set of potential smoothing values. For each element of the default set of values, we randomly generate a modifier, $\delta \sim \mathcal{N}(0, 0.1^2)$. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter $\gamma^*$, we also obtain the manifold estimate with $\gamma^* + (\gamma^* \times \delta)$ as the smoothing parameter, computing $MSD(\gamma^* + (\gamma^* \times \delta))$ as well. Of primary interest is the relationship between $|\delta|$ and $MSD(\gamma^* + (\gamma^* \times \delta)) - MSD(\gamma^*)$.
+To assess the impact that a change in the tuning parameter makes, we update the set of potential smoothing values. For each element of the default set of values, we randomly generate a modifier, $\delta \sim \mathcal{N}(0, 0.1^2)$. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter $\gamma^* = \exp(a^*)$, we also obtain the manifold estimate with $\gamma' = \exp(a^* + (|a^*| \times \delta))$ as the smoothing parameter, computing $MSD(\exp(a^* + (|a^*| \times \delta)))$ as well. Of primary interest is the relationship between $|\delta|$ and $MSD(\exp(a^* + (|a^*| \times \delta))) - MSD(\exp(a^*))$.
 
 ```{r, echo=FALSE}
 #| label: chunk_setup
@@ -65,10 +65,11 @@ sim_df <- sim_data$df
 
 sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 
-default_gamma <- exp(-15:5)
+default_gamma <- -15:5
 deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.1)
+gamma_vec <- c(default_gamma, default_gamma + (abs(default_gamma) * deltas))
+gamma_vec <- exp(gamma_vec)
 
-gamma_vec <- c(default_gamma, default_gamma + (default_gamma * deltas))
 gamma_idx <- rep(seq_along(default_gamma), 2)
 
 gamma_order <- sort(gamma_vec, index.return = TRUE)
@@ -92,10 +93,7 @@ mod_msd <- gamma_msds[gamma_msds != opt_msd]
 
 msd_diff <- mod_msd - opt_msd
 
-sim_out <- list(
-  delta_mag = abs(delta_val),
-  msd_diff = msd_diff
-)
+sim_out <- c(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)
 
 sim_out
 ```
@@ -104,7 +102,7 @@ sim_out
 cores <- availableCores() - 4
 plan(multicore, workers = cores)
 
-n_sims <- 1000
+n_sims <- 25
 
 set.seed(500)
 
@@ -131,10 +129,14 @@ with_progress({
 
       sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 
-      default_gamma <- exp(-15:5)
+      default_gamma <- -15:5
       deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.1)
+      gamma_vec <- c(
+        default_gamma,
+        default_gamma + (abs(default_gamma) * deltas)
+      )
+      gamma_vec <- exp(gamma_vec)
 
-      gamma_vec <- c(default_gamma, default_gamma + (default_gamma * deltas))
       gamma_idx <- rep(seq_along(default_gamma), 2)
 
       gamma_order <- sort(gamma_vec, index.return = TRUE)
@@ -162,12 +164,25 @@ with_progress({
 
       p()
 
-      sim_out <- list(
-        delta_mag = abs(delta_val),
-        msd_diff = msd_diff
-      )
+      sim_out <- c(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)
 
       sim_out
     }
 })
+
+sim_results_df <- do.call(rbind, sim_results) %>%
+  as.data.frame() %>%
+  setNames(c("opt_gamma", "delta", "opt_msd", "mod_msd", "msd_diff"))
+
+write_csv(sim_results_df, here("output/lpme_tuning_robustness_check.csv"))
 ```
+
+```{r, echo=FALSE}
+sim_results_df <- read_csv(here("output/lpme_tuning_robustness_check.csv"))
+```
+
+```{r}
+ggplot(sim_results_df) +
+  geom_point(aes(x = delta, y = msd_diff)) +
+  geom_smooth(aes(x = delta, y = msd_diff))
+  ```
