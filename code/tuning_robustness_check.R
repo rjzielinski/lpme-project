@@ -45,16 +45,16 @@ with_progress({
         obs_noise = 0.1,
         amplitude_noise = 0.1,
         period_noise = 0.1,
-        time_trend = "constant",
-        time_change = 0.1,
+        time_trend = "linear",
+        time_change = 0.2,
         N = 1000
       )
       sim_df <- sim_data$df
 
       sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 
-      default_gamma <- -15:5
-      deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.1)
+      default_gamma <- -25:5
+      deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.05)
       gamma_vec <- c(
         default_gamma,
         default_gamma + (abs(default_gamma) * deltas)
@@ -88,15 +88,32 @@ with_progress({
 
       p()
 
-      sim_out <- c(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)
+      length_msd <- length(sim_lpme$msd)
 
-      sim_out
+      sim_mat <- cbind(
+        rep(sim_idx, length_msd),
+        gamma_vec[1:length_msd],
+        sim_lpme$msd,
+        rep(opt_gamma, length_msd),
+        rep(delta_val, length_msd),
+        rep(opt_msd, length_msd),
+        rep(mod_msd, length_msd)
+      )
+      sim_mat
     }
 })
 
 sim_results_df <- do.call(rbind, sim_results) %>%
   as.data.frame() %>%
-  setNames(c("opt_gamma", "delta", "opt_msd", "mod_msd", "msd_diff"))
+  setNames(c(
+    "sim_idx",
+    "gamma",
+    "msd",
+    "opt_gamma",
+    "opt_delta",
+    "opt_msd",
+    "mod_msd"
+  ))
 
 
 write_csv(sim_results_df, here("output/lpme_tuning_robustness_check.csv"))

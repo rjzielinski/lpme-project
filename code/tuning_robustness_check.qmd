@@ -5,11 +5,12 @@ date: "May 15, 2026"
 format: html
 ---
 
-The LPME algorithm uses a smoothing spline to model to obtain temporally smooth manifold estimates. Because of this, the selection of the tuning parameter $\gamma$ serves as a key determinant of the fit of the algorithm. Our implementation of the algorithm uses leave-one-out cross-validation to select $\gamma$ from a set of prespecified potential values, $\exp(-15), \exp(-14), \dots, \exp(5)$ by default. This notebook seeks to evaluate the stability of this smoothing selection approach. To evaluate "stability", we follow Meng and Perez (2026) in considering whether the mapping from the smoothing parameter space to the embedding map space is continuous. Meng and Perez (2026) showed that the analogous mapping between spatial smoothing parameter $\lambda$ and the embedding map space is continuous for principal manifolds. To assess this property in longitudinal principal manifolds, we consider an informal definition of continuity - small deviations in the value of the smoothing parameter should yield small changes in the associated embedding map. 
+The LPME algorithm uses a smoothing spline to model to obtain temporally smooth manifold estimates. Because of this, the selection of the tuning parameter $\gamma$ serves as a key determinant of the fit of the algorithm. Our implementation of the algorithm uses leave-one-out cross-validation to select $\gamma$ from a set of prespecified potential values, $\exp(-15), \exp(-14), \dots, \exp(5)$ by default. In this section we seek to evaluate the stability of this smoothing selection approach. To evaluate "stability", we follow Meng and Perez (2026) in considering whether the mapping from the smoothing parameter space to the embedding map space is continuous. Meng and Perez (2026) showed that the analogous mapping between spatial smoothing parameter $\lambda$ and the embedding map space is continuous for principal manifolds. To assess this property in longitudinal principal manifolds, we consider an informal, empirical definition of continuity - small deviations in the value of the smoothing parameter should yield small changes in the associated embedding map, as measured by the cross-validated mean squared distance between the embedding map and the observed point cloud.
 
-We evaluate whether this notion of continuity holds empirically, by applying LPME to simulated data. Specifically, we use the sinusoidal simulation case 1, shown in the manuscript's Figure 2, as our test case. We generate data according to a 5-year study duration, with study visits planned every 6 months. We specify a slight linear change in the underlying manifold over time and add noise to the amplitude and period of the observed structure, ensuring that choice of the smoothing parameter will contribute meaningfully to the model's fit. We then use the LPME algorithm to estimate the longitudinal principal manifold underlying the simulated data. We project the observed points to the estimated manifold, then compare these projections to the true underlying manifold. Through this process, we obtain the optimal embedding map and its associated tuning parameter value, $\gamma^*$, and mean squared distance, $MSD(\gamma^*)$.
+We evaluate whether this notion of continuity holds empirically, by applying LPME to simulated data. Specifically, we use the sinusoidal simulation case 1, shown in the manuscript's Figure 2, as our test case. We generate data according to a 5-year study duration, with study visits planned every 6 months. We specify a slight linear change in the underlying manifold over time and add noise to the amplitude and period of the observed structure, ensuring that the optimal smoothing parameter value is finite, and that the choice of the smoothing parameter will contribute meaningfully to the model's fit. We then use the LPME algorithm to estimate the longitudinal principal manifold underlying the simulated data. For each candidate smoothing value $\gamma$, the cross-validated mean squared distance $MSD(\gamma)$ is computed to measure the fit of the estimated embedding map to the observed data. Through this process, we obtain the optimal embedding map and its associated tuning parameter value, $\gamma^*$, and mean squared distance, $MSD(\gamma^*)$.
 
-To assess the impact that a change in the tuning parameter makes, we update the set of potential smoothing values. For each element of the default set of values, we randomly generate a modifier, $\delta \sim \mathcal{N}(0, 0.1^2)$. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter $\gamma^* = \exp(a^*)$, we also obtain the manifold estimate with $\gamma' = \exp(a^* + (|a^*| \times \delta))$ as the smoothing parameter, computing $MSD(\exp(a^* + (|a^*| \times \delta)))$ as well. Of primary interest is the relationship between $|\delta|$ and $MSD(\exp(a^* + (|a^*| \times \delta))) - MSD(\exp(a^*))$.
+To assess the impact that a change in the tuning parameter makes, we seek to estimate the change in MSD caused by a relatively small change in $\gamma$. For each element of the default set of values, we randomly generate a modifier, $\delta \sim \mathcal{N}(0, 0.1^2)$. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter $\gamma^* = \exp(a^*)$, we also obtain the manifold estimate with $\gamma' = \exp(a^* + (|a^*| \times \delta))$ as the smoothing parameter, computing $MSD(\exp(a^* + (|a^*| \times \delta)))$ as well. Of primary interest is the relationship between $|\delta|$ and $MSD(\exp(a^* + (|a^*| \times \delta))) - MSD(\exp(a^*))$. From each LPME output, $\gamma^*$, $\delta$, $MSD(\gamma^*)$, and $MSD(\exp(a^* + (|a^*| \times \delta)))$ are saved, in addition to the remaining candidate values for $\gamma$ and their associated MSD values, which provide context as to what may be considered a small change in MSD. This process is repeated for 1,000 simulation runs. 
+
 
 ```{r, echo=FALSE}
 #| label: chunk_setup
@@ -31,6 +32,8 @@ library(princurve)
 library(doSNOW)
 library(foreach)
 library(doRNG)
+library(gghighlight)
+library(fda)
 
 setwd(here("code"))
 
@@ -57,8 +60,8 @@ sim_data <- simulate_data(
   obs_noise = 0.1,
   amplitude_noise = 0.1,
   period_noise = 0.1,
-  time_trend = "constant",
-  time_change = 0.1,
+  time_trend = "linear",
+  time_change = 0.2,
   N = 1000
 )
 sim_df <- sim_data$df
@@ -88,10 +91,25 @@ opt_gamma <- gamma_vec[opt_idx]
 delta_idx <- gamma_idx[opt_idx]
 delta_val <- deltas[delta_idx]
 
+mod_gamma <- gamma_vec[gamma_idx == delta_idx]
+mod_gamma <- mod_gamma[mod_gamma != opt_gamma]
+
 gamma_msds <- sim_lpme$msd[gamma_idx == delta_idx]
 mod_msd <- gamma_msds[gamma_msds != opt_msd]
 
 msd_diff <- mod_msd - opt_msd
+
+length_msd <- length(sim_lpme$msd)
+
+sim_mat <- cbind(
+  rep(1, length_msd),
+  gamma_vec[1:length_msd],
+  sim_lpme$msd,
+  rep(opt_gamma, length_msd),
+  rep(delta_val, length_msd),
+  rep(opt_msd, length_msd),
+  rep(mod_msd, length_msd)
+)
 
 sim_out <- c(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)
 
@@ -121,16 +139,16 @@ with_progress({
         obs_noise = 0.1,
         amplitude_noise = 0.1,
         period_noise = 0.1,
-        time_trend = "constant",
-        time_change = 0.1,
+        time_trend = "linear",
+        time_change = 0.2,
         N = 1000
       )
       sim_df <- sim_data$df
 
       sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 
-      default_gamma <- -15:5
-      deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.1)
+      default_gamma <- -25:5
+      deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.05)
       gamma_vec <- c(
         default_gamma,
         default_gamma + (abs(default_gamma) * deltas)
@@ -164,15 +182,32 @@ with_progress({
 
       p()
 
-      sim_out <- c(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)
+      length_msd <- length(sim_lpme$msd)
 
-      sim_out
+      sim_mat <- cbind(
+        rep(sim_idx, length_msd),
+        gamma_vec[1:length_msd],
+        sim_lpme$msd,
+        rep(opt_gamma, length_msd),
+        rep(delta_val, length_msd),
+        rep(opt_msd, length_msd),
+        rep(mod_msd, length_msd)
+      )
+      sim_mat
     }
 })
 
 sim_results_df <- do.call(rbind, sim_results) %>%
   as.data.frame() %>%
-  setNames(c("opt_gamma", "delta", "opt_msd", "mod_msd", "msd_diff"))
+  setNames(c(
+    "sim_idx",
+    "gamma",
+    "msd",
+    "opt_gamma",
+    "opt_delta",
+    "opt_msd",
+    "mod_msd"
+  ))
 
 write_csv(sim_results_df, here("output/lpme_tuning_robustness_check.csv"))
 ```
@@ -182,7 +217,53 @@ sim_results_df <- read_csv(here("output/lpme_tuning_robustness_check.csv"))
 ```
 
 ```{r}
-ggplot(sim_results_df) +
-  geom_point(aes(x = delta, y = msd_diff)) +
-  geom_smooth(aes(x = delta, y = msd_diff))
-  ```
+
+sim_results_df <- sim_results_df |>
+  mutate(
+    log_gamma = log(gamma),
+    log_gamma_diff = log_gamma - log(opt_gamma),
+    rel_msd_diff = (msd - opt_msd) / opt_msd
+  ) |>
+  filter(
+    abs(log_gamma_diff) < 5
+  )
+
+sim_results_red <- sim_results_df |>
+  filter(sim_idx <= 20) |>
+  rename(Simulation = sim_idx)
+
+
+ggplot(sim_results_df, aes(x = log_gamma_diff, y = rel_msd_diff)) +
+  geom_point(size = 0.5, alpha = 0.25) +
+  geom_line(
+    aes(group = sim_idx, color = sim_idx),
+    alpha = 0.25
+  ) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.5) +
+  # xlab("log(\u1d5e) - log(\u1d5e*)") +
+  xlab("log(\u03b3) - log(\u03b3*)") +
+  ylab("[MSD(\u03b3) - MSD(\u03b3*)] / MSD(\u03b3*)") +
+  scale_color_continuous(name = "Simulation Run")
+
+ggsave(here("output/figures/smoothing_selection_full.png"))
+
+
+facet_labels <- function(variable, value) {
+  paste0("Simulation ", value)
+}
+
+ggplot(sim_results_red, aes(x = log_gamma_diff, y = rel_msd_diff)) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(group = Simulation, color = Simulation)) +
+  facet_wrap(
+    ~Simulation,
+    ncol = 5,
+    scales = "free_y",
+    labeller = label_both
+  ) +
+  xlab("log(\u03b3) - log(\u03b3*)") +
+  ylab("[MSD(\u03b3) - MSD(\u03b3*)] / MSD(\u03b3*)") +
+  scale_color_continuous(name = "Simulation Run")
+
+ggsave(here("output/figures/smoothing_selection_facet.png"))
+```
