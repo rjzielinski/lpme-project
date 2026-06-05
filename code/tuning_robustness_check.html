@@ -144,9 +144,9 @@ window.Quarto = {
 </header>
 
 
-<p>The LPME algorithm uses a smoothing spline to model to obtain temporally smooth manifold estimates. Because of this, the selection of the tuning parameter <span class="math inline">\(\gamma\)</span> serves as a key determinant of the fit of the algorithm. Our implementation of the algorithm uses leave-one-out cross-validation to select <span class="math inline">\(\gamma\)</span> from a set of prespecified potential values, <span class="math inline">\(\exp(-15), \exp(-14), \dots, \exp(5)\)</span> by default. This notebook seeks to evaluate the stability of this smoothing selection approach. To evaluate “stability”, we follow Meng and Perez (2026) in considering whether the mapping from the smoothing parameter space to the embedding map space is continuous. Meng and Perez (2026) showed that the analogous mapping between spatial smoothing parameter <span class="math inline">\(\lambda\)</span> and the embedding map space is continuous for principal manifolds. To assess this property in longitudinal principal manifolds, we consider an informal definition of continuity - small deviations in the value of the smoothing parameter should yield small changes in the associated embedding map.</p>
-<p>We evaluate whether this notion of continuity holds empirically, by applying LPME to simulated data. Specifically, we use the sinusoidal simulation case 1, shown in the manuscript’s Figure 2, as our test case. We generate data according to a 5-year study duration, with study visits planned every 6 months. We specify a slight linear change in the underlying manifold over time and add noise to the amplitude and period of the observed structure, ensuring that choice of the smoothing parameter will contribute meaningfully to the model’s fit. We then use the LPME algorithm to estimate the longitudinal principal manifold underlying the simulated data. We project the observed points to the estimated manifold, then compare these projections to the true underlying manifold. Through this process, we obtain the optimal embedding map and its associated tuning parameter value, <span class="math inline">\(\gamma^*\)</span>, and mean squared distance, <span class="math inline">\(MSD(\gamma^*)\)</span>.</p>
-<p>To assess the impact that a change in the tuning parameter makes, we update the set of potential smoothing values. For each element of the default set of values, we randomly generate a modifier, <span class="math inline">\(\delta \sim \mathcal{N}(0, 0.1^2)\)</span>. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter <span class="math inline">\(\gamma^*\)</span>, we also obtain the manifold estimate with <span class="math inline">\(\gamma^* + (\gamma^* \times \delta)\)</span> as the smoothing parameter, computing <span class="math inline">\(MSD(\gamma^* + (\gamma^* \times \delta))\)</span> as well. Of primary interest is the relationship between <span class="math inline">\(|\delta|\)</span> and <span class="math inline">\(MSD(\gamma^* + (\gamma^* \times \delta)) - MSD(\gamma^*)\)</span>.</p>
+<p>The LPME algorithm uses a smoothing spline to model to obtain temporally smooth manifold estimates. Because of this, the selection of the tuning parameter <span class="math inline">\(\gamma\)</span> serves as a key determinant of the fit of the algorithm. Our implementation of the algorithm uses leave-one-out cross-validation to select <span class="math inline">\(\gamma\)</span> from a set of prespecified potential values, <span class="math inline">\(\exp(-15), \exp(-14), \dots, \exp(5)\)</span> by default. In this section we seek to evaluate the stability of this smoothing selection approach. To evaluate “stability”, we follow Meng and Perez (2026) in considering whether the mapping from the smoothing parameter space to the embedding map space is continuous. Meng and Perez (2026) showed that the analogous mapping between spatial smoothing parameter <span class="math inline">\(\lambda\)</span> and the embedding map space is continuous for principal manifolds. To assess this property in longitudinal principal manifolds, we consider an informal, empirical definition of continuity - small deviations in the value of the smoothing parameter should yield small changes in the associated embedding map, as measured by the cross-validated mean squared distance between the embedding map and the observed point cloud.</p>
+<p>We evaluate whether this notion of continuity holds empirically, by applying LPME to simulated data. Specifically, we use the sinusoidal simulation case 1, shown in the manuscript’s Figure 2, as our test case. We generate data according to a 5-year study duration, with study visits planned every 6 months. We specify a slight linear change in the underlying manifold over time and add noise to the amplitude and period of the observed structure, ensuring that the optimal smoothing parameter value is finite, and that the choice of the smoothing parameter will contribute meaningfully to the model’s fit. We then use the LPME algorithm to estimate the longitudinal principal manifold underlying the simulated data. For each candidate smoothing value <span class="math inline">\(\gamma\)</span>, the cross-validated mean squared distance <span class="math inline">\(MSD(\gamma)\)</span> is computed to measure the fit of the estimated embedding map to the observed data. Through this process, we obtain the optimal embedding map and its associated tuning parameter value, <span class="math inline">\(\gamma^*\)</span>, and mean squared distance, <span class="math inline">\(MSD(\gamma^*)\)</span>.</p>
+<p>To assess the impact that a change in the tuning parameter makes, we seek to estimate the change in MSD caused by a relatively small change in <span class="math inline">\(\gamma\)</span>. For each element of the default set of values, we randomly generate a modifier, <span class="math inline">\(\delta \sim \mathcal{N}(0, 0.1^2)\)</span>. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter <span class="math inline">\(\gamma^* = \exp(a^*)\)</span>, we also obtain the manifold estimate with <span class="math inline">\(\gamma' = \exp(a^* + (|a^*| \times \delta))\)</span> as the smoothing parameter, computing <span class="math inline">\(MSD(\exp(a^* + (|a^*| \times \delta)))\)</span> as well. Of primary interest is the relationship between <span class="math inline">\(|\delta|\)</span> and <span class="math inline">\(MSD(\exp(a^* + (|a^*| \times \delta))) - MSD(\exp(a^*))\)</span>. From each LPME output, <span class="math inline">\(\gamma^*\)</span>, <span class="math inline">\(\delta\)</span>, <span class="math inline">\(MSD(\gamma^*)\)</span>, and <span class="math inline">\(MSD(\exp(a^* + (|a^*| \times \delta)))\)</span> are saved, in addition to the remaining candidate values for <span class="math inline">\(\gamma\)</span> and their associated MSD values, which provide context as to what may be considered a small change in MSD. This process is repeated for 1,000 simulation runs.</p>
 <section id="simulation-demonstration" class="level3">
 <h3 class="anchored" data-anchor-id="simulation-demonstration">Simulation Demonstration</h3>
 <div class="cell">
@@ -159,54 +159,44 @@ window.Quarto = {
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">obs_noise =</span> <span class="fl">0.1</span>,</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">amplitude_noise =</span> <span class="fl">0.1</span>,</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">period_noise =</span> <span class="fl">0.1</span>,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_trend =</span> <span class="st">"constant"</span>,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_change =</span> <span class="fl">0.1</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_trend =</span> <span class="st">"linear"</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_change =</span> <span class="fl">0.2</span>,</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">N =</span> <span class="dv">1000</span></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>sim_df <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>df</span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>sim_processed <span class="ot">&lt;-</span> <span class="fu">preprocess_data</span>(sim_df, <span class="at">case =</span> <span class="dv">1</span>, <span class="at">d =</span> <span class="dv">1</span>, <span class="at">D =</span> <span class="dv">2</span>)</span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>default_gamma <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="dv">15</span><span class="sc">:</span><span class="dv">5</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>default_gamma <span class="ot">&lt;-</span> <span class="sc">-</span><span class="dv">15</span><span class="sc">:</span><span class="dv">5</span></span>
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>deltas <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">length</span>(default_gamma), <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="fl">0.1</span>)</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>gamma_vec <span class="ot">&lt;-</span> <span class="fu">c</span>(default_gamma, default_gamma <span class="sc">+</span> (default_gamma <span class="sc">*</span> deltas))</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>gamma_idx <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq_along</span>(default_gamma), <span class="dv">2</span>)</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>gamma_order <span class="ot">&lt;-</span> <span class="fu">sort</span>(gamma_vec, <span class="at">index.return =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>gamma_vec <span class="ot">&lt;-</span> gamma_order<span class="sc">$</span>x</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>gamma_idx <span class="ot">&lt;-</span> gamma_idx[gamma_order<span class="sc">$</span>ix]</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>sim_lpme <span class="ot">&lt;-</span> <span class="fu">lpme</span>(</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.matrix</span>(sim_processed<span class="sc">$</span>df_observed),</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">d =</span> <span class="dv">1</span>,</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">gamma =</span> gamma_vec</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>gamma_vec <span class="ot">&lt;-</span> <span class="fu">c</span>(default_gamma, default_gamma <span class="sc">+</span> (<span class="fu">abs</span>(default_gamma) <span class="sc">*</span> deltas))</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>gamma_vec <span class="ot">&lt;-</span> <span class="fu">exp</span>(gamma_vec)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>gamma_idx <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq_along</span>(default_gamma), <span class="dv">2</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>gamma_order <span class="ot">&lt;-</span> <span class="fu">sort</span>(gamma_vec, <span class="at">index.return =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>gamma_vec <span class="ot">&lt;-</span> gamma_order<span class="sc">$</span>x</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>gamma_idx <span class="ot">&lt;-</span> gamma_idx[gamma_order<span class="sc">$</span>ix]</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>sim_lpme <span class="ot">&lt;-</span> <span class="fu">lpme</span>(</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.matrix</span>(sim_processed<span class="sc">$</span>df_observed),</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">d =</span> <span class="dv">1</span>,</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">gamma =</span> gamma_vec</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "When gamma = 3.05902320501826e-07, MSD = 0.00741573663749219."
-[1] "When gamma = 3.181446604881e-07, MSD = 0.00746483654391324."
-[1] "When gamma = 8.25329561248868e-07, MSD = 0.00785909175704417."
-[1] "When gamma = 8.31528719103568e-07, MSD = 0.00790221339227573."
-[1] "When gamma = 1.76072312151874e-06, MSD = 0.00815584339107119."
-[1] "When gamma = 2.26032940698105e-06, MSD = 0.00812566400272305."
-[1] "When gamma = 5.9166092575001e-06, MSD = 0.00658128560754226."
-[1] "When gamma = 6.14421235332821e-06, MSD = 0.0065587560688006."
-[1] "When gamma = 1.67017007902457e-05, MSD = 0.00597731849079857."
-[1] "When gamma = 2.0847706834219e-05, MSD = 0.00579641869388638."
-[1] "When gamma = 4.53887183340898e-05, MSD = 0.0051210060467734."
-[1] "When gamma = 4.53999297624849e-05, MSD = 0.00512081663909923."
-[1] "When gamma = 0.00012340980408668, MSD = 0.00448964805614747."
-[1] "When gamma = 0.000129125631135502, MSD = 0.00446573628438775."
-[1] "When gamma = 0.000335462627902512, MSD = 0.00413660973605193."
-[1] "When gamma = 0.000342516333038532, MSD = 0.00413158738204015."
-[1] "When gamma = 0.000623312724065763, MSD = 0.00406920739099156."
-[1] "When gamma = 0.000911881965554516, MSD = 0.00406456566366738."
-[1] "When gamma = 0.00247875217666636, MSD = 0.00412086808763122."
-[1] "When gamma = 0.00269785247795025, MSD = 0.00412636443156951."
-[1] "When gamma = 0.00673794699908547, MSD = 0.00418238122325188."
-[1] "When gamma = 0.00754188536939571, MSD = 0.00418773730826843."
-[1] "When gamma = 0.0160226470217515, MSD = 0.00422246227800823."
-[1] "The optimal tuning parameter is 0.000911881965554516, and the MSD of the optimal fit is 0.00406456566366738"</code></pre>
+<pre><code>[1] "When gamma = 1.2772036025203e-07, MSD = 0.0290627240956913."
+[1] "When gamma = 3.05902320501826e-07, MSD = 0.0345232678648076."
+[1] "When gamma = 5.57561141609356e-07, MSD = 0.0458866129188552."
+[1] "When gamma = 7.49116089247227e-07, MSD = 0.0529454229542834."
+[1] "When gamma = 8.31528719103568e-07, MSD = 0.0552209009178432."
+[1] "When gamma = 2.26032940698105e-06, MSD = 0.0705022923605357."
+[1] "When gamma = 3.93924320657378e-06, MSD = 0.0578033050714164."
+[1] "When gamma = 6.14421235332821e-06, MSD = 0.0624455974602657."
+[1] "When gamma = 1.67017007902457e-05, MSD = 0.066691379858141."
+[1] "When gamma = 4.5287953796725e-05, MSD = 0.0683432765621149."
+[1] "When gamma = 4.53999297624849e-05, MSD = 0.0683438921758966."
+[1] "When gamma = 9.95169883653177e-05, MSD = 0.0694119364612774."
+[1] "The optimal tuning parameter is 1.2772036025203e-07, and the MSD of the optimal fit is 0.0290627240956913"</code></pre>
 </div>
 <div class="cell-output-display">
 <div>
@@ -221,30 +211,38 @@ window.Quarto = {
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>delta_idx <span class="ot">&lt;-</span> gamma_idx[opt_idx]</span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>delta_val <span class="ot">&lt;-</span> deltas[delta_idx]</span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>gamma_msds <span class="ot">&lt;-</span> sim_lpme<span class="sc">$</span>msd[gamma_idx <span class="sc">==</span> delta_idx]</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>mod_msd <span class="ot">&lt;-</span> gamma_msds[gamma_msds <span class="sc">!=</span> opt_msd]</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>mod_gamma <span class="ot">&lt;-</span> gamma_vec[gamma_idx <span class="sc">==</span> delta_idx]</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>mod_gamma <span class="ot">&lt;-</span> mod_gamma[mod_gamma <span class="sc">!=</span> opt_gamma]</span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>msd_diff <span class="ot">&lt;-</span> mod_msd <span class="sc">-</span> opt_msd</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>sim_out <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">delta_mag =</span> <span class="fu">abs</span>(delta_val),</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">msd_diff =</span> msd_diff</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>gamma_msds <span class="ot">&lt;-</span> sim_lpme<span class="sc">$</span>msd[gamma_idx <span class="sc">==</span> delta_idx]</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>mod_msd <span class="ot">&lt;-</span> gamma_msds[gamma_msds <span class="sc">!=</span> opt_msd]</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>msd_diff <span class="ot">&lt;-</span> mod_msd <span class="sc">-</span> opt_msd</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>length_msd <span class="ot">&lt;-</span> <span class="fu">length</span>(sim_lpme<span class="sc">$</span>msd)</span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>sim_out</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>sim_mat <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(<span class="dv">1</span>, length_msd),</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  gamma_vec[<span class="dv">1</span><span class="sc">:</span>length_msd],</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  sim_lpme<span class="sc">$</span>msd,</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(opt_gamma, length_msd),</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(delta_val, length_msd),</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(opt_msd, length_msd),</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(mod_msd, length_msd)</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>sim_out <span class="ot">&lt;-</span> <span class="fu">c</span>(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>sim_out</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>$delta_mag
-[1] 0.3164546
-
-$msd_diff
-[1] 4.641727e-06</code></pre>
+<pre><code>[1]  1.277204e-07 -2.210325e-01  2.906272e-02  7.050229e-02  4.143957e-02</code></pre>
 </div>
 </div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>cores <span class="ot">&lt;-</span> <span class="fu">availableCores</span>() <span class="sc">-</span> <span class="dv">4</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(multicore, <span class="at">workers =</span> cores)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>n_sims <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>n_sims <span class="ot">&lt;-</span> <span class="dv">25</span></span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">500</span>)</span>
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
@@ -263,53 +261,89 @@ $msd_diff
 <span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">obs_noise =</span> <span class="fl">0.1</span>,</span>
 <span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">amplitude_noise =</span> <span class="fl">0.1</span>,</span>
 <span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        <span class="at">period_noise =</span> <span class="fl">0.1</span>,</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">time_trend =</span> <span class="st">"constant"</span>,</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">time_change =</span> <span class="fl">0.1</span>,</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">time_trend =</span> <span class="st">"linear"</span>,</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">time_change =</span> <span class="fl">0.2</span>,</span>
 <span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">N =</span> <span class="dv">1000</span></span>
 <span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>      )</span>
 <span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>      sim_df <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>df</span>
 <span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>      sim_processed <span class="ot">&lt;-</span> <span class="fu">preprocess_data</span>(sim_df, <span class="at">case =</span> <span class="dv">1</span>, <span class="at">d =</span> <span class="dv">1</span>, <span class="at">D =</span> <span class="dv">2</span>)</span>
 <span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>      default_gamma <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="dv">15</span><span class="sc">:</span><span class="dv">5</span>)</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>      default_gamma <span class="ot">&lt;-</span> <span class="sc">-</span><span class="dv">15</span><span class="sc">:</span><span class="dv">5</span></span>
 <span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>      deltas <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">length</span>(default_gamma), <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="fl">0.1</span>)</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>      gamma_vec <span class="ot">&lt;-</span> <span class="fu">c</span>(default_gamma, default_gamma <span class="sc">+</span> (default_gamma <span class="sc">*</span> deltas))</span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>      gamma_idx <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq_along</span>(default_gamma), <span class="dv">2</span>)</span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>      gamma_order <span class="ot">&lt;-</span> <span class="fu">sort</span>(gamma_vec, <span class="at">index.return =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>      gamma_vec <span class="ot">&lt;-</span> gamma_order<span class="sc">$</span>x</span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>      gamma_idx <span class="ot">&lt;-</span> gamma_idx[gamma_order<span class="sc">$</span>ix]</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>      gamma_vec <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>        default_gamma,</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>        default_gamma <span class="sc">+</span> (<span class="fu">abs</span>(default_gamma) <span class="sc">*</span> deltas)</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>      gamma_vec <span class="ot">&lt;-</span> <span class="fu">exp</span>(gamma_vec)</span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>      gamma_idx <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq_along</span>(default_gamma), <span class="dv">2</span>)</span>
 <span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>      sim_lpme <span class="ot">&lt;-</span> <span class="fu">lpme</span>(</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>        <span class="fu">as.matrix</span>(sim_processed<span class="sc">$</span>df_observed),</span>
-<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>        <span class="at">d =</span> <span class="dv">1</span>,</span>
-<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>        <span class="at">gamma =</span> gamma_vec,</span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>        <span class="at">verbose =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>        <span class="at">print_plots =</span> <span class="cn">FALSE</span></span>
-<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>      opt_idx <span class="ot">&lt;-</span> <span class="fu">which.min</span>(sim_lpme<span class="sc">$</span>msd)</span>
-<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>      opt_msd <span class="ot">&lt;-</span> sim_lpme<span class="sc">$</span>msd[opt_idx]</span>
-<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>      opt_gamma <span class="ot">&lt;-</span> gamma_vec[opt_idx]</span>
-<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>      delta_idx <span class="ot">&lt;-</span> gamma_idx[opt_idx]</span>
-<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>      delta_val <span class="ot">&lt;-</span> deltas[delta_idx]</span>
-<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>      gamma_msds <span class="ot">&lt;-</span> sim_lpme<span class="sc">$</span>msd[gamma_idx <span class="sc">==</span> delta_idx]</span>
-<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>      mod_msd <span class="ot">&lt;-</span> gamma_msds[gamma_msds <span class="sc">!=</span> opt_msd]</span>
-<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>      msd_diff <span class="ot">&lt;-</span> mod_msd <span class="sc">-</span> opt_msd</span>
-<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>      <span class="fu">p</span>()</span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>      gamma_order <span class="ot">&lt;-</span> <span class="fu">sort</span>(gamma_vec, <span class="at">index.return =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>      gamma_vec <span class="ot">&lt;-</span> gamma_order<span class="sc">$</span>x</span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>      gamma_idx <span class="ot">&lt;-</span> gamma_idx[gamma_order<span class="sc">$</span>ix]</span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>      sim_lpme <span class="ot">&lt;-</span> <span class="fu">lpme</span>(</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>        <span class="fu">as.matrix</span>(sim_processed<span class="sc">$</span>df_observed),</span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>        <span class="at">d =</span> <span class="dv">1</span>,</span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>        <span class="at">gamma =</span> gamma_vec,</span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>        <span class="at">verbose =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>        <span class="at">print_plots =</span> <span class="cn">FALSE</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>      opt_idx <span class="ot">&lt;-</span> <span class="fu">which.min</span>(sim_lpme<span class="sc">$</span>msd)</span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>      opt_msd <span class="ot">&lt;-</span> sim_lpme<span class="sc">$</span>msd[opt_idx]</span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>      opt_gamma <span class="ot">&lt;-</span> gamma_vec[opt_idx]</span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>      delta_idx <span class="ot">&lt;-</span> gamma_idx[opt_idx]</span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a>      delta_val <span class="ot">&lt;-</span> deltas[delta_idx]</span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a>      gamma_msds <span class="ot">&lt;-</span> sim_lpme<span class="sc">$</span>msd[gamma_idx <span class="sc">==</span> delta_idx]</span>
+<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>      mod_msd <span class="ot">&lt;-</span> gamma_msds[gamma_msds <span class="sc">!=</span> opt_msd]</span>
 <span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>      sim_out <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>        <span class="at">delta_mag =</span> <span class="fu">abs</span>(delta_val),</span>
-<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>        <span class="at">msd_diff =</span> msd_diff</span>
-<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a>      sim_out</span>
-<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>      msd_diff <span class="ot">&lt;-</span> mod_msd <span class="sc">-</span> opt_msd</span>
+<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>      <span class="fu">p</span>()</span>
+<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a>      length_msd <span class="ot">&lt;-</span> <span class="fu">length</span>(sim_lpme<span class="sc">$</span>msd)</span>
+<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>      sim_mat <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
+<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rep</span>(sim_idx, length_msd),</span>
+<span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a>        gamma_vec[<span class="dv">1</span><span class="sc">:</span>length_msd],</span>
+<span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a>        sim_lpme<span class="sc">$</span>msd,</span>
+<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rep</span>(opt_gamma, length_msd),</span>
+<span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rep</span>(delta_val, length_msd),</span>
+<span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rep</span>(opt_msd, length_msd),</span>
+<span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rep</span>(mod_msd, length_msd)</span>
+<span id="cb5-76"><a href="#cb5-76" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb5-77"><a href="#cb5-77" aria-hidden="true" tabindex="-1"></a>      sim_mat</span>
+<span id="cb5-78"><a href="#cb5-78" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb5-79"><a href="#cb5-79" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb5-80"><a href="#cb5-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-81"><a href="#cb5-81" aria-hidden="true" tabindex="-1"></a>sim_results_df <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, sim_results) <span class="sc">%&gt;%</span></span>
+<span id="cb5-82"><a href="#cb5-82" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb5-83"><a href="#cb5-83" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setNames</span>(<span class="fu">c</span>(</span>
+<span id="cb5-84"><a href="#cb5-84" aria-hidden="true" tabindex="-1"></a>    <span class="st">"sim_idx"</span>,</span>
+<span id="cb5-85"><a href="#cb5-85" aria-hidden="true" tabindex="-1"></a>    <span class="st">"gamma"</span>,</span>
+<span id="cb5-86"><a href="#cb5-86" aria-hidden="true" tabindex="-1"></a>    <span class="st">"msd"</span>,</span>
+<span id="cb5-87"><a href="#cb5-87" aria-hidden="true" tabindex="-1"></a>    <span class="st">"opt_gamma"</span>,</span>
+<span id="cb5-88"><a href="#cb5-88" aria-hidden="true" tabindex="-1"></a>    <span class="st">"opt_delta"</span>,</span>
+<span id="cb5-89"><a href="#cb5-89" aria-hidden="true" tabindex="-1"></a>    <span class="st">"opt_msd"</span>,</span>
+<span id="cb5-90"><a href="#cb5-90" aria-hidden="true" tabindex="-1"></a>    <span class="st">"mod_msd"</span></span>
+<span id="cb5-91"><a href="#cb5-91" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-93"><a href="#cb5-93" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(sim_results_df, here("output/lpme_tuning_robustness_check.csv"))</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(sim_results_df) <span class="sc">+</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> delta, <span class="at">y =</span> msd_diff <span class="sc">/</span> opt_msd)) <span class="sc">+</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="fu">aes</span>(<span class="at">x =</span> delta, <span class="at">y =</span> msd_diff <span class="sc">/</span> opt_msd))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="tuning_robustness_check_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 
