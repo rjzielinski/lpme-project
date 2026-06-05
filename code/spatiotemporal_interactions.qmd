@@ -1,0 +1,608 @@
+---
+title: "Use of LPME With Spatiotemporal Interactions"
+author: "Robert Zielinski"
+date: "May 21, 2026"
+format: html
+---
+
+The LPME algorithm seeks to estimate temporally smooth changes to principal manifolds estimated at each time point of a point cloud observed longitudinally. Despite the spatial principal manifold estimates being fit using smoothing spline functions, the LPME method explicitly separates spatial and temporal smoothing, using distinct smoothing parameters for each principal manifold estimate and also for the spline function used to smooth over these time point-specific estimates. As described in Section 3.1, this approach maintains flexibility in cases where the amount of spatial smoothing required differs substantially from the amount of temporal smoothing needed to obtain a good fit. This distinction may be particularly useful when applied to neuroimaging data, where structures of interest often have highly irregular, curved shapes that are expected to remain stable over time.
+
+However, the success of this approach depends on correctly making two key assumptions: 1) the model estimates require different amounts of spatial and temporal smoothing, and 2) there is no interaction between the amount of spatial and temporal smoothing required. If assumption 1 is violated, estimating separate tuning parameters for spatial and temporal smoothing will be inefficient, as more data and computational resources than should be necessary will be required to select appropriate smoothing values and obtain model estimates. However, assuming sufficient data availability, this overparameterized model should not negatively impact model accuracy, since independently selecting the spatial and temporal smoothing parameters would cause the same values to be chosen as if they were assumed to be directly dependent.
+
+A violation of assumption 2 could potentially result in a poorer-fitting model. If there is truly an interaction between the spatial and temporal smoothing, then failing to consider this interaction will likely result in estimates that insufficiently capture true variation in the manifold at certain time points or locations, and are overly sensitive to random noise at other time points or locations.
+
+In this section, we use simulated data to explore this situation, showing how the LPME estimate may be impacted. We consider two distinct instantiations of simulation case 1, where observations are generated according to a sinusoidal embedding map. In one scenario, a linear change in the amplitude of the embedding map is present over time, with the amplitude decreasing at a constant rate of change over the course of the simulated time points. In the other, the amplitude is determined by a cubic function of time, presenting one form of spatiotemporal interaction. In both cases, data are generated according to a 5-year longitudinal study, with visits scheduled approximately every 6 months. The values of the time point-specific noise added to the amplitude and period of the embedding map remain the same between simulated datasets to ensure comparability. For each case, we apply the LPME model to the simulated datasets and compare the estimated manifold to the underlying manifold at each time point to explore the behavior of the model estimates under each set of assumptions. 
+
+```{r, echo=FALSE}
+#| label: chunk_setup
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+```{r, echo=FALSE}
+#| label: load_packages
+library(tidyverse)
+library(plotly)
+library(pracma)
+library(furrr)
+library(here)
+library(progress)
+library(plotly)
+library(pme)
+library(princurve)
+library(doSNOW)
+library(foreach)
+library(doRNG)
+library(tidyverse)
+
+setwd(here("code"))
+
+source("prinSurf_v3.R")
+source("functions/simulations/simulate_data.R")
+source("functions/simulations/preprocess_data.R")
+source("functions/simulations/fit_models.R")
+source("functions/simulations/evaluate_models.R")
+source("functions/simulations/display_results.R")
+source("functions/calculate_lpme_reconstructions.R")
+source("functions/calculate_pme_reconstructions.R")
+```
+
+```{r}
+calculate_sigma <- function(r, d, sd, bandwidth) {
+  # creates a covariance matrix using the squared exponential kernel
+
+  if (d == 1) {
+    sigma_mat <- matrix(NA, nrow = nrow(r), ncol = nrow(r))
+    for (i in seq_len(nrow(r))) {
+      for (j in seq_len(nrow(r))) {
+        dist <- r[i, 1] - r[j, 1]
+        sigma_mat[i, j] <- sd^2 * exp(-(dist^2) / (2 * bandwidth^2))
+      }
+    }
+  } else if (d == 2) {
+    sigma_mat1 <- matrix(NA, nrow = nrow(r), ncol = nrow(r))
+    sigma_mat2 <- matrix(NA, nrow = nrow(r), ncol = nrow(r))
+    for (i in seq_len(nrow(r))) {
+      for (j in seq_len(nrow(r))) {
+        dist1 <- r[i, 1] - r[j, 1]
+        dist2 <- r[i, 2] - r[j, 2]
+        sigma_mat1[i, j] <- sd^2 * exp(-(dist1^2) / (2 * bandwidth^2))
+        sigma_mat2[i, j] <- sd^2 * exp(-(dist2^2) / (2 * bandwidth^2))
+      }
+    }
+    sigma_mat <- sigma_mat1 * sigma_mat2
+  }
+
+  return(sigma_mat)
+}
+```
+
+```{r}
+set.seed(500)
+
+duration <- 5
+interval <- 0.5
+obs_noise <- 0.05
+amplitude_noise <- 0.1
+period_noise <- 0.1
+time_change <- 0.5
+visit_noise <- 0.1
+N <- 1000
+
+manifold <- function(tau, amplitude, period) {
+  c(tau, amplitude * sin(period * tau + pi / 2))
+}
+
+D <- 2
+d <- 1
+
+time_points <- seq(from = 0, to = duration, by = interval)
+
+time_noise <- rnorm(n = length(time_points) - 1, mean = 0, sd = visit_noise)
+time_noise <- c(0, time_noise)
+time_points <- map(
+  seq_along(time_points),
+  ~ max(time_points[.x] + time_noise[.x], rnorm(1, 1e-2, 1e-3))
+) |>
+  reduce(c) |>
+  sort()
+time_points[1] <- 0
+
+# specify systematic changes in amplitude over time
+time_adjustments_linear <- time_points
+time_adjustments_cubic <- (time_points - 2)^3 -
+  0.75 * (time_points - 1)^2 -
+  time_points
+time_adjustments_cubic <- time_adjustments_cubic - min(time_adjustments_cubic)
+
+# scale time adjustments to be proportion of 1
+linear_adjustments_scaled <- (time_adjustments_linear /
+  max(time_adjustments_linear)) *
+  time_change
+cubic_adjustments_scaled <- (time_adjustments_cubic /
+  max(time_adjustments_cubic)) *
+  time_change
+
+amplitude_values_linear <- 1 - linear_adjustments_scaled
+amplitude_values_cubic <- 1 - linear_adjustments_scaled
+
+# assume that period does not change between visits
+period_values_linear <- 1 + linear_adjustments_scaled
+period_values_cubic <- 1 + cubic_adjustments_scaled
+
+observed_amplitude_values_linear <- vector(
+  mode = "numeric",
+  length = length(time_points)
+)
+observed_period_values_linear <- vector(
+  mode = "numeric",
+  length = length(time_points)
+)
+
+observed_amplitude_values_cubic <- vector(
+  mode = "numeric",
+  length = length(time_points)
+)
+observed_period_values_cubic <- vector(
+  mode = "numeric",
+  length = length(time_points)
+)
+
+sim_matrix_linear <- matrix(NA, nrow = 1, ncol = 1 + d + (2 * D))
+sim_matrix_cubic <- matrix(NA, nrow = 1, ncol = 1 + d + (2 * D))
+
+for (time_idx in seq_along(time_points)) {
+  # matrix of low-dimensional parameters
+  r <- matrix(NA, nrow = N, ncol = d)
+  # r[, 1] <- rnorm(N, mean = 0, sd = 1)
+  r[, 1] <- runif(N, min = -3, max = 3)
+
+  # image-specific amplitude and period noise indicates measurement error
+  # and variability in image processing/segmentation
+  amplitude_noise_vals <- rnorm(d, mean = 0, sd = amplitude_noise)
+  period_noise_vals <- rnorm(d, mean = 0, sd = period_noise)
+
+  observed_amplitude_values_linear[time_idx] <- amplitude_values_linear[
+    time_idx
+  ] *
+    (1 + amplitude_noise_vals)
+  observed_period_values_linear[time_idx] <- period_values_linear[time_idx] *
+    (1 + period_noise_vals)
+
+  observed_amplitude_values_cubic[time_idx] <- amplitude_values_cubic[
+    time_idx
+  ] *
+    (1 + amplitude_noise_vals)
+  observed_period_values_cubic[time_idx] <- period_values_cubic[time_idx] *
+    (1 + period_noise_vals)
+
+  gp_sigma <- calculate_sigma(r, d, obs_noise / 4, bandwidth = 1)
+  obs_noise_adjustment <- MASS::mvrnorm(
+    n = 1,
+    mu = rep(0, N),
+    Sigma = gp_sigma
+  )
+  obs_noise_adjusted <- (obs_noise) * (1 + obs_noise_adjustment)
+  obs_noise_adjusted <- rep(obs_noise_adjusted, each = D)
+  obs_noise_vals <- rnorm(N * D, mean = 0, sd = obs_noise_adjusted) |>
+    matrix(nrow = N, ncol = D, byrow = TRUE)
+
+  # use true underlying amplitude and period values to generate
+  # denoised observations
+  X_true_linear <- map(
+    seq_len(nrow(r)),
+    ~ manifold(
+      r[.x, ],
+      amplitude_values_linear[time_idx],
+      period_values_linear[time_idx]
+    )
+  ) |>
+    unlist() |>
+    matrix(ncol = D, byrow = TRUE)
+
+  X_true_cubic <- map(
+    seq_len(nrow(r)),
+    ~ manifold(
+      r[.x, ],
+      amplitude_values_cubic[time_idx],
+      period_values_cubic[time_idx]
+    )
+  ) |>
+    unlist() |>
+    matrix(ncol = D, byrow = TRUE)
+
+  # incorporate noise for manifold amplitude and period, and
+  # observation-level noise for observations used to fit manifold learning
+  X_linear <- map(
+    seq_len(nrow(r)),
+    ~ manifold(
+      r[.x, ],
+      observed_amplitude_values_linear[time_idx],
+      observed_period_values_linear[time_idx]
+    )
+  ) |>
+    unlist() |>
+    matrix(ncol = D, byrow = TRUE)
+  X_cubic <- map(
+    seq_len(nrow(r)),
+    ~ manifold(
+      r[.x, ],
+      observed_amplitude_values_cubic[time_idx],
+      observed_period_values_cubic[time_idx]
+    )
+  ) |>
+    unlist() |>
+    matrix(ncol = D, byrow = TRUE)
+
+  X_linear <- X_linear + obs_noise_vals
+  X_cubic <- X_cubic + obs_noise_vals
+
+  time_mat <- matrix(time_points[time_idx], nrow = nrow(r), ncol = 1)
+
+  sim_data_mat_linear <- cbind(time_mat, r, X_linear, X_true_linear)
+  sim_matrix_linear <- rbind(sim_matrix_linear, sim_data_mat_linear)
+
+  sim_data_mat_cubic <- cbind(time_mat, r, X_cubic, X_true_cubic)
+  sim_matrix_cubic <- rbind(sim_matrix_cubic, sim_data_mat_cubic)
+}
+
+# remove initial row of NA values
+sim_matrix_linear <- sim_matrix_linear[-1, ]
+sim_matrix_cubic <- sim_matrix_cubic[-1, ]
+
+sim_df_linear <- as_tibble(sim_matrix_linear, .name_repair = "minimal")
+sim_df_cubic <- as_tibble(sim_matrix_cubic, .name_repair = "minimal")
+
+names(sim_df_linear) <- c(
+  "time",
+  paste0("r", 1:d),
+  paste0("X", 1:D),
+  paste0("X_true", 1:D)
+)
+names(sim_df_cubic) <- c(
+  "time",
+  paste0("r", 1:d),
+  paste0("X", 1:D),
+  paste0("X_true", 1:D)
+)
+```
+
+
+```{r}
+# set.seed(100)
+# sim_data_linear <- simulate_data(
+#   duration = 5,
+#   interval = 0.5,
+#   case = 1,
+#   obs_noise = 0.05,
+#   amplitude_noise = 0.1,
+#   period_noise = 0.1,
+#   time_trend = "linear",
+#   time_change = 0.5,
+#   N = 1000
+# )
+# sim_df_linear <- sim_data_linear$df
+
+plot_ly(
+  data = sim_df_linear,
+  x = ~X1,
+  y = ~time,
+  z = ~X2,
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) |>
+  add_markers(
+    x = ~X_true1,
+    y = ~time,
+    z = ~X_true2,
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  )
+```
+
+```{r}
+# set.seed(500)
+# sim_data_quad <- simulate_data(
+#   duration = 5,
+#   interval = 0.5,
+#   case = 1,
+#   obs_noise = 0.05,
+#   amplitude_noise = 0.1,
+#   period_noise = 0.1,
+#   time_trend = "quadratic",
+#   time_change = 0.5,
+#   N = 1000
+# )
+# sim_df_quad <- sim_data_quad$df
+
+plot_ly(
+  data = sim_df_cubic,
+  x = ~X1,
+  y = ~time,
+  z = ~X2,
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 3, color = "black"),
+  name = "Data"
+) |>
+  add_markers(
+    x = ~X_true1,
+    y = ~time,
+    z = ~X_true2,
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  )
+```
+
+```{r}
+sim_processed_linear <- preprocess_data(sim_df_linear, case = 1, d = 1, D = 2)
+mat_observed_linear <- as.matrix(sim_processed_linear$df_observed)
+mat_true_linear <- as.matrix(sim_processed_linear$df_true)
+
+set.seed(600)
+
+lpme_linear <- lpme(
+  mat_observed_linear,
+  d = 1,
+  gamma = c(0, exp(-25:5)),
+  verbose = FALSE,
+  print_plots = FALSE
+)
+
+lpme_linear_reconstructions <- calculate_lpme_reconstructions(
+  lpme_linear,
+  mat_observed_linear
+)
+```
+
+```{r}
+plot_ly(
+  sim_processed_linear$df,
+  x = ~X1,
+  y = ~time,
+  z = ~X2,
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 2, color = "black", alpha = 0.5),
+  name = "Data"
+) |>
+  add_markers(
+    x = ~X_true1,
+    y = ~time,
+    z = ~X_true2,
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) |>
+  add_markers(
+    x = lpme_linear_reconstructions[, 2],
+    y = lpme_linear_reconstructions[, 1],
+    z = lpme_linear_reconstructions[, 3],
+    marker = list(size = 3, color = "blue"),
+    name = "LPME"
+  )
+```
+
+```{r}
+sim_processed_cubic <- preprocess_data(sim_df_cubic, case = 1, d = 1, D = 2)
+mat_observed_cubic <- as.matrix(sim_processed_cubic$df_observed)
+mat_true_cubic <- as.matrix(sim_processed_cubic$df_true)
+
+set.seed(700)
+
+lpme_cubic <- lpme(
+  mat_observed_cubic,
+  d = 1,
+  gamma = c(0, exp(-25:5)),
+  verbose = FALSE,
+  print_plots = FALSE
+)
+
+lpme_cubic_reconstructions <- calculate_lpme_reconstructions(
+  lpme_cubic,
+  mat_observed_cubic
+)
+```
+
+```{r}
+
+plot_ly(
+  sim_processed_cubic$df,
+  x = ~X1,
+  y = ~time,
+  z = ~X2,
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 2, color = "black", alpha = 0.5),
+  name = "Data"
+) |>
+  add_markers(
+    x = ~X_true1,
+    y = ~time,
+    z = ~X_true2,
+    marker = list(size = 3, color = "red"),
+    name = "True Manifold"
+  ) |>
+  add_markers(
+    x = lpme_cubic_reconstructions[, 2],
+    y = lpme_cubic_reconstructions[, 1],
+    z = lpme_cubic_reconstructions[, 3],
+    marker = list(size = 3, color = "blue"),
+    name = "LPME"
+  )
+```
+
+
+```{r, eval=FALSE}
+df_labels <- c("Data", "True Manifold", "LPME")
+
+data_linear <- list(
+  as.matrix(sim_processed_linear$df_observed),
+  as.matrix(sim_processed_linear$df_true),
+  lpme_linear_reconstructions
+)
+
+for (df_idx in seq_along(data_linear)) {
+  df <- as.data.frame(data_linear[[df_idx]])
+  names(df) <- c("time", "x", "y")
+  df$type <- df_labels[df_idx]
+  data_linear[[df_idx]] <- df
+}
+
+data_linear <- reduce(data_linear, bind_rows)
+data_linear <- data_linear |>
+  mutate(
+    time = round(time, 3),
+    time = as.factor(time)
+  )
+
+data_cubic <- list(
+  as.matrix(sim_processed_cubic$df_observed),
+  as.matrix(sim_processed_cubic$df_true),
+  lpme_cubic_reconstructions
+)
+
+for (df_idx in seq_along(data_cubic)) {
+  df <- as.data.frame(data_cubic[[df_idx]])
+  names(df) <- c("time", "x", "y")
+  df$type <- df_labels[df_idx]
+  data_cubic[[df_idx]] <- df
+}
+
+data_cubic <- reduce(data_cubic, bind_rows)
+data_cubic <- data_cubic |>
+  mutate(
+    time = round(time, 3),
+    time = as.factor(time)
+  )
+
+
+#  colors <- c("black", "blue", "green", "purple", "red")
+pal <- getFromNamespace(paste0("pal_", "d3"), "ggsci")
+colors <- pal(alpha = 1)(10)
+color_pal <- colors[c(1, 2, 4)]
+
+data_linear_sample <- seq(1, nrow(data_linear), by = 5)
+
+data_linear_lpme <- data_linear |>
+  filter(type %in% c("Data", "True Manifold", "LPME")) |>
+  mutate(source = "LPME")
+
+data_linear_plot <- data_linear_lpme |>
+  mutate(
+    show = ifelse(
+      type == "Data",
+      "Data",
+      ifelse(row_number() %% 100 == 0, "Marker", "No")
+    ),
+    show = as.factor(show)
+  ) |>
+  rename(Time = time)
+
+linear_plot <- data_linear_plot |>
+  filter(Time %in% unique(data_linear$time)[2:11]) |>
+  ggplot() +
+  geom_point(
+    aes(
+      x = x,
+      y = y,
+      color = type,
+      fill = type,
+      shape = type,
+      alpha = show,
+      size = type
+    ),
+    stroke = 0
+  ) +
+  geom_line(aes(
+    x = x,
+    y = y,
+    color = type,
+    group = type,
+    linetype = type,
+    linewidth = type
+  )) +
+  facet_wrap(~Time, nrow = 2, labeller = label_both) +
+  scale_color_manual(values = color_pal) +
+  # scale_fill_manual(values = colors[c(4, 7, 3, 10, 1)]) +
+  scale_alpha_manual(
+    values = c("Data" = 0.25, "Marker" = 1, "No" = 0),
+    guide = "none"
+  ) +
+  scale_shape_manual(values = c(16, 17, NA)) +
+  scale_linetype_manual(
+    values = c("blank", "longdash", "solid")
+  ) +
+  scale_size_manual(values = c(1.5, 2.5, 1.5)) +
+  scale_linewidth_manual(values = c(0, 1, 0.5))
+
+ggsave(
+  here("output/figures/sim_case1_linear_change.png"),
+  plot = linear_plot,
+  dpi = 1000,
+  height = 6,
+  width = 12
+)
+
+data_cubic_sample <- seq(1, nrow(data_cubic), by = 5)
+
+data_cubic_lpme <- data_cubic |>
+  filter(type %in% c("Data", "True Manifold", "LPME")) |>
+  mutate(source = "LPME")
+
+data_cubic_plot <- data_cubic_lpme |>
+  mutate(
+    show = ifelse(
+      type == "Data",
+      "Data",
+      ifelse(row_number() %% 100 == 0, "Marker", "No")
+    ),
+    show = as.factor(show)
+  ) |>
+  rename(Time = time)
+
+cubic_plot <- data_cubic_plot |>
+  filter(Time %in% unique(data_cubic$time)[2:11]) |>
+  ggplot() +
+  geom_point(
+    aes(
+      x = x,
+      y = y,
+      color = type,
+      fill = type,
+      shape = type,
+      alpha = show,
+      size = type
+    ),
+    stroke = 0
+  ) +
+  geom_line(aes(
+    x = x,
+    y = y,
+    color = type,
+    group = type,
+    linetype = type,
+    linewidth = type
+  )) +
+  facet_wrap(~Time, nrow = 2, labeller = label_both) +
+  scale_color_manual(values = color_pal) +
+  # scale_fill_manual(values = colors[c(4, 7, 3, 10, 1)]) +
+  scale_alpha_manual(
+    values = c("Data" = 0.25, "Marker" = 1, "No" = 0),
+    guide = "none"
+  ) +
+  scale_shape_manual(values = c(16, 17, NA)) +
+  scale_linetype_manual(
+    values = c("blank", "longdash", "solid")
+  ) +
+  scale_size_manual(values = c(1.5, 2.5, 1.5)) +
+  scale_linewidth_manual(values = c(0, 1, 0.5))
+
+ggsave(
+  here("output/figures/sim_case1_cubic_change.png"),
+  plot = cubic_plot,
+  dpi = 1000,
+  height = 6,
+  width = 12
+)
+```
