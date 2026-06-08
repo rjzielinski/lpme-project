@@ -1159,6 +1159,7 @@ The paper also provides comparisons of the computation times required to run eac
 ```{r, eval=FALSE}
 adni_info |>
   group_by(patno) |>
+  # all times are duplicated, so taking the mean simply collapses them
   summarize(
     lhipp_lpme_time = mean(lhipp_lpme_time),
     lhipp_pme_time = mean(lhipp_pme_time),
@@ -1171,7 +1172,7 @@ adni_info |>
     lthal_pc_time = mean(lthal_pc_time),
     rthal_lpme_time = mean(rthal_lpme_time),
     rthal_pme_time = mean(rthal_pme_time),
-    rthal_pc_time = mean(rthal_pc_time)
+    rthal_pc_time = mean(rthal_pc_time),
   ) |>
   ungroup() |>
 
@@ -1187,7 +1188,20 @@ adni_info |>
     lthal_pc_mean = mean(lthal_pc_time, na.rm = TRUE),
     rthal_lpme_mean = mean(rthal_lpme_time, na.rm = TRUE),
     rthal_pme_mean = mean(rthal_pme_time, na.rm = TRUE),
-    rthal_pc_mean = mean(rthal_pc_time, na.rm = TRUE)
+    rthal_pc_mean = mean(rthal_pc_time, na.rm = TRUE),
+
+    lhipp_lpme_sd = sd(lhipp_lpme_time, na.rm = TRUE),
+    lhipp_pme_sd = sd(lhipp_pme_time, na.rm = TRUE),
+    lhipp_pc_sd = sd(lhipp_pc_time, na.rm = TRUE),
+    rhipp_lpme_sd = sd(rhipp_lpme_time, na.rm = TRUE),
+    rhipp_pme_sd = sd(rhipp_pme_time, na.rm = TRUE),
+    rhipp_pc_sd = sd(rhipp_pc_time, na.rm = TRUE),
+    lthal_lpme_sd = sd(lthal_lpme_time, na.rm = TRUE),
+    lthal_pme_sd = sd(lthal_pme_time, na.rm = TRUE),
+    lthal_pc_sd = sd(lthal_pc_time, na.rm = TRUE),
+    rthal_lpme_sd = sd(rthal_lpme_time, na.rm = TRUE),
+    rthal_pme_sd = sd(rthal_pme_time, na.rm = TRUE),
+    rthal_pc_sd = sd(rthal_pc_time, na.rm = TRUE)
   ) |>
   print(width = Inf)
 ```

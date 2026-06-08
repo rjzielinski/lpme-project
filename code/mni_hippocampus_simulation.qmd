@@ -147,7 +147,7 @@ With the surface voxels identified, the task of the following simulations is to 
 
 The LPME and PME algorithms will be used to estimate the manifold underlying the hippocampal surface, with the LPME algorithm applied across all time points, and the PME algorithm being applied to each time point separately. We obtain projections of the artificially perturbed voxels to each manifold estimate, then compare the projected point cloud to the MNI surface.
 
-To incorporate a standard measure of shape recovery, we measure model performance using the partial Procrustes distance between the projected point clouds and the MNI surface. While the full Procrustes distance compares shapes after they have been optimally translated, rotated, and scaled, the partial Procrustes distance only optimally translates and rotates the shapes. Because the partial Procrustes distance does not scale the shapes under consideration, the effects of the simulated scaling of the true surface applied at each time point should still be incorporated in the distance measure.
+To incorporate a standard measure of shape recovery, we measure model performance using the Chamfer distance between the projected point clouds and the MNI surface. This metric computes the distance between two point clouds as the mean distance between each point in one point cloud to its nearest neighbor in the alternative point cloud, and is a commonly used measure of dissimilarity between two point clouds in computer vision settings.
 
 ```{r}
 simulate_data <- function(
@@ -412,18 +412,38 @@ with_progress({
 })
 
 saveRDS(lhipp_distances, here("output/mni_lhipp_simulation_dists.RDS"))
+```
 
-lpme_distances <- vector(mode = "numeric", length = length(lhipp_distances))
-pme_distances <- vector(mode = "numeric", length = length(lhipp_distances))
+```{r, echo=FALSE}
+lhipp_distances <- readRDS(here("output/mni_lhipp_simulation_dists.RDS"))
+```
 
-for (sim_idx in seq_along(lhipp_distances)) {
-  lpme_distances[sim_idx] <- lhipp_distances[[sim_idx]]$lpme_dist
-  pme_distances[sim_idx] <- lhipp_distances[[sim_idx]]$pme_dist
-}
+```{r}
 
-ggplot() +
-  geom_density(aes(x = lpme_distances), color = "blue", alpha = 0.5) +
-  geom_vline(xintercept = mean(lpme_distances), color = "blue") +
-  geom_density(aes(x = pme_distances), color = "green", alpha = 0.5) +
-  geom_vline(xintercept = mean(pme_distances), color = "green")
+lhipp_distance_df <- map(
+  lhipp_distances,
+  ~ c(.x$lpme_dist, .x$pme_dist, .x$pme_dist - .x$lpme_dist)
+) |>
+  reduce(rbind) |>
+  as.data.frame() |>
+  setNames(c("lpme_dist", "pme_dist", "diff"))
+
+lhipp_distance_long <- lhipp_distance_df |>
+  select(lpme_dist, pme_dist) |>
+  pivot_longer(
+    cols = lpme_dist:pme_dist,
+    names_to = "Method",
+    values_to = "distance"
+  ) |>
+  mutate(Method = gsub("_dist", "", Method), Method = str_to_upper(Method))
+```
+
+```{r}
+ggplot(lhipp_distance_long) +
+  geom_density(aes(x = distance, fill = Method), alpha = 0.5) +
+  xlab("Chamfer Distance to MNI Surface Voxels") +
+  ylab("Density") +
+  scale_fill_manual(values = c("blue", "darkgreen"))
+
+ggsave(here("output/figures/mni_lhipp_simulation_distances.png"))
 ```

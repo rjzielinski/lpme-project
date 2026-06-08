@@ -33,7 +33,6 @@ library(doSNOW)
 library(foreach)
 library(doRNG)
 library(gghighlight)
-library(fda)
 
 setwd(here("code"))
 
@@ -216,8 +215,8 @@ write_csv(sim_results_df, here("output/lpme_tuning_robustness_check.csv"))
 sim_results_df <- read_csv(here("output/lpme_tuning_robustness_check.csv"))
 ```
 
-```{r}
 
+```{r}
 sim_results_df <- sim_results_df |>
   mutate(
     log_gamma = log(gamma),
@@ -228,15 +227,25 @@ sim_results_df <- sim_results_df |>
     abs(log_gamma_diff) < 5
   )
 
+set.seed(10)
+include_facet_idx <- sample(unique(sim_results_df$sim_idx), size = 20)
+
 sim_results_red <- sim_results_df |>
-  filter(sim_idx <= 20) |>
+  filter(sim_idx %in% include_facet_idx) |>
   rename(Simulation = sim_idx)
 
+include_idx <- sim_results_df |>
+  group_by(sim_idx) |>
+  summarize(max_rel_msd_diff = max(rel_msd_diff)) |>
+  filter(max_rel_msd_diff < 20) |>
+  pull(sim_idx)
 
-ggplot(sim_results_df, aes(x = log_gamma_diff, y = rel_msd_diff)) +
+sim_results_df |>
+  filter(sim_idx %in% include_idx) |>
+  ggplot(aes(x = log_gamma_diff, y = rel_msd_diff)) +
   geom_point(size = 0.5, alpha = 0.25) +
   geom_line(
-    aes(group = sim_idx, color = sim_idx),
+    aes(group = sim_idx),
     alpha = 0.25
   ) +
   geom_smooth(se = FALSE, method = "loess", span = 0.5) +
@@ -254,7 +263,7 @@ facet_labels <- function(variable, value) {
 
 ggplot(sim_results_red, aes(x = log_gamma_diff, y = rel_msd_diff)) +
   geom_point(alpha = 0.5) +
-  geom_line(aes(group = Simulation, color = Simulation)) +
+  geom_line(aes(group = Simulation)) +
   facet_wrap(
     ~Simulation,
     ncol = 5,
