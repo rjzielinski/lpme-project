@@ -1,0 +1,254 @@
+---
+title: "LPME Initialization Timing"
+author: "Robert Zielinski"
+date: "June 8, 2026"
+format: html
+---
+
+Fundamentally, the PME algorithm iteratively improves an embedding map from parameters on a low-dimensional manifold to associated coordinates in a high-dimensional ambient space. Each iteration alternates between (1) estimating the embedding map given a set of parameter values; and (2) finding the optimal parameter values given the updated embedding map. However, this process relies on an initialization procedure to obtain the initial parameter values; this need is relevant to the LPME algorithm as well.
+
+Several possible initialization approaches for the LPME algorithm were discussed in Section 3.2.2 of the manuscript. Specifically, we followed Meng and Eloyan (2021) in applying the Isomap algorithm to the observed data for all time points, using the resulting parameter values as the initial parameter values for the time point-specific PME runs. An alternative option would apply the PME algorithm to the data from the first time point, then use the estimated embedding map to obtain the initial parameter values for observations across all time points.
+
+The choice of which initialization approach to use depends on several factors. First, the approaches differ in which observations are used to estimate the initial parameters, with the Isomap-based approach using all available time points and the PME-based approach using only the first time point. To the extent that the first time point is representative of the data at the remaining time points, the PME-based approach will likely provide a reasonable initialization, but this approach may yield a poor initialization otherwise. Second, Meng and Eloyan (2021) demonstrated that the PME algorithm yields improved parameter estimates when compared to Isomap on many manifolds. Thus, if the first time point is reasonably representative, the PME-based approach may provide an improved initialization over the Isomap-based approach. However, the extent to which PME would improve this parameterization will differ by the structure of the underlying manifold.
+
+A third factor to consider is the compute time required to obtain the initialization. This notebook is intended to explore how these two approaches compare in terms of computational burden when applied to simulted data. We consider Simulation Case 1, described in Table 1 of the associated manuscript and depicted in Figure 3, where observations are generated from a 1-dimensional manifold and embedded in 2-dimensional Euclidean space according to a sinusoidal embedding function.
+
+Note that running the following code relies on results from the PME package's internal functions.
+
+```{r, echo=FALSE}
+#| label: load_packages
+library(devtools)
+library(doFuture)
+library(foreach)
+library(future)
+library(here)
+library(progressr)
+library(readr)
+library(tictoc)
+
+setwd(here("code"))
+
+source("prinSurf_v3.R")
+source("functions/simulations/simulate_data.R")
+source("functions/simulations/preprocess_data.R")
+source("functions/simulations/fit_models.R")
+source("functions/simulations/evaluate_models.R")
+source("functions/simulations/display_results.R")
+source("functions/calculate_lpme_reconstructions.R")
+source("functions/calculate_pme_reconstructions.R")
+
+# use path to PME package
+setwd("~/Documents/r/packages/pme")
+load_all()
+```
+
+### Simulation Demonstration
+
+The following code chunk provides a demonstration of the code used to compare initialization times between the two methods under consideration. The `initialize_lpme()` function is run twice, once with the argument `"full"`, and once with the argument `"first"`, describing which of the two approaches was to be taken. The `tictoc` package was used to time this operation. After initialization was completed, the remaining analysis steps used for simulations were not conducted. 
+
+```{r, eval=TRUE}
+#| label: demo_case1
+set.seed(900)
+
+sim_data <- simulate_data(
+  duration = 5,
+  interval = 0.5,
+  case = 1,
+  obs_noise = 0.1,
+  amplitude_noise = 0.1,
+  period_noise = 0.1,
+  time_trend = "constant",
+  time_change = 0.1,
+  N = 1000
+)
+sim_df <- sim_data$df
+
+sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
+
+data <- as.matrix(sim_processed$df_observed)
+d <- 1
+
+alpha <- 0.05
+min_clusters <- 0
+max_clusters <- 100
+init_type <- "centers"
+
+time_points <- unique(data[, 1])
+min_observations <- nrow(data)
+for (time_val in time_points) {
+  temp_data <- data[data[, 1] == time_val, ]
+  min_observations <- min(min_observations, nrow(temp_data))
+}
+max_clusters <- min(min_observations - 1, max_clusters)
+
+if (min_clusters == 0) {
+  min_clusters <- 10 * d
+  if (min_clusters >= max_clusters) {
+    min_clusters <- 5 * d
+  }
+}
+
+reduced_data <- reduce_data(
+  data,
+  time_points,
+  alpha,
+  max_clusters,
+  min_clusters,
+  init_type
+)
+
+tic()
+initialization_first <- initialize_lpme(
+  data,
+  reduced_data,
+  time_points,
+  "first",
+  d,
+  max_clusters,
+  min_clusters,
+  initialization = "isomap",
+  initialization_type = init_type,
+  neighbors = NA,
+  template = "euclidean"
+)
+first_time <- toc()
+
+tic()
+initialization_full <- initialize_lpme(
+  data,
+  reduced_data,
+  time_points,
+  "full",
+  d,
+  max_clusters,
+  min_clusters,
+  initialization = "isomap",
+  initialization_type = init_type,
+  neighbors = NA,
+  template = "euclidean"
+)
+full_time <- toc()
+```
+
+Below is the code used to generate the simulation results in full. This code was not run when this notebook was rendered, but is provided for reference. The resulting initialization run times were summarized and described in Section S1.4 of the online supplement.
+
+```{r, eval=FALSE}
+# not run in the rendering of this notebook.
+plan(sequential)
+
+n_sims <- 1000
+
+set.seed(500)
+
+with_progress({
+  p <- progressor(n_sims)
+
+  sim_results <- foreach(
+    sim_idx = seq_len(n_sims),
+    .options.future = list(seed = TRUE)
+  ) %dofuture%
+    {
+      sim_data <- simulate_data(
+        duration = 5,
+        interval = 0.5,
+        case = 1,
+        obs_noise = 0.1,
+        amplitude_noise = 0.1,
+        period_noise = 0.1,
+        time_trend = "constant",
+        time_change = 0.1,
+        N = 1000
+      )
+      sim_df <- sim_data$df
+
+      sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
+
+      data <- as.matrix(sim_processed$df_observed)
+      d <- 1
+
+      alpha <- 0.05
+      min_clusters <- 0
+      max_clusters <- 100
+      init_type <- "centers"
+
+      time_points <- unique(data[, 1])
+      min_observations <- nrow(data)
+      for (time_val in time_points) {
+        temp_data <- data[data[, 1] == time_val, ]
+        min_observations <- min(min_observations, nrow(temp_data))
+      }
+      max_clusters <- min(min_observations - 1, max_clusters)
+
+      if (min_clusters == 0) {
+        min_clusters <- 10 * d
+        if (min_clusters >= max_clusters) {
+          min_clusters <- 5 * d
+        }
+      }
+
+      reduced_data <- reduce_data(
+        data,
+        time_points,
+        alpha,
+        max_clusters,
+        min_clusters,
+        init_type
+      )
+
+      tic()
+      initialization_first <- initialize_lpme(
+        data,
+        reduced_data,
+        time_points,
+        "first",
+        d,
+        max_clusters,
+        min_clusters,
+        initialization = "isomap",
+        initialization_type = init_type,
+        neighbors = NA,
+        template = "euclidean"
+      )
+      first_time <- toc()
+
+      tic()
+      initialization_full <- initialize_lpme(
+        data,
+        reduced_data,
+        time_points,
+        "full",
+        d,
+        max_clusters,
+        min_clusters,
+        initialization = "isomap",
+        initialization_type = init_type,
+        neighbors = NA,
+        template = "euclidean"
+      )
+      full_time <- toc()
+
+      p()
+
+      c(first_time, full_time)
+    }
+})
+
+sim_results_df <- do.call(rbind, sim_results) %>%
+  as.data.frame() %>%
+  setNames(c("first_time", "full_time"))
+
+write_csv(sim_results_df, here("output/lpme_initialization_times.csv"))
+```
+
+```{r, eval=FALSE}
+sim_results_df <- read_csv(here("output/lpme_initialization_times.csv"))
+
+sim_results_df |>
+  summarize(
+    mean_first_time = mean(first_time),
+    sd_first_time = sd(first_time),
+    mean_full_time = mean(full_time),
+    sd_full_time = sd(full_time)
+  )
+```
+
