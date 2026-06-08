@@ -1,13 +1,22 @@
 ---
 title: "LPME Simulation Results"
 author: "Robert Zielinski"
-date: "December 8, 2025"
+date: "June 8, 2026"
 format: html
 ---
 
 Once simulations comparing the LPME algorithm to the PME and PC/PS methods have been run as described in `code/01_lpme_simulations.qmd`, the code in this notebook demonstrates how results were aggregated. As with running the simulations, in practice this process was run on a computing cluster for efficiency, but the code given in this notebook is the same.
 
-```{r, eval=FALSE}
+```{r, echo=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r}
 library(foreach)
 library(ggsci)
 library(here)
@@ -33,7 +42,12 @@ source(here("code/functions/calculate_pme_reconstructions.R"))
 Because the estimates for each simulation run were saved separately, we loop through each output file, extracting the relevant performance information alongside the values of the simulation parameters. The following two chunks include the process used by `code/simulation_summary.R`, which was run on the computing cluster using `summarize_simulations.sh`.
 
 ```{r, eval=FALSE}
-paths <- list.files("output/simulations", recursive = TRUE, full.names = TRUE)
+# This chunk is not run in the rendering of this notebook.
+paths <- list.files(
+  here("output/simulations"),
+  recursive = TRUE,
+  full.names = TRUE
+)
 
 sim_df <- foreach(
   idx = seq_along(paths),
@@ -77,6 +91,7 @@ sim_df <- foreach(
 The following chunk then saves the resulting table for future use.
 
 ```{r, eval=FALSE}
+# This chunk is not run in the rendering of this notebook.
 sim_df <- as_tibble(sim_df)
 sim_df <- sim_df |>
   rename(
@@ -105,7 +120,7 @@ sim_df <- sim_df |>
     principal_curve_part_time = as.numeric(principal_curve_part_time)
   )
 
-write_csv(sim_df, "output/simulation_results.csv")
+write_csv(sim_df, here("output/simulation_results.csv"))
 ```
 
 
@@ -113,7 +128,8 @@ The remaining code, originally run in the `code/simulation_performance.R` script
 
 ```{r, eval=FALSE}
 # Table 2 reports median MSD for each estimate and IQR.
-sim_results <- read_csv("output/simulation_results.csv")
+# This chunk is not run in the rendering of this notebook.
+sim_results <- read_csv(here("output/simulation_results.csv"))
 sim_results <- sim_results |>
   mutate(case = as.factor(case))
 
@@ -153,11 +169,18 @@ sim_result_summary <- sim_results |>
     pc_part_time_iqr = IQR(principal_curve_part_time, na.rm = TRUE)
   )
 
-write_csv(sim_result_summary, "output/simulation_results_summary.csv")
+write_csv(sim_result_summary, here("output/simulation_results_summary.csv"))
+```
+
+```{r}
+sim_result_summary <- read_csv(here("output/simulation_results_summary.csv"))
+
+print(sim_result_summary, width = Inf)
 ```
 
 ```{r, eval=FALSE}
 # Table S1 reports mean and standard deviation of MSD for each estimate.
+# This chunk is not run in the rendering of this notebook.
 sim_result_summary_mean <- sim_results |>
   group_by(case) |>
   summarize(
@@ -194,12 +217,25 @@ sim_result_summary_mean <- sim_results |>
     pc_part_time_sd = sd(principal_curve_part_error, na.rm = TRUE)
   )
 
-write_csv(sim_result_summary_mean, "output/simulation_results_summary_mean.csv")
+write_csv(
+  sim_result_summary_mean,
+  here("output/simulation_results_summary_mean.csv")
+)
 ```
+
+```{r}
+sim_result_summary_mean <- read_csv(here(
+  "output/simulation_results_summary_mean.csv"
+))
+
+print(sim_result_summary_mean, width = Inf)
+```
+
+
 
 Finally, the following code is used to generate Figure 3 in the manuscript. The results shown in the plot are obtained using the same process described in `code/01_lpme_simulations.qmd`.
 
-```{r}
+```{r, fig.width=12, fig.height=6}
 seed_val <- 25
 set.seed(seed_val)
 
