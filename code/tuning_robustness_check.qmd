@@ -1,15 +1,15 @@
 ---
 title: "LPME Smoothing Selection Robustness Check"
 author: "Robert Zielinski"
-date: "May 15, 2026"
+date: "June 9, 2026"
 format: html
 ---
 
-The LPME algorithm uses a smoothing spline to model to obtain temporally smooth manifold estimates. Because of this, the selection of the tuning parameter $\gamma$ serves as a key determinant of the fit of the algorithm. Our implementation of the algorithm uses leave-one-out cross-validation to select $\gamma$ from a set of prespecified potential values, $\exp(-15), \exp(-14), \dots, \exp(5)$ by default. In this section we seek to evaluate the stability of this smoothing selection approach. To evaluate "stability", we follow Meng and Perez (2026) in considering whether the mapping from the smoothing parameter space to the embedding map space is continuous. Meng and Perez (2026) showed that the analogous mapping between spatial smoothing parameter $\lambda$ and the embedding map space is continuous for principal manifolds. To assess this property in longitudinal principal manifolds, we consider an informal, empirical definition of continuity - small deviations in the value of the smoothing parameter should yield small changes in the associated embedding map, as measured by the cross-validated mean squared distance between the embedding map and the observed point cloud.
+This notebook contains the code required to obtain results for the robustness check of LPME smoothing selection, discussed in Section S1.3 of the supplement. To evaluate "stability" of tuning selection, we follow Meng and Perez (2026) in considering whether the mapping from the smoothing parameter space to the embedding map space is continuous. Meng and Perez (2026) showed that the analogous mapping between spatial smoothing parameter $\lambda$ and the embedding map space is continuous for principal manifolds. To assess this property in longitudinal principal manifolds, we consider an informal, empirical definition of continuity - small deviations in the value of the smoothing parameter should yield small changes in the associated embedding map, as measured by the cross-validated mean squared distance between the embedding map and the observed point cloud.
 
-We evaluate whether this notion of continuity holds empirically, by applying LPME to simulated data. Specifically, we use the sinusoidal simulation case 1, shown in the manuscript's Figure 2, as our test case. We generate data according to a 5-year study duration, with study visits planned every 6 months. We specify a slight linear change in the underlying manifold over time and add noise to the amplitude and period of the observed structure, ensuring that the optimal smoothing parameter value is finite, and that the choice of the smoothing parameter will contribute meaningfully to the model's fit. We then use the LPME algorithm to estimate the longitudinal principal manifold underlying the simulated data. For each candidate smoothing value $\gamma$, the cross-validated mean squared distance $MSD(\gamma)$ is computed to measure the fit of the estimated embedding map to the observed data. Through this process, we obtain the optimal embedding map and its associated tuning parameter value, $\gamma^*$, and mean squared distance, $MSD(\gamma^*)$.
+We evaluate whether this notion of continuity holds empirically, by applying LPME to simulated data. Specifically, we use the sinusoidal simulation case 1, shown in the manuscript's Figure 3, as our test case. We generate data according to a 5-year study duration, with study visits planned every 6 months. We specify a slight linear change in the underlying manifold over time and add noise to the amplitude and period of the observed structure, ensuring that the optimal smoothing parameter value is finite, and that the choice of the smoothing parameter will contribute meaningfully to the model's fit. We then use the LPME algorithm to estimate the longitudinal principal manifold underlying the simulated data. For each candidate smoothing value $\gamma$, the cross-validated mean squared distance $MSD(\gamma)$ is computed to measure the fit of the estimated embedding map to the observed data. Through this process, we obtain the optimal embedding map and its associated tuning parameter value, $\gamma^*$, and mean squared distance, $MSD(\gamma^*)$.
 
-To assess the impact that a change in the tuning parameter makes, we seek to estimate the change in MSD caused by a relatively small change in $\gamma$. For each element of the default set of values, we randomly generate a modifier, $\delta \sim \mathcal{N}(0, 0.1^2)$. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter $\gamma^* = \exp(a^*)$, we also obtain the manifold estimate with $\gamma' = \exp(a^* + (|a^*| \times \delta))$ as the smoothing parameter, computing $MSD(\exp(a^* + (|a^*| \times \delta)))$ as well. Of primary interest is the relationship between $|\delta|$ and $MSD(\exp(a^* + (|a^*| \times \delta))) - MSD(\exp(a^*))$. From each LPME output, $\gamma^*$, $\delta$, $MSD(\gamma^*)$, and $MSD(\exp(a^* + (|a^*| \times \delta)))$ are saved, in addition to the remaining candidate values for $\gamma$ and their associated MSD values, which provide context as to what may be considered a small change in MSD. This process is repeated for 1,000 simulation runs. 
+To assess the impact that a change in the tuning parameter makes, we seek to estimate the change in MSD caused by a relatively small change in $\gamma$. For each element of the default set of values, we randomly generate a modifier, $\delta \sim \mathcal{N}(0, 0.05^2)$. Thus, in the process of estimating the longitudinal principal manifold with tuning parameter $\gamma^* = \exp(a^*)$, we also obtain the manifold estimate with $\gamma' = \exp(a^* + (|a^*| \times \delta))$ as the smoothing parameter, computing $MSD(\exp(a^* + (|a^*| \times \delta)))$ as well. Of primary interest is the relationship between $|\delta|$ and $MSD(\exp(a^* + (|a^*| \times \delta))) - MSD(\exp(a^*))$, but we also compute MSD values for the remaining values of $\gamma$, allowing evaluation of the function over the full range of tuning values. This process is repeated for 1,000 simulation runs. 
 
 
 ```{r, echo=FALSE}
@@ -50,7 +50,7 @@ source("functions/calculate_pme_reconstructions.R")
 
 ```{r, eval=TRUE}
 #| label: demo_case1
-set.seed(900)
+set.seed(200)
 
 sim_data <- simulate_data(
   duration = 5,
@@ -67,8 +67,8 @@ sim_df <- sim_data$df
 
 sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 
-default_gamma <- -15:5
-deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.1)
+default_gamma <- -15:10
+deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.05)
 gamma_vec <- c(default_gamma, default_gamma + (abs(default_gamma) * deltas))
 gamma_vec <- exp(gamma_vec)
 
@@ -83,7 +83,10 @@ sim_lpme <- lpme(
   d = 1,
   gamma = gamma_vec
 )
+```
+The plot above shows MSD results for the example LPME estimate across all tested smoothing values. In the chunk below, these results are processed and saved to be aggregated across simulation repetitions.
 
+```{r}
 opt_idx <- which.min(sim_lpme$msd)
 opt_msd <- sim_lpme$msd[opt_idx]
 opt_gamma <- gamma_vec[opt_idx]
@@ -115,11 +118,13 @@ sim_out <- c(opt_gamma, delta_val, opt_msd, mod_msd, msd_diff)
 sim_out
 ```
 
+The code chunk below applies the process used above in 1,000 repetitions. Due to the computation cost, this is not performed while rendering this notebook, but code is provided for reference.
+
 ```{r, eval=FALSE}
 cores <- availableCores() - 4
 plan(multicore, workers = cores)
 
-n_sims <- 25
+n_sims <- 1000
 
 set.seed(500)
 
@@ -146,7 +151,7 @@ with_progress({
 
       sim_processed <- preprocess_data(sim_df, case = 1, d = 1, D = 2)
 
-      default_gamma <- -25:5
+      default_gamma <- -15:10
       deltas <- rnorm(length(default_gamma), mean = 0, sd = 0.05)
       gamma_vec <- c(
         default_gamma,
@@ -215,6 +220,7 @@ write_csv(sim_results_df, here("output/lpme_tuning_robustness_check.csv"))
 sim_results_df <- read_csv(here("output/lpme_tuning_robustness_check.csv"))
 ```
 
+The code in the following chunks demonstrates how the simulation results obtained above are summarized and plotted. Because we are primarily interested in the behavior of the MSD function near $\gamma^*$, we truncated results to display values where $|\log(\gamma) - \log(\gamma^*)| < 5$. We then examine the simulation results both at the level of individual simulation runs and summarized across all repetitions. The first plot below, shown in Figure S1a of the supplement, shows line plots of MSD versus smoothing values for 20 randomly selected simulation runs. The second plot, shown in Figure S1b, aggregates all results except those with extremely high relative MSD differences into one plot, summarizing these results with a LOESS smoother, depicted in blue. In both cases, we see that while there are some curves with sudden increases or decreases in relative MSD difference, most are smooth.
 
 ```{r}
 sim_results_df <- sim_results_df |>
@@ -240,22 +246,6 @@ include_idx <- sim_results_df |>
   filter(max_rel_msd_diff < 20) |>
   pull(sim_idx)
 
-sim_results_df |>
-  filter(sim_idx %in% include_idx) |>
-  ggplot(aes(x = log_gamma_diff, y = rel_msd_diff)) +
-  geom_point(size = 0.5, alpha = 0.25) +
-  geom_line(
-    aes(group = sim_idx),
-    alpha = 0.25
-  ) +
-  geom_smooth(se = FALSE, method = "loess", span = 0.5) +
-  # xlab("log(\u1d5e) - log(\u1d5e*)") +
-  xlab("log(\u03b3) - log(\u03b3*)") +
-  ylab("[MSD(\u03b3) - MSD(\u03b3*)] / MSD(\u03b3*)") +
-  scale_color_continuous(name = "Simulation Run")
-
-ggsave(here("output/figures/smoothing_selection_full.png"))
-
 
 facet_labels <- function(variable, value) {
   paste0("Simulation ", value)
@@ -274,5 +264,21 @@ ggplot(sim_results_red, aes(x = log_gamma_diff, y = rel_msd_diff)) +
   ylab("[MSD(\u03b3) - MSD(\u03b3*)] / MSD(\u03b3*)") +
   scale_color_continuous(name = "Simulation Run")
 
-ggsave(here("output/figures/smoothing_selection_facet.png"))
+# ggsave(here("output/figures/smoothing_selection_facet.png"))
+
+sim_results_df |>
+  filter(sim_idx %in% include_idx) |>
+  ggplot(aes(x = log_gamma_diff, y = rel_msd_diff)) +
+  geom_point(size = 0.5, alpha = 0.25) +
+  geom_line(
+    aes(group = sim_idx),
+    alpha = 0.25
+  ) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.5) +
+  # xlab("log(\u1d5e) - log(\u1d5e*)") +
+  xlab("log(\u03b3) - log(\u03b3*)") +
+  ylab("[MSD(\u03b3) - MSD(\u03b3*)] / MSD(\u03b3*)") +
+  scale_color_continuous(name = "Simulation Run")
+
+# ggsave(here("output/figures/smoothing_selection_full.png"))
 ```
