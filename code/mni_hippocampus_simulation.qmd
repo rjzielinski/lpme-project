@@ -1,13 +1,13 @@
 ---
 title: "MNI Hippocampus Simulation"
 author: "Robert Zielinski"
-date: "May 11, 2026"
+date: "June 9, 2026"
 format: html
 ---
 
 This notebook provides the code used to run simulations designed to assess the ability of the LPME algorithm to recover the underlying surface of the hippocampus. When applying the algorithm to data obtained in the ADNI study, we rely solely on the observed data, which may have error introduced in the imaging or segmentation processes; we do not have a ground truth hippocampal surface to measure the performance of the LPME algorithm. To circumvent this issue in these simulations, we obtain the surface of the hippocampi from the MNI template and add random spatial perturbations to reflect the potential observed changes in the hippocampus throughout the course of a longitudinal imaging study.
 
-```{r}
+```{r, echo=FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, eval = TRUE)
 ```
 
@@ -143,11 +143,11 @@ plot_ly(
 
 ## Adding Simulated Scaling Noise
 
-With the surface voxels identified, the task of the following simulations is to demonstrate the extent to which the LPME algorithm can recover these surface voxels in the presence of random deviations at different time points. To do this, we assume a 5-year longitudinal study, with the left hippocampal surface being observed at visits scheduled every 6 months, with a small, mean-zero noise value added to the time points to reflect the variability that exists in follow-up scheduling. At each time point, the surface voxels derived from the MNI template are rescaled such that the norm of the coordinates for rescaled voxel $x'_{i, t}$ follow $\|x'_{i, t}\| = \alpha_t \times \|x_{i, t}\|$, where $\alpha_t \sim \mathcal{N}(1, \sigma^2)$. This rescaling imitates a relative change in the size of the hippocampus measured during each image. We assume that the true hippocampal surface remains constant over time, while the random deviations are equally likely to cause overestimates of hippocampal size and volume as underestimates.
+With the surface voxels identified, the task of the following simulations is to demonstrate the extent to which the LPME algorithm can recover these surface voxels in the presence of random deviations at different time points. To do this, we assume a 5-year longitudinal study, with the left hippocampal surface being observed at visits scheduled every 6 months, with a small, mean-zero noise value added to the time points to reflect the variability that exists in follow-up scheduling. At each time point, the surface voxels derived from the MNI template are rescaled such that the norm of the coordinates for rescaled voxel $x_{i, t}$ follow $\|x_{i, t}\| = \alpha_t \times \|x^*_{i, t}\|$, where $\alpha_t \sim \mathcal{N}(1, 0.15^2)$. This rescaling imitates a relative change in the size of the hippocampus measured during each image. We assume that the true hippocampal surface remains constant over time, while the random deviations are equally likely to cause overestimates of hippocampal size and volume as underestimates.
 
 The LPME and PME algorithms will be used to estimate the manifold underlying the hippocampal surface, with the LPME algorithm applied across all time points, and the PME algorithm being applied to each time point separately. We obtain projections of the artificially perturbed voxels to each manifold estimate, then compare the projected point cloud to the MNI surface.
 
-To incorporate a standard measure of shape recovery, we measure model performance using the Chamfer distance between the projected point clouds and the MNI surface. This metric computes the distance between two point clouds as the mean distance between each point in one point cloud to its nearest neighbor in the alternative point cloud, and is a commonly used measure of dissimilarity between two point clouds in computer vision settings.
+To incorporate a standard measure of shape recovery, we measure model performance using the Chamfer distance between the projected point clouds and the MNI surface. This metric computes the distance between two point clouds as the mean distance between each point in one point cloud to its nearest neighbor in the alternative point cloud, and is a commonly used measure of dissimilarity between two point clouds in computer vision settings. The following code chunks include functions implementing each step of the simulation process, including data generation, model fitting, and distance calculations.
 
 ```{r}
 simulate_data <- function(
@@ -203,7 +203,6 @@ simulate_data <- function(
 ```
 
 ```{r}
-
 fit_models <- function(sim_data) {
   observed_surfaces <- sim_data$observed
   true_surfaces <- sim_data$true
@@ -353,6 +352,8 @@ calc_distances <- function(estimates, metric = "msd") {
 }
 ```
 
+The chunk below runs through one repetition of the simulation process, providing the Chamfer distances computed for both the LPME and PME estimates. Here, we see that the Chamfer distance for the LPME estimate is lower than for the PME estimate, indicating that the LPME estimate obtains a closer fit to the MNI hippocampal surface.
+
 ```{r}
 set.seed(250)
 
@@ -365,11 +366,6 @@ sim_data <- simulate_data(
 )
 
 lhipp_ests <- fit_models(sim_data)
-msd_distances <- calc_distances(lhipp_ests, metric = "msd")
-
-print(paste0("LPME Distance: ", round(msd_distances$lpme_dist, 3)))
-print(paste0("PME Distance: ", round(msd_distances$pme_dist, 3)))
-
 chamfer_distances <- calc_distances(lhipp_ests, metric = "chamfer")
 
 print(paste0("LPME Distance: ", round(chamfer_distances$lpme_dist, 3)))
@@ -418,8 +414,9 @@ saveRDS(lhipp_distances, here("output/mni_lhipp_simulation_dists.RDS"))
 lhipp_distances <- readRDS(here("output/mni_lhipp_simulation_dists.RDS"))
 ```
 
-```{r}
+The chunk above uses the same simulation process for 1000 repetitions, with the resulting Chamfer distances saved to a data frame. Due to the computational cost, this process was not repeated fully when rendering this notebook. However, the results are shown in the density plot below, corresponding to Figure S9 from the supplement. This density plot shows that the distribution of Chamfer distances for the LPME estimates has lower mean and median values than for the PME estimates, but that the distribution of LPME distances is skewed right, with a higher variability than that of the PME distances.
 
+```{r}
 lhipp_distance_df <- map(
   lhipp_distances,
   ~ c(.x$lpme_dist, .x$pme_dist, .x$pme_dist - .x$lpme_dist)
@@ -445,5 +442,5 @@ ggplot(lhipp_distance_long) +
   ylab("Density") +
   scale_fill_manual(values = c("blue", "darkgreen"))
 
-ggsave(here("output/figures/mni_lhipp_simulation_distances.png"))
+# ggsave(here("output/figures/mni_lhipp_simulation_distances.png"))
 ```
