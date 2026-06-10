@@ -12,6 +12,11 @@ This project is intended to create a longitudinal extension of the Principal Man
 - `code/04_lpme_adni_application.qmd`
 - `code/05_lpme_adni_results.qmd`
 - `code/06_generate_misc_figures.qmd`
+- `code/07_generate_misc_tables.qmd`
+- `code/lpme_initialization_timing.qmd`
+- `code/mni_hippocampus_simulation.qmd`
+- `code/spatiotemporal_interactions.qmd`
+- `code/tuning_robustness_check.qmd`
 
 The code in these files often depend on helper functions, which can be found in the `code/functions` directory.
 
